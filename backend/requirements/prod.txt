@@ -1,0 +1,10 @@
+-r base.txt
+
+# Production Server
+gunicorn==21.2.0
+
+# Monitoring
+sentry-sdk[fastapi]==1.38.0
+
+# Performance
+orjson==3.9.10
