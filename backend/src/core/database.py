@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
+from src.shared.models import Base
 from sqlalchemy import text
 from .config import settings
 
@@ -16,10 +16,6 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False
 )
-
-# Base 클래스 생성
-Base = declarative_base()
-
 
 # 데이터베이스 세션 의존성
 async def get_db():

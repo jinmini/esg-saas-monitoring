@@ -18,6 +18,15 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     
+    # Naver API
+    NAVER_CLIENT_ID: str = "your-naver-client-id"
+    NAVER_CLIENT_SECRET: str = "your-naver-client-secret"
+    
+    # Crawler Settings
+    CRAWL_INTERVAL_MINUTES: int = 60
+    MAX_ARTICLES_PER_COMPANY: int = 100
+    CRAWLER_DELAY_SECONDS: float = 1.0  # API 요청 간 지연
+    
     # Logging
     LOG_LEVEL: str = "INFO"
     

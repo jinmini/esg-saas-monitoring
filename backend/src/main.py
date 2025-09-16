@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.core.config import settings
 from src.core.database import test_db_connection
+from src.crawler.router import router as crawler_router
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -19,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 라우터 등록
+app.include_router(crawler_router, prefix="/api/v1")
 
 
 @app.on_event("startup")
