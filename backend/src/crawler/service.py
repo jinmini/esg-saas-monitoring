@@ -160,19 +160,17 @@ class CrawlerService:
             total_articles = await session.execute(select(Article))
             total_count = len(total_articles.scalars().all())
             
-            # 회사별 기사 수
+            # 회사별 기사 수 (정확한 집계)
+            from sqlalchemy import func
             companies_with_articles = await session.execute(
-                select(Company.company_name, Article.id.label('article_count'))
+                select(Company.company_name, func.count(Article.id).label('article_count'))
                 .join(Article)
                 .group_by(Company.id, Company.company_name)
             )
             
             company_stats = {}
-            for company_name, _ in companies_with_articles:
-                company_articles = await session.execute(
-                    select(Article).join(Company).where(Company.company_name == company_name)
-                )
-                company_stats[company_name] = len(company_articles.scalars().all())
+            for company_name, article_count in companies_with_articles:
+                company_stats[company_name] = article_count
             
             return {
                 "total_articles": total_count,

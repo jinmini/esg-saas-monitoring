@@ -1,5 +1,7 @@
 .env
 
+backend/.env.dev
+
 .esg_mapping.py
 
 .esg_mapping.csv

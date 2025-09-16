@@ -8,10 +8,11 @@ import os
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from crawler.service import CrawlerService
-from crawler.scrapers.news_scraper import NaverNewsScraper
-from core.config import settings
+from src.crawler.service import CrawlerService
+from src.crawler.scrapers.news_scraper import NaverNewsScraper
+from src.core.config import settings
 
 
 async def test_naver_api():
