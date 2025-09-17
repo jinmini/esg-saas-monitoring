@@ -58,27 +58,40 @@ class NaverNewsScraper(BaseScraper):
             except httpx.RequestError as e:
                 raise Exception(f"Request error: {str(e)}")
     
-    async def parse_articles(self, response_data: dict, company_id: int) -> List[dict]:
-        """네이버 API 응답을 Article 모델 형식으로 변환"""
+    async def parse_articles(self, response_data: dict, company_id: int, company_name: str = None) -> List[dict]:
+        """네이버 API 응답을 Article 모델 형식으로 변환 (관련성 필터링 포함)"""
         try:
             # Pydantic 모델로 검증
             naver_response = NaverNewsResponse(**response_data)
             
             articles = []
+            filtered_count = 0
+            
             for item in naver_response.items:
+                title = self._clean_html_tags(item.title)
+                summary = self._clean_html_tags(item.description)
+                
+                # 관련성 검증 (회사명이 제공된 경우)
+                if company_name and not self._is_relevant_article(title, summary, company_name):
+                    filtered_count += 1
+                    continue
+                
                 article_data = {
                     "company_id": company_id,
-                    "title": self._clean_html_tags(item.title),
+                    "title": title,
                     "source_name": self._extract_source_name(item.link),
                     "article_url": item.originallink or item.link,
                     "published_at": self._parse_date(item.pubDate),
-                    "summary": self._clean_html_tags(item.description),
+                    "summary": summary,
                     "language": "ko",
                     "is_verified": False
                 }
                 articles.append(article_data)
             
-            logger.info(f"Parsed {len(articles)} articles for company_id: {company_id}")
+            logger.info(f"Parsed {len(articles)} articles for {company_name} (company_id: {company_id})")
+            if filtered_count > 0:
+                logger.info(f"Filtered out {filtered_count} irrelevant articles for {company_name}")
+            
             return articles
             
         except Exception as e:

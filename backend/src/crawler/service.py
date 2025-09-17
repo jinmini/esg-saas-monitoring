@@ -62,7 +62,8 @@ class CrawlerService:
                             display=min(result.articles_saved, 100),
                             sort="date"
                         ),
-                        company['id']
+                        company['id'],
+                        company['company_name']
                     )
                     
                     saved_count = await self.save_articles(articles_data)
