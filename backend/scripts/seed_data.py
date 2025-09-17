@@ -8,8 +8,8 @@ import os
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from core.database import AsyncSessionLocal
-from shared.models import Company
+from src.core.database import AsyncSessionLocal
+from src.shared.models import Company
 
 
 async def seed_companies():

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Github, ExternalLink } from 'lucide-react';
+import { Github } from 'lucide-react';
 
 export function Footer() {
   return (

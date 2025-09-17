@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ArticleCard } from './ArticleCard';
-import { SkeletonCard, LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { SkeletonCard } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/Button';
 import { useArticlesFeed } from '@/hooks/useArticles';
 import { AlertCircle } from 'lucide-react';
