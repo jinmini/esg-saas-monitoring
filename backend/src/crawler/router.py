@@ -4,6 +4,7 @@ from loguru import logger
 
 from .service import CrawlerService
 from .schemas import CrawlResult, NewsSearchRequest
+from .scrapers.scheduler import crawler_scheduler
 
 router = APIRouter(prefix="/crawler", tags=["crawler"])
 crawler_service = CrawlerService()
@@ -101,3 +102,88 @@ async def crawler_health_check():
             "naver_api": "error",
             "message": f"Health check failed: {str(e)}"
         }
+
+
+# 스케줄러 관리 API 엔드포인트들
+@router.post("/scheduler/start")
+async def start_scheduler():
+    """크롤링 스케줄러 시작"""
+    try:
+        await crawler_scheduler.start()
+        return {
+            "status": "success",
+            "message": "크롤링 스케줄러가 시작되었습니다.",
+            "is_running": crawler_scheduler.is_running
+        }
+        
+    except Exception as e:
+        logger.error(f"스케줄러 시작 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"스케줄러 시작 실패: {str(e)}")
+
+
+@router.post("/scheduler/stop")
+async def stop_scheduler():
+    """크롤링 스케줄러 중지"""
+    try:
+        await crawler_scheduler.stop()
+        return {
+            "status": "success",
+            "message": "크롤링 스케줄러가 중지되었습니다.",
+            "is_running": crawler_scheduler.is_running
+        }
+        
+    except Exception as e:
+        logger.error(f"스케줄러 중지 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"스케줄러 중지 실패: {str(e)}")
+
+
+@router.get("/scheduler/status")
+async def get_scheduler_status():
+    """크롤링 스케줄러 상태 조회"""
+    try:
+        jobs = crawler_scheduler.get_jobs()
+        return {
+            "is_running": crawler_scheduler.is_running,
+            "jobs_count": len(jobs),
+            "jobs": jobs
+        }
+        
+    except Exception as e:
+        logger.error(f"스케줄러 상태 조회 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"스케줄러 상태 조회 실패: {str(e)}")
+
+
+@router.post("/scheduler/crawl/manual/all")
+async def manual_crawl_all():
+    """수동 전체 크롤링 실행"""
+    try:
+        # 백그라운드에서 실행
+        import asyncio
+        asyncio.create_task(crawler_scheduler.manual_crawl_all())
+        
+        return {
+            "status": "success",
+            "message": "수동 전체 크롤링이 백그라운드에서 시작되었습니다."
+        }
+        
+    except Exception as e:
+        logger.error(f"수동 전체 크롤링 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"수동 전체 크롤링 실패: {str(e)}")
+
+
+@router.post("/scheduler/crawl/manual/company/{company_id}")
+async def manual_crawl_company(company_id: int):
+    """수동 개별 회사 크롤링 실행"""
+    try:
+        # 백그라운드에서 실행
+        import asyncio
+        task = asyncio.create_task(crawler_scheduler.manual_crawl_company(company_id))
+        
+        return {
+            "status": "success",
+            "message": f"회사 ID {company_id}의 수동 크롤링이 백그라운드에서 시작되었습니다."
+        }
+        
+    except Exception as e:
+        logger.error(f"수동 개별 크롤링 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"수동 개별 크롤링 실패: {str(e)}")

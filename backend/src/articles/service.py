@@ -1,11 +1,15 @@
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, asc, and_, or_
+from sqlalchemy import select, func, desc, asc, and_, or_, text
 from sqlalchemy.orm import selectinload
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from .schemas import ArticleResponse, ArticleListResponse, FeedResponse, ArticleQueryParams
-from ..shared.models import Article, Company
+from .schemas import (
+    ArticleResponse, ArticleListResponse, FeedResponse, ArticleQueryParams,
+    MentionTrendsResponse, MentionTrendItem, CompanyMentionStats,
+    CategoryTrendsResponse, CategoryTrendItem
+)
+from ..shared.models import Article, Company, ESGServiceCategory, CompanyServiceMapping
 from ..core.database import AsyncSessionLocal
 
 
@@ -184,3 +188,436 @@ class ArticleService:
             order="desc"
         )
         return await self.get_articles(params)
+    
+    async def get_mention_trends(self, period_days: int = 30) -> MentionTrendsResponse:
+        """회사별 언급량 트렌드 분석 (상위 10개)"""
+        async with AsyncSessionLocal() as session:
+            now = datetime.utcnow()
+            
+            # 현재 기간 (최근 30일)
+            current_end = now
+            current_start = current_end - timedelta(days=period_days)
+            
+            # 이전 기간 (직전 30일)
+            previous_end = current_start
+            previous_start = previous_end - timedelta(days=period_days)
+            
+            # 현재 기간 언급량 집계
+            current_mentions_query = select(
+                Company.id,
+                Company.company_name,
+                Company.company_name_en,
+                func.count(Article.id).label('mention_count')
+            ).select_from(
+                Company
+            ).outerjoin(
+                Article,
+                and_(
+                    Article.company_id == Company.id,
+                    Article.published_at >= current_start,
+                    Article.published_at < current_end
+                )
+            ).where(
+                Company.is_active == True
+            ).group_by(Company.id, Company.company_name, Company.company_name_en)
+            
+            current_result = await session.execute(current_mentions_query)
+            current_mentions = {row.id: row for row in current_result.all()}
+            
+            # 이전 기간 언급량 집계
+            previous_mentions_query = select(
+                Company.id,
+                func.count(Article.id).label('mention_count')
+            ).select_from(
+                Company
+            ).outerjoin(
+                Article,
+                and_(
+                    Article.company_id == Company.id,
+                    Article.published_at >= previous_start,
+                    Article.published_at < previous_end
+                )
+            ).where(
+                Company.is_active == True
+            ).group_by(Company.id)
+            
+            previous_result = await session.execute(previous_mentions_query)
+            previous_mentions = {row.id: row.mention_count for row in previous_result.all()}
+            
+            # 최신 기사 정보 조회
+            latest_articles_query = select(
+                Article.company_id,
+                Article.title,
+                Article.article_url,
+                Article.published_at,
+                func.row_number().over(
+                    partition_by=Article.company_id,
+                    order_by=desc(Article.published_at)
+                ).label('rn')
+            ).where(
+                Article.published_at >= current_start,
+                Article.published_at < current_end
+            )
+            
+            latest_articles_subquery = latest_articles_query.subquery()
+            latest_articles_final = select(latest_articles_subquery).where(
+                latest_articles_subquery.c.rn == 1
+            )
+            
+            latest_result = await session.execute(latest_articles_final)
+            latest_articles = {row.company_id: row for row in latest_result.all()}
+            
+            # 회사별 ESG 서비스 카테고리 정보 조회
+            company_categories_query = select(
+                CompanyServiceMapping.company_id,
+                ESGServiceCategory.category_code,
+                ESGServiceCategory.main_topic
+            ).join(
+                ESGServiceCategory,
+                CompanyServiceMapping.category_id == ESGServiceCategory.id
+            ).where(
+                CompanyServiceMapping.provides_service == True
+            )
+            
+            categories_result = await session.execute(company_categories_query)
+            company_categories = {}
+            for row in categories_result.all():
+                if row.company_id not in company_categories:
+                    company_categories[row.company_id] = {
+                        'categories': [],
+                        'topics': set()
+                    }
+                company_categories[row.company_id]['categories'].append(row.category_code)
+                company_categories[row.company_id]['topics'].add(row.main_topic)
+            
+            # 트렌드 아이템 생성
+            trend_items = []
+            for company_id, current_data in current_mentions.items():
+                current_count = current_data.mention_count
+                previous_count = previous_mentions.get(company_id, 0)
+                
+                # 증감률 계산
+                if previous_count > 0:
+                    change_rate = ((current_count - previous_count) / previous_count) * 100
+                else:
+                    change_rate = 100.0 if current_count > 0 else 0.0
+                
+                # 변화 유형 결정
+                if abs(change_rate) < 5:  # 5% 이하는 안정
+                    change_type = "stable"
+                elif change_rate > 0:
+                    change_type = "up"
+                else:
+                    change_type = "down"
+                
+                # 최신 기사 정보
+                latest_article = latest_articles.get(company_id)
+                
+                # ESG 서비스 카테고리 정보
+                company_esg_info = company_categories.get(company_id, {'categories': [], 'topics': set()})
+                service_categories = company_esg_info['categories']
+                primary_categories = list(company_esg_info['topics'])
+                
+                # 회사 유형 결정
+                if len(service_categories) >= 15:
+                    company_type = "All-in-One"
+                elif len(service_categories) >= 8:
+                    company_type = "Specialized"
+                elif len(service_categories) >= 3:
+                    company_type = "Focused"
+                else:
+                    company_type = "Niche"
+                
+                trend_item = MentionTrendItem(
+                    rank=0,  # 임시값, 나중에 정렬 후 설정
+                    company_id=company_id,
+                    company_name=current_data.company_name,
+                    company_name_en=current_data.company_name_en,
+                    current_mentions=current_count,
+                    previous_mentions=previous_count,
+                    change_rate=round(change_rate, 2),
+                    change_type=change_type,
+                    primary_categories=primary_categories,
+                    service_categories=service_categories,
+                    company_type=company_type,
+                    latest_article_title=latest_article.title if latest_article else None,
+                    latest_article_url=latest_article.article_url if latest_article else None,
+                    latest_published_at=latest_article.published_at if latest_article else None
+                )
+                trend_items.append(trend_item)
+            
+            # 현재 언급량 기준으로 정렬 (상위 10개)
+            trend_items.sort(key=lambda x: x.current_mentions, reverse=True)
+            top_trends = trend_items[:10]
+            
+            # 순위 설정
+            for i, item in enumerate(top_trends):
+                item.rank = i + 1
+            
+            return MentionTrendsResponse(
+                trends=top_trends,
+                period_days=period_days,
+                analysis_date=now,
+                total_companies=len(current_mentions)
+            )
+    
+    async def get_company_mention_stats(self, company_id: int, period_days: int = 30) -> Optional[CompanyMentionStats]:
+        """특정 회사의 언급량 통계"""
+        async with AsyncSessionLocal() as session:
+            # 회사 존재 확인
+            company_result = await session.execute(
+                select(Company).where(Company.id == company_id, Company.is_active == True)
+            )
+            company = company_result.scalar_one_or_none()
+            if not company:
+                return None
+            
+            now = datetime.utcnow()
+            
+            # 현재 기간 (최근 30일)
+            current_end = now
+            current_start = current_end - timedelta(days=period_days)
+            
+            # 이전 기간 (직전 30일)
+            previous_end = current_start
+            previous_start = previous_end - timedelta(days=period_days)
+            
+            # 현재 기간 언급량
+            current_count_result = await session.execute(
+                select(func.count(Article.id)).where(
+                    Article.company_id == company_id,
+                    Article.published_at >= current_start,
+                    Article.published_at < current_end
+                )
+            )
+            current_count = current_count_result.scalar()
+            
+            # 이전 기간 언급량
+            previous_count_result = await session.execute(
+                select(func.count(Article.id)).where(
+                    Article.company_id == company_id,
+                    Article.published_at >= previous_start,
+                    Article.published_at < previous_end
+                )
+            )
+            previous_count = previous_count_result.scalar()
+            
+            # 증감률 계산
+            if previous_count > 0:
+                change_rate = ((current_count - previous_count) / previous_count) * 100
+            else:
+                change_rate = 100.0 if current_count > 0 else 0.0
+            
+            # 변화 유형 결정
+            if abs(change_rate) < 5:
+                change_type = "stable"
+            elif change_rate > 0:
+                change_type = "up"
+            else:
+                change_type = "down"
+            
+            # 일별 언급량 데이터 (현재 기간)
+            daily_mentions_query = select(
+                func.date(Article.published_at).label('date'),
+                func.count(Article.id).label('count')
+            ).where(
+                Article.company_id == company_id,
+                Article.published_at >= current_start,
+                Article.published_at < current_end
+            ).group_by(
+                func.date(Article.published_at)
+            ).order_by(
+                func.date(Article.published_at)
+            )
+            
+            daily_result = await session.execute(daily_mentions_query)
+            daily_mentions = [
+                {"date": str(row.date), "count": row.count}
+                for row in daily_result.all()
+            ]
+            
+            return CompanyMentionStats(
+                company_id=company_id,
+                company_name=company.company_name,
+                current_period_mentions=current_count,
+                previous_period_mentions=previous_count,
+                change_rate=round(change_rate, 2),
+                change_type=change_type,
+                daily_mentions=daily_mentions,
+                period_start=current_start,
+                period_end=current_end
+            )
+    
+    async def get_category_trends(self, period_days: int = 30) -> CategoryTrendsResponse:
+        """ESG 서비스 카테고리별 언급량 트렌드 분석"""
+        async with AsyncSessionLocal() as session:
+            now = datetime.utcnow()
+            
+            # 현재 기간 (최근 30일)
+            current_end = now
+            current_start = current_end - timedelta(days=period_days)
+            
+            # 이전 기간 (직전 30일)
+            previous_end = current_start
+            previous_start = previous_end - timedelta(days=period_days)
+            
+            # 현재 기간 카테고리별 언급량 집계
+            current_category_mentions_query = select(
+                ESGServiceCategory.id,
+                ESGServiceCategory.category_code,
+                ESGServiceCategory.category_name,
+                ESGServiceCategory.category_name_en,
+                ESGServiceCategory.main_topic,
+                func.count(Article.id).label('mention_count'),
+                func.count(func.distinct(Company.id)).label('companies_count')
+            ).select_from(
+                ESGServiceCategory
+            ).join(
+                CompanyServiceMapping,
+                and_(
+                    CompanyServiceMapping.category_id == ESGServiceCategory.id,
+                    CompanyServiceMapping.provides_service == True
+                )
+            ).join(
+                Company,
+                and_(
+                    Company.id == CompanyServiceMapping.company_id,
+                    Company.is_active == True
+                )
+            ).outerjoin(
+                Article,
+                and_(
+                    Article.company_id == Company.id,
+                    Article.published_at >= current_start,
+                    Article.published_at < current_end
+                )
+            ).group_by(
+                ESGServiceCategory.id,
+                ESGServiceCategory.category_code,
+                ESGServiceCategory.category_name,
+                ESGServiceCategory.category_name_en,
+                ESGServiceCategory.main_topic
+            )
+            
+            current_result = await session.execute(current_category_mentions_query)
+            current_categories = {row.id: row for row in current_result.all()}
+            
+            # 이전 기간 카테고리별 언급량 집계
+            previous_category_mentions_query = select(
+                ESGServiceCategory.id,
+                func.count(Article.id).label('mention_count')
+            ).select_from(
+                ESGServiceCategory
+            ).join(
+                CompanyServiceMapping,
+                and_(
+                    CompanyServiceMapping.category_id == ESGServiceCategory.id,
+                    CompanyServiceMapping.provides_service == True
+                )
+            ).join(
+                Company,
+                and_(
+                    Company.id == CompanyServiceMapping.company_id,
+                    Company.is_active == True
+                )
+            ).outerjoin(
+                Article,
+                and_(
+                    Article.company_id == Company.id,
+                    Article.published_at >= previous_start,
+                    Article.published_at < previous_end
+                )
+            ).group_by(ESGServiceCategory.id)
+            
+            previous_result = await session.execute(previous_category_mentions_query)
+            previous_categories = {row.id: row.mention_count for row in previous_result.all()}
+            
+            # 각 카테고리별 상위 언급량 회사 조회
+            top_companies_query = select(
+                CompanyServiceMapping.category_id,
+                Company.company_name,
+                func.count(Article.id).label('mention_count')
+            ).select_from(
+                CompanyServiceMapping
+            ).join(
+                Company,
+                and_(
+                    Company.id == CompanyServiceMapping.company_id,
+                    Company.is_active == True
+                )
+            ).join(
+                Article,
+                and_(
+                    Article.company_id == Company.id,
+                    Article.published_at >= current_start,
+                    Article.published_at < current_end
+                )
+            ).where(
+                CompanyServiceMapping.provides_service == True
+            ).group_by(
+                CompanyServiceMapping.category_id,
+                Company.company_name
+            ).order_by(
+                CompanyServiceMapping.category_id,
+                desc(func.count(Article.id))
+            )
+            
+            top_companies_result = await session.execute(top_companies_query)
+            category_top_companies = {}
+            for row in top_companies_result.all():
+                if row.category_id not in category_top_companies:
+                    category_top_companies[row.category_id] = []
+                if len(category_top_companies[row.category_id]) < 3:  # 상위 3개 회사만
+                    category_top_companies[row.category_id].append(row.company_name)
+            
+            # 카테고리 트렌드 아이템 생성
+            trend_items = []
+            for category_id, current_data in current_categories.items():
+                current_count = current_data.mention_count
+                previous_count = previous_categories.get(category_id, 0)
+                
+                # 증감률 계산
+                if previous_count > 0:
+                    change_rate = ((current_count - previous_count) / previous_count) * 100
+                else:
+                    change_rate = 100.0 if current_count > 0 else 0.0
+                
+                # 변화 유형 결정
+                if abs(change_rate) < 5:
+                    change_type = "stable"
+                elif change_rate > 0:
+                    change_type = "up"
+                else:
+                    change_type = "down"
+                
+                # 상위 회사 목록
+                top_companies = category_top_companies.get(category_id, [])
+                
+                trend_item = CategoryTrendItem(
+                    rank=0,  # 임시값, 나중에 정렬 후 설정
+                    category_code=current_data.category_code,
+                    category_name=current_data.category_name,
+                    category_name_en=current_data.category_name_en,
+                    main_topic=current_data.main_topic,
+                    current_mentions=current_count,
+                    previous_mentions=previous_count,
+                    change_rate=round(change_rate, 2),
+                    change_type=change_type,
+                    companies_count=current_data.companies_count,
+                    top_companies=top_companies
+                )
+                trend_items.append(trend_item)
+            
+            # 현재 언급량 기준으로 정렬
+            trend_items.sort(key=lambda x: x.current_mentions, reverse=True)
+            
+            # 순위 설정
+            for i, item in enumerate(trend_items):
+                item.rank = i + 1
+            
+            return CategoryTrendsResponse(
+                trends=trend_items,
+                period_days=period_days,
+                analysis_date=now,
+                total_categories=len(current_categories)
+            )

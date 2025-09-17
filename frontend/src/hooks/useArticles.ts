@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { articlesApi } from '@/lib/api';
-import type { ArticleListParams } from '@/types/api';
+import { articlesApi, trendsApi } from '@/lib/api';
+import type { ArticleListParams, TrendParams } from '@/types/api';
 
 // Query Keys
 export const articleKeys = {
@@ -11,6 +11,12 @@ export const articleKeys = {
   detail: (id: number) => [...articleKeys.details(), id] as const,
   feed: (params?: Pick<ArticleListParams, 'page' | 'size'>) => [...articleKeys.all, 'feed', params] as const,
   companies: () => ['companies'] as const,
+};
+
+export const trendKeys = {
+  all: ['trends'] as const,
+  companies: (params?: TrendParams) => [...trendKeys.all, 'companies', params] as const,
+  categories: (params?: TrendParams) => [...trendKeys.all, 'categories', params] as const,
 };
 
 // Hook for getting articles feed with infinite scroll
@@ -50,5 +56,24 @@ export function useCompanies() {
     queryKey: articleKeys.companies(),
     queryFn: () => articlesApi.getCompanies(),
     staleTime: 5 * 60 * 1000, // 5 minutes - companies don't change often
+  });
+}
+
+// Trend Hooks
+export function useCompanyTrends(params?: TrendParams) {
+  return useQuery({
+    queryKey: trendKeys.companies(params),
+    queryFn: () => trendsApi.getCompanyTrends(params),
+    staleTime: 10 * 60 * 1000, // 10 minutes - trends update daily
+    retry: 1, // MVP: simple retry logic
+  });
+}
+
+export function useCategoryTrends(params?: TrendParams) {
+  return useQuery({
+    queryKey: trendKeys.categories(params),
+    queryFn: () => trendsApi.getCategoryTrends(params),
+    staleTime: 10 * 60 * 1000, // 10 minutes - trends update daily
+    retry: 1, // MVP: simple retry logic
   });
 }

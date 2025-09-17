@@ -8,7 +8,10 @@ from .schemas import (
     FeedResponse, 
     ArticleResponse, 
     CompanyResponse,
-    ArticleQueryParams
+    ArticleQueryParams,
+    MentionTrendsResponse,
+    CompanyMentionStats,
+    CategoryTrendsResponse
 )
 
 router = APIRouter(prefix="/articles", tags=["articles"])
@@ -63,9 +66,6 @@ async def get_feed(
 ):
     """
     통합 뉴스 피드 조회
-    
-    모든 활성화된 회사의 최신 뉴스를 시간순으로 제공합니다.
-    PRD Epic 2의 핵심 기능입니다.
     """
     try:
         return await article_service.get_feed(page=page, size=size)
@@ -108,6 +108,71 @@ async def search_articles(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to search articles: {str(e)}")
+
+
+@router.get("/trends", response_model=MentionTrendsResponse)
+async def get_mention_trends(
+    period_days: int = Query(default=30, ge=1, le=90, description="분석 기간 (일)")
+):
+    """
+    회사별 언급량 트렌드 분석 (상위 10개)
+    
+    - **period_days**: 분석 기간 (기본값: 30일)
+    - 직전 동일 기간 대비 증감률 계산
+    - 현재 언급량 기준으로 상위 10개 회사 반환
+    """
+    try:
+        return await article_service.get_mention_trends(period_days=period_days)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get mention trends: {str(e)}")
+
+
+@router.get("/company/{company_id}/stats", response_model=CompanyMentionStats)
+async def get_company_mention_stats(
+    company_id: int,
+    period_days: int = Query(default=30, ge=1, le=90, description="분석 기간 (일)")
+):
+    """
+    특정 회사의 언급량 통계
+    
+    - **company_id**: 회사 ID
+    - **period_days**: 분석 기간 (기본값: 30일)
+    - 일별 언급량 데이터 포함
+    """
+    try:
+        stats = await article_service.get_company_mention_stats(
+            company_id=company_id,
+            period_days=period_days
+        )
+        
+        if not stats:
+            raise HTTPException(status_code=404, detail="Company not found or not active")
+        
+        return stats
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get company stats: {str(e)}")
+
+
+@router.get("/trends/categories", response_model=CategoryTrendsResponse)
+async def get_category_trends(
+    period_days: int = Query(default=30, ge=1, le=90, description="분석 기간 (일)")
+):
+    """
+    ESG 서비스 카테고리별 언급량 트렌드 분석
+    
+    - **period_days**: 분석 기간 (기본값: 30일)
+    - 카테고리별 총 언급량과 증감률 분석
+    - 각 카테고리의 상위 언급량 회사 목록 포함
+    """
+    try:
+        return await article_service.get_category_trends(period_days=period_days)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get category trends: {str(e)}")
 
 
 @router.get("/{article_id}", response_model=ArticleResponse)
