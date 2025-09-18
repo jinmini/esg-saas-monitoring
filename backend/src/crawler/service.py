@@ -54,20 +54,15 @@ class CrawlerService:
                     max_articles=max_articles_per_company
                 )
                 
-                # 크롤링된 기사들을 데이터베이스에 저장
-                if result.success:
-                    articles_data = await self.scraper.parse_articles(
-                        await self.scraper.search_news(
-                            query=company['company_name'],
-                            display=min(result.articles_saved, 100),
-                            sort="date"
-                        ),
-                        company['id'],
-                        company['company_name']
-                    )
-                    
-                    saved_count = await self.save_articles(articles_data)
+                # 크롤링된 기사들을 데이터베이스에 저장 (중복 API 호출 제거)
+                if result.success and result.articles_data:
+                    saved_count = await self.save_articles(result.articles_data)
                     result.articles_saved = saved_count
+                    logger.info(f"Saved {saved_count} articles for {company['company_name']}")
+                elif result.success:
+                    logger.warning(f"No articles data returned for {company['company_name']}")
+                else:
+                    logger.error(f"Crawl failed for {company['company_name']}: {result.error_message}")
                 
                 crawl_results.append(result)
                 logger.info(f"Crawled {company['company_name']}: {result.articles_saved} articles")
@@ -100,18 +95,9 @@ class CrawlerService:
                 max_articles=max_articles
             )
             
-            # 성공한 경우 기사 저장
-            if crawl_result.success:
-                articles_data = await self.scraper.parse_articles(
-                    await self.scraper.search_news(
-                        query=company.company_name,
-                        display=min(crawl_result.articles_saved, 100),
-                        sort="date"
-                    ),
-                    company.id
-                )
-                
-                saved_count = await self.save_articles(articles_data)
+            # 성공한 경우 기사 저장 (중복 API 호출 제거)
+            if crawl_result.success and crawl_result.articles_data:
+                saved_count = await self.save_articles(crawl_result.articles_data)
                 crawl_result.articles_saved = saved_count
             
             return crawl_result

@@ -39,6 +39,7 @@ class CrawlResult(BaseModel):
     success: bool
     error_message: Optional[str] = None
     crawl_duration: float
+    articles_data: Optional[List[dict]] = []  # 크롤링된 실제 기사 데이터
 
 
 class ArticleCreateRequest(BaseModel):

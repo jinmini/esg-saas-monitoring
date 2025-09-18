@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Date, Float, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, Date, Float, UniqueConstraint, Index, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -39,6 +39,14 @@ class Company(Base, TimestampMixin):
     website_url = Column(String(500), nullable=True)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False, index=True)
+    
+    # 검색 키워드 관련 필드들
+    positive_keywords = Column(JSON, nullable=True)
+    negative_keywords = Column(JSON, nullable=True)
+    ceo_name = Column(String(100), nullable=True)
+    main_services = Column(String(500), nullable=True)
+    search_strategy = Column(String(50), nullable=True, default='enhanced')
+    crawling_notes = Column(Text, nullable=True)
     
     # 관계 설정
     articles = relationship("Article", back_populates="company", cascade="all, delete-orphan")

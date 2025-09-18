@@ -72,7 +72,7 @@ class NaverNewsScraper(BaseScraper):
                 summary = self._clean_html_tags(item.description)
                 
                 # 관련성 검증 (회사명이 제공된 경우)
-                if company_name and not self._is_relevant_article(title, summary, company_name):
+                if company_name and not await self._is_relevant_article(title, summary, company_id, company_name):
                     filtered_count += 1
                     continue
                 
