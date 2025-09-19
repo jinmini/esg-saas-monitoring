@@ -16,6 +16,38 @@ from ..core.database import AsyncSessionLocal
 class ArticleService:
     """기사 조회 서비스"""
     
+    def _has_company_mention(self, article: Article, company_name: str, positive_keywords: List[str] = None) -> bool:
+        """기사 제목/본문에 회사명이나 관련 키워드가 포함되어 있는지 확인"""
+        if not company_name:
+            return True
+        
+        # 제목과 요약을 합쳐서 검사
+        full_text = f"{article.title or ''} {article.summary or ''}".lower()
+        
+        # 회사명 확인
+        if company_name.lower() in full_text:
+            return True
+        
+        # positive_keywords가 있으면 추가로 확인
+        if positive_keywords:
+            for keyword in positive_keywords:
+                if keyword.lower() in full_text:
+                    return True
+        
+        return False
+    
+    def _filter_articles_by_company_mention(self, articles: List[Article], company_name: str, positive_keywords: List[str] = None) -> List[Article]:
+        """회사명이나 관련 키워드가 포함된 기사만 필터링"""
+        if not company_name:
+            return articles
+        
+        filtered_articles = []
+        for article in articles:
+            if self._has_company_mention(article, company_name, positive_keywords):
+                filtered_articles.append(article)
+        
+        return filtered_articles
+    
     async def get_articles(self, params: ArticleQueryParams) -> ArticleListResponse:
         """기사 목록 조회 (페이징, 필터링, 정렬)"""
         async with AsyncSessionLocal() as session:
@@ -95,15 +127,73 @@ class ArticleService:
             )
     
     async def get_company_articles(self, company_id: int, page: int = 1, size: int = 20) -> ArticleListResponse:
-        """특정 회사의 기사 목록 조회"""
-        params = ArticleQueryParams(
-            page=page,
-            size=size,
-            company_id=company_id,
-            sort="published_at",
-            order="desc"
-        )
-        return await self.get_articles(params)
+        """특정 회사의 기사 목록 조회 (회사명 포함 기사만 필터링)"""
+        async with AsyncSessionLocal() as session:
+            # 회사 정보 및 키워드 조회
+            company_result = await session.execute(
+                select(Company.id, Company.company_name, Company.company_name_en, Company.positive_keywords)
+                .where(Company.id == company_id, Company.is_active == True)
+            )
+            company_data = company_result.first()
+            
+            if not company_data:
+                return ArticleListResponse(
+                    articles=[],
+                    total=0,
+                    page=page,
+                    size=size,
+                    has_next=False,
+                    has_prev=False
+                )
+            
+            # 해당 회사의 모든 기사 조회
+            query = select(Article).where(Article.company_id == company_id).order_by(desc(Article.published_at))
+            result = await session.execute(query)
+            all_articles = result.scalars().all()
+            
+            # 회사명이나 관련 키워드가 포함된 기사만 필터링
+            filtered_articles = self._filter_articles_by_company_mention(
+                all_articles, 
+                company_data.company_name,
+                company_data.positive_keywords or []
+            )
+            
+            # 페이징 적용
+            total = len(filtered_articles)
+            offset = (page - 1) * size
+            paginated_articles = filtered_articles[offset:offset + size]
+            
+            # 응답 데이터 구성
+            articles = []
+            for article in paginated_articles:
+                article_response = ArticleResponse(
+                    id=article.id,
+                    title=article.title,
+                    source_name=article.source_name,
+                    article_url=article.article_url,
+                    published_at=article.published_at,
+                    crawled_at=article.crawled_at,
+                    summary=article.summary,
+                    language=article.language,
+                    is_verified=article.is_verified,
+                    company_id=company_data.id,
+                    company_name=company_data.company_name,
+                    company_name_en=company_data.company_name_en
+                )
+                articles.append(article_response)
+            
+            # 페이징 정보 계산
+            has_next = offset + size < total
+            has_prev = page > 1
+            
+            return ArticleListResponse(
+                articles=articles,
+                total=total,
+                page=page,
+                size=size,
+                has_next=has_next,
+                has_prev=has_prev
+            )
     
     async def get_feed(self, page: int = 1, size: int = 20) -> FeedResponse:
         """통합 뉴스 피드 조회 (최신순, 모든 회사)"""

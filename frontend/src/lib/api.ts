@@ -7,6 +7,8 @@ import type {
   CompanyTrendsResponse,
   CategoryTrendsResponse,
   TrendParams,
+  CompanyStats,
+  CompanyArticlesResponse,
 } from '@/types/api';
 
 // API Base Configuration
@@ -67,6 +69,18 @@ export const articlesApi = {
   // Get companies list
   getCompanies: async (): Promise<CompanyListResponse> => {
     const response = await apiClient.get<CompanyListResponse>('/articles/companies/list');
+    return response.data;
+  },
+
+  // Get company articles (with smart filtering)
+  getCompanyArticles: async (companyId: number, params?: Pick<ArticleListParams, 'page' | 'size'>): Promise<CompanyArticlesResponse> => {
+    const response = await apiClient.get<CompanyArticlesResponse>(`/articles/company/${companyId}`, { params });
+    return response.data;
+  },
+
+  // Get company statistics
+  getCompanyStats: async (companyId: number): Promise<CompanyStats> => {
+    const response = await apiClient.get<CompanyStats>(`/articles/company/${companyId}/stats`);
     return response.data;
   },
 };

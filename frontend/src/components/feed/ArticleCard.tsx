@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 import { ExternalLink, Calendar, Building2, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { formatDate, truncateText, isValidUrl } from '@/lib/utils';
@@ -55,9 +54,18 @@ export function ArticleCard({ article }: ArticleCardProps) {
 
         {/* Article title */}
         <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2 group-hover:text-green-600 transition-colors">
-          <Link href={`/article/${id}`} className="hover:underline">
+        {isValidUrl(article_url) ? (
+          <a 
+            href={article_url} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="hover:underline"
+            >
             {title}
-          </Link>
+          </a>
+        ) : (
+          <span>{title}</span>
+        )}
         </h3>
 
         {/* Summary */}
@@ -75,19 +83,6 @@ export function ArticleCard({ article }: ArticleCardProps) {
               {formatDate(displayDate)}
             </time>
           </div>
-          
-          {isValidUrl(article_url) && (
-            <a
-              href={article_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span>원문 보기</span>
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
         </div>
       </CardContent>
     </Card>

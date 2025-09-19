@@ -41,6 +41,7 @@ export interface CompanyListResponse {
 export interface ArticleListParams {
   page?: number;
   size?: number;
+  period?: number;
   sort_by?: 'crawled_at' | 'published_at' | 'title';
   sort_order?: 'asc' | 'desc';
   company_id?: number;
@@ -95,6 +96,31 @@ export interface CategoryTrendsResponse {
 
 export interface TrendParams {
   period_days?: number;
+}
+
+// Company Detail Types (New APIs)
+export interface CompanyStats {
+  company_id: number;
+  company_name: string;
+  current_mentions: number;
+  previous_mentions: number;
+  change_rate: number;
+  change_type: 'up' | 'down' | 'stable';
+  daily_mentions: Array<{
+    date: string;
+    count: number;
+  }>;
+  period_days: number;
+  analysis_date: string;
+}
+
+export interface CompanyArticlesResponse {
+  articles: Article[];
+  total: number;
+  page: number;
+  size: number;
+  has_next: boolean;
+  has_prev: boolean;
 }
 
 // API Error Response
