@@ -93,7 +93,7 @@ class BaseScraper(ABC):
             )
     
     async def _build_enhanced_query(self, company_id: int, company_name: str) -> str:
-        """DB에서 가져온 키워드를 기반으로 동적 검색 쿼리 생성"""
+        """DB에서 가져온 키워드를 기반으로 정확도 최적화된 검색 쿼리 생성"""
         try:
             from src.core.database import AsyncSessionLocal
             from src.shared.models import Company
@@ -111,27 +111,40 @@ class BaseScraper(ABC):
                     positive_keywords = row.positive_keywords
                     search_strategy = row.search_strategy or 'enhanced'
                     
-                    if search_strategy == 'enhanced' and len(positive_keywords) > 1:
-                        # 네이버 API 호환: 공백으로 키워드 조합 (첫 번째 키워드를 메인으로)
-                        main_keyword = positive_keywords[0]
-                        additional_keywords = positive_keywords[1:3]  # 최대 2개 추가 키워드만 사용
-                        query = f"{main_keyword} {' '.join(additional_keywords)}"
-                        logger.info(f"Using DB-based enhanced query for {company_name}: {query}")
+                    if search_strategy == 'enhanced' and len(positive_keywords) > 0:
+                        # 🎯 핵심 전략: 반드시 포함할 키워드들을 따옴표로 감싸기
+                        main_keywords = [f'"{kw}"' for kw in [company_name] + positive_keywords[:2]]
+                        
+                        # 가장 정확한 키워드를 메인으로 사용 (보통 회사명이 가장 정확)
+                        primary_keyword = f'"{company_name}"'
+                        
+                        # 추가 키워드가 있으면 OR 조건으로 결합하되, 네이버 API 한계로 공백 사용
+                        if len(positive_keywords) > 0:
+                            # 첫 번째 positive_keyword를 추가 (정확도 향상)
+                            secondary_keyword = f'"{positive_keywords[0]}"'
+                            query = f"{primary_keyword} {secondary_keyword}"
+                        else:
+                            query = primary_keyword
+                        
+                        logger.info(f"Using precision-optimized query for {company_name}: {query}")
                         return query
                     else:
-                        # 첫 번째 키워드만 사용
-                        query = positive_keywords[0]
-                        logger.info(f"Using DB-based exact match query for {company_name}: {query}")
+                        # 단일 키워드 전략 - 가장 정확한 매칭
+                        if positive_keywords:
+                            query = f'"{positive_keywords[0]}"'
+                        else:
+                            query = f'"{company_name}"'
+                        logger.info(f"Using exact match query for {company_name}: {query}")
                         return query
                 else:
-                    # DB에 키워드가 없으면 기본 검색
+                    # DB에 키워드가 없으면 회사명 정확 매칭
                     query = f'"{company_name}"'
                     logger.info(f"Using fallback exact match query for {company_name}: {query}")
                     return query
                     
         except Exception as e:
             logger.error(f"Failed to build query from DB for {company_name}: {e}")
-            # 에러 시 기본 검색 사용
+            # 에러 시 가장 안전한 정확 매칭 사용
             query = f'"{company_name}"'
             logger.info(f"Using fallback exact match query for {company_name}: {query}")
             return query

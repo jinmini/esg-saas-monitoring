@@ -59,21 +59,37 @@ class NaverNewsScraper(BaseScraper):
                 raise Exception(f"Request error: {str(e)}")
     
     async def parse_articles(self, response_data: dict, company_id: int, company_name: str = None) -> List[dict]:
-        """네이버 API 응답을 Article 모델 형식으로 변환 (관련성 필터링 포함)"""
+        """네이버 API 응답을 Article 모델 형식으로 변환 (2단계 필터링 적용)"""
         try:
             # Pydantic 모델로 검증
             naver_response = NaverNewsResponse(**response_data)
             
+            # DB에서 회사 메타데이터 조회
+            company_meta = await self._get_company_metadata(company_id) if company_name else {}
+            
             articles = []
-            filtered_count = 0
+            title_filtered_count = 0
+            relevance_filtered_count = 0
             
             for item in naver_response.items:
                 title = self._clean_html_tags(item.title)
                 summary = self._clean_html_tags(item.description)
                 
-                # 관련성 검증 (회사명이 제공된 경우)
+                # 🛡️ 2단계 방어: 제목 기반 즉시 필터링 (가장 강력한 필터)
+                if company_name:
+                    keywords_to_check = [company_name.lower()]
+                    if company_meta.get('positive_keywords'):
+                        keywords_to_check.extend([kw.lower() for kw in company_meta['positive_keywords']])
+                    
+                    # 제목에 회사명이나 핵심 키워드가 하나도 없으면 즉시 제외
+                    if not any(keyword in title.lower() for keyword in keywords_to_check):
+                        title_filtered_count += 1
+                        logger.debug(f"Title-filtered: '{title}' - no matching keywords")
+                        continue
+                
+                # 네거티브 키워드 기반 관련성 검증 (기존 로직)
                 if company_name and not await self._is_relevant_article(title, summary, company_id, company_name):
-                    filtered_count += 1
+                    relevance_filtered_count += 1
                     continue
                 
                 article_data = {
@@ -89,14 +105,41 @@ class NaverNewsScraper(BaseScraper):
                 articles.append(article_data)
             
             logger.info(f"Parsed {len(articles)} articles for {company_name} (company_id: {company_id})")
-            if filtered_count > 0:
-                logger.info(f"Filtered out {filtered_count} irrelevant articles for {company_name}")
+            if title_filtered_count > 0:
+                logger.info(f"🛡️ Title-filtered out {title_filtered_count} articles for {company_name}")
+            if relevance_filtered_count > 0:
+                logger.info(f"🛡️ Relevance-filtered out {relevance_filtered_count} articles for {company_name}")
             
             return articles
             
         except Exception as e:
             logger.error(f"Failed to parse articles: {str(e)}")
             return []
+    
+    async def _get_company_metadata(self, company_id: int) -> dict:
+        """DB에서 회사 메타데이터 조회 (positive_keywords, negative_keywords)"""
+        try:
+            from src.core.database import AsyncSessionLocal
+            from src.shared.models import Company
+            from sqlalchemy import select
+            
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(Company.positive_keywords, Company.negative_keywords)
+                    .where(Company.id == company_id)
+                )
+                row = result.first()
+                
+                if row:
+                    return {
+                        'positive_keywords': row.positive_keywords or [],
+                        'negative_keywords': row.negative_keywords or []
+                    }
+                return {}
+                
+        except Exception as e:
+            logger.error(f"Failed to get company metadata for ID {company_id}: {e}")
+            return {}
     
     def _extract_source_name(self, link: str) -> str:
         """뉴스 링크에서 언론사명 추출"""
