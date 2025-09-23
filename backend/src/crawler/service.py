@@ -7,6 +7,7 @@ from .scrapers.news_scraper import NaverNewsScraper
 from .schemas import CrawlResult, ArticleCreateRequest
 from ..shared.models import Company, Article
 from ..core.database import AsyncSessionLocal
+from .constants import PRECISION_SCORE_BOOST
 
 
 class CrawlerService:
@@ -133,8 +134,9 @@ class CrawlerService:
                         continue
                     
                     # 새 기사 생성
-                    # TODO: 향후 relevance_score 필드 추가 시 저장 예정
-                    article = Article(**article_data)
+                    # 스코어링/로그용 내부 메타 제거
+                    sanitized = {k: v for k, v in article_data.items() if not str(k).startswith('_')}
+                    article = Article(**sanitized)
                     session.add(article)
                     saved_count += 1
                     
@@ -249,6 +251,14 @@ class CrawlerService:
                         logger.debug(f"Negative keyword penalty: '{neg_kw}' found in article")
                         break
                 
+                # 6. 정밀 트랙 가산점(+0.15)
+                try:
+                    source_track = article_data.get('_source_track')
+                    if source_track == 'precision':
+                        score += PRECISION_SCORE_BOOST
+                except Exception:
+                    pass
+
                 # 점수 정규화 (0.0 ~ 1.0)
                 final_score = max(0.0, min(1.0, score))
                 

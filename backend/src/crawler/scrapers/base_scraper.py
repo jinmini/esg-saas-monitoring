@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict
 import httpx
 import asyncio
 from datetime import datetime
@@ -8,6 +8,13 @@ from loguru import logger
 
 from ..schemas import CrawlResult
 from ...core.config import settings
+from ..constants import (
+    TWO_TRACK_ENABLED,
+    PRECISION_MIN_RESULTS,
+    BROAD_MAX_PAGES,
+    DISPLAY_PER_PAGE,
+    DEFAULT_SEARCH_STRATEGY,
+)
 
 
 class BaseScraper(ABC):
@@ -24,56 +31,104 @@ class BaseScraper(ABC):
         pass
     
     @abstractmethod
-    async def parse_articles(self, response_data: dict, company_id: int, company_name: str = None) -> List[dict]:
+    async def parse_articles(
+        self,
+        response_data: dict,
+        company_id: int,
+        company_name: str = None,
+        source_track: Optional[str] = None,
+        query_used: Optional[str] = None,
+    ) -> List[dict]:
         """뉴스 데이터 파싱 추상 메서드"""
         pass
     
     async def crawl_company_news(self, company_id: int, company_name: str, max_articles: int = 100) -> CrawlResult:
-        """특정 회사의 뉴스를 크롤링"""
+        """특정 회사의 뉴스를 크롤링 (Two-Track 전략 지원)"""
         start_time = datetime.now()
         
         try:
             logger.info(f"Starting crawl for company: {company_name} (ID: {company_id})")
+
+            # Two-Track 쿼리 구성 시도
+            use_two_track = False
+            queries: Dict[str, List[str]] = {"precision": [], "broad": []}
+            try:
+                if TWO_TRACK_ENABLED:
+                    queries = await self._build_two_track_queries(company_id, company_name)
+                    use_two_track = bool(queries.get("precision") or queries.get("broad"))
+            except Exception as e:
+                logger.warning(f"Two-Track query build failed, fallback to single query: {e}")
+                use_two_track = False
             
-            # 개선된 검색어 생성 (DB 기반)
-            query = await self._build_enhanced_query(company_id, company_name)
+            all_articles: List[dict] = []
+            total_found = 0
+
+            if use_two_track:
+                logger.info(f"Using Two-Track crawling for {company_name}")
+                # 1) 정밀 트랙: 대표명/탑키워드 조합으로 충분량 확보 시 광역 생략
+                precision_collected = 0
+                for q in queries.get("precision", []):
+                    # 첫 요청으로 total 파악
+                    initial = await self.search_news(q, display=DISPLAY_PER_PAGE, start=1, sort="date")
+                    q_total = max(0, int(initial.get("total", 0)))
+                    total_found += q_total
+
+                    max_pages = max(1, (q_total + DISPLAY_PER_PAGE - 1) // DISPLAY_PER_PAGE)
+                    page = 1
+                    while page <= max_pages and len(all_articles) < max_articles and precision_collected < PRECISION_MIN_RESULTS:
+                        start = 1 + (page - 1) * DISPLAY_PER_PAGE
+                        resp = await self.search_news(q, display=DISPLAY_PER_PAGE, start=start, sort="date")
+                        articles = await self.parse_articles(resp, company_id, company_name, source_track="precision", query_used=q)
+                        all_articles.extend(articles)
+                        precision_collected += len(articles)
+                        page += 1
+                        if page <= max_pages:
+                            await asyncio.sleep(self.delay)
+
+                    if precision_collected >= PRECISION_MIN_RESULTS:
+                        logger.info(f"Precision track collected {precision_collected} (>= {PRECISION_MIN_RESULTS}), skipping broad track for now")
+                        break
+
+                # 2) 광역 트랙: 필요 시 최대 N페이지 보강
+                if precision_collected < PRECISION_MIN_RESULTS:
+                    for q in queries.get("broad", []):
+                        for page in range(1, BROAD_MAX_PAGES + 1):
+                            if len(all_articles) >= max_articles:
+                                break
+                            start = 1 + (page - 1) * DISPLAY_PER_PAGE
+                            resp = await self.search_news(q, display=DISPLAY_PER_PAGE, start=start, sort="date")
+                            articles = await self.parse_articles(resp, company_id, company_name, source_track="broad", query_used=q)
+                            all_articles.extend(articles)
+                            if page < BROAD_MAX_PAGES:
+                                await asyncio.sleep(self.delay)
+            else:
+                # 단일 쿼리 전략 (기존 로직)
+                query = await self._build_enhanced_query(company_id, company_name)
+                initial_response = await self.search_news(query, display=10, start=1, sort="date")
+                total_found = initial_response.get('total', 0)
+                logger.info(f"Found {total_found} articles for {company_name}")
+                articles_to_collect = min(total_found, max_articles)
+                for start in range(1, articles_to_collect + 1, 10):
+                    display = min(10, articles_to_collect - start + 1)
+                    response = await self.search_news(query, display=display, start=start, sort="date")
+                    articles = await self.parse_articles(response, company_id, company_name, source_track="single", query_used=query)
+                    all_articles.extend(articles)
+                    if start + 10 <= articles_to_collect:
+                        await asyncio.sleep(self.delay)
             
-            # 첫 번째 검색으로 전체 결과 수 확인
-            initial_response = await self.search_news(query, display=10, start=1, sort="date")
-            total_found = initial_response.get('total', 0)
-            
-            logger.info(f"Found {total_found} articles for {company_name}")
-            
-            # 수집할 기사 수 결정
-            articles_to_collect = min(total_found, max_articles)
-            all_articles = []
-            
-            # 페이지별로 데이터 수집
-            for start in range(1, articles_to_collect + 1, 10):
-                display = min(10, articles_to_collect - start + 1)
-                
-                response = await self.search_news(query, display=display, start=start, sort="date")
-                articles = await self.parse_articles(response, company_id, company_name)
-                all_articles.extend(articles)
-                
-                # API 요청 제한 준수를 위한 지연
-                if start + 10 <= articles_to_collect:
-                    await asyncio.sleep(self.delay)
-            
-            # 중복 제거 (URL 기준)
-            unique_articles = self._remove_duplicates(all_articles)
-            
+            # 중복 제거 (URL 정규화 + 보조 키 기준)
+            unique_articles = self._dedupe_articles(all_articles)
             duration = (datetime.now() - start_time).total_seconds()
             
             return CrawlResult(
                 company_id=company_id,
                 company_name=company_name,
-                query=query,
+                query="two_track" if use_two_track else (query if 'query' in locals() else company_name),
                 total_found=total_found,
                 articles_saved=len(unique_articles),
                 success=True,
                 crawl_duration=duration,
-                articles_data=unique_articles  # 실제 기사 데이터 포함
+                articles_data=unique_articles
             )
             
         except Exception as e:
@@ -89,7 +144,7 @@ class BaseScraper(ABC):
                 success=False,
                 error_message=str(e),
                 crawl_duration=duration,
-                articles_data=[]  # 에러 시 빈 배열
+                articles_data=[]
             )
     
     async def _build_enhanced_query(self, company_id: int, company_name: str) -> str:
@@ -148,6 +203,77 @@ class BaseScraper(ABC):
             query = f'"{company_name}"'
             logger.info(f"Using fallback exact match query for {company_name}: {query}")
             return query
+
+    async def _build_two_track_queries(self, company_id: int, company_name: str) -> Dict[str, List[str]]:
+        """DB 메타(ceo_name, positive_keywords, search_strategy)로 Two-Track 쿼리 구성"""
+        from src.core.database import AsyncSessionLocal
+        from src.shared.models import Company
+        from sqlalchemy import select
+
+        precision: List[str] = []
+        broad: List[str] = []
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(
+                    Company.ceo_name,
+                    Company.positive_keywords,
+                    Company.search_strategy,
+                ).where(Company.id == company_id)
+            )
+            row = result.first()
+
+        ceo_name = None
+        positive_keywords: List[str] = []
+        search_strategy = DEFAULT_SEARCH_STRATEGY
+        if row:
+            ceo_name = row.ceo_name
+            positive_keywords = row.positive_keywords or []
+            search_strategy = (row.search_strategy or DEFAULT_SEARCH_STRATEGY).lower()
+
+        # 전략에 따라 구성
+        if search_strategy in ("two_track", "precision_first", "enhanced"):
+            # 정밀 쿼리들
+            if company_name and ceo_name:
+                precision.append(f'"{company_name}" "{ceo_name}"')
+            if company_name and positive_keywords:
+                precision.append(f'"{company_name}" "{positive_keywords[0]}"')
+            # 광역 쿼리
+            if company_name:
+                broad.append(f'"{company_name}"')
+        elif search_strategy == "precision_only":
+            if company_name and ceo_name:
+                precision.append(f'"{company_name}" "{ceo_name}"')
+            if company_name and positive_keywords:
+                precision.append(f'"{company_name}" "{positive_keywords[0]}"')
+        elif search_strategy == "broad_only":
+            if company_name:
+                broad.append(f'"{company_name}"')
+        else:
+            # 알 수 없는 전략은 안전하게 two_track로 처리
+            if company_name and ceo_name:
+                precision.append(f'"{company_name}" "{ceo_name}"')
+            if company_name and positive_keywords:
+                precision.append(f'"{company_name}" "{positive_keywords[0]}"')
+            if company_name:
+                broad.append(f'"{company_name}"')
+
+        # 중복 제거 및 공백 제거
+        def _dedupe(seq: List[str]) -> List[str]:
+            seen = set()
+            out = []
+            for s in seq:
+                s2 = (s or "").strip()
+                if s2 and s2 not in seen:
+                    seen.add(s2)
+                    out.append(s2)
+            return out
+
+        queries = {
+            "precision": _dedupe(precision),
+            "broad": _dedupe(broad),
+        }
+        return queries
     
     def _has_exact_word_match(self, text: str, keyword: str) -> bool:
         """정확한 단어 경계 매칭"""
@@ -193,17 +319,41 @@ class BaseScraper(ABC):
             # 에러 시 기본적으로 관련성 있다고 판단
             return True
     
-    def _remove_duplicates(self, articles: List[dict]) -> List[dict]:
-        """URL 기준으로 중복 기사 제거"""
-        seen_urls = set()
-        unique_articles = []
-        
+    def _normalize_url(self, url: Optional[str]) -> Optional[str]:
+        """URL 정규화: 스킴/호스트 소문자, 추적 파라미터 제거, 쿼리 정렬"""
+        if not url:
+            return None
+        try:
+            from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+            parsed = urlparse(url)
+            scheme = (parsed.scheme or 'http').lower()
+            netloc = (parsed.netloc or '').lower()
+            path = parsed.path or ''
+            # 쿼리 정리: UTM 등 추적 파라미터 제거
+            query_pairs = [(k, v) for (k, v) in parse_qsl(parsed.query, keep_blank_values=False)
+                           if not k.lower().startswith('utm_') and k.lower() not in {'gclid', 'fbclid'}]
+            query = urlencode(sorted(query_pairs))
+            fragment = ''
+            return urlunparse((scheme, netloc, path, '', query, fragment))
+        except Exception:
+            return url
+
+    def _dedupe_articles(self, articles: List[dict]) -> List[dict]:
+        """URL 정규화 기반 중복 제거, URL 없으면 (title, source) 키로 보조 제거"""
+        seen: set = set()
+        unique_articles: List[dict] = []
         for article in articles:
-            url = article.get('article_url')
-            if url and url not in seen_urls:
-                seen_urls.add(url)
-                unique_articles.append(article)
-        
+            url = self._normalize_url(article.get('article_url'))
+            if url:
+                key = ("url", url)
+            else:
+                title = (article.get('title') or '').strip().lower()
+                source = (article.get('source_name') or '').strip().lower()
+                key = ("ts", title, source)
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_articles.append(article)
         return unique_articles
     
     def _clean_html_tags(self, text: str) -> str:

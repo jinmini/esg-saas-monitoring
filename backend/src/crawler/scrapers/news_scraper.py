@@ -58,7 +58,7 @@ class NaverNewsScraper(BaseScraper):
             except httpx.RequestError as e:
                 raise Exception(f"Request error: {str(e)}")
     
-    async def parse_articles(self, response_data: dict, company_id: int, company_name: str = None) -> List[dict]:
+    async def parse_articles(self, response_data: dict, company_id: int, company_name: str = None, source_track: str = None, query_used: str = None) -> List[dict]:
         """네이버 API 응답을 Article 모델 형식으로 변환 (2단계 필터링 적용)"""
         try:
             # Pydantic 모델로 검증
@@ -103,7 +103,10 @@ class NaverNewsScraper(BaseScraper):
                     "published_at": self._parse_date(item.pubDate),
                     "summary": summary,
                     "language": "ko",
-                    "is_verified": False
+                    "is_verified": False,
+                    # 메타(스코어링/로그용) - DB 저장은 하지 않음
+                    "_source_track": source_track,
+                    "_query_used": query_used,
                 }
                 articles.append(article_data)
             

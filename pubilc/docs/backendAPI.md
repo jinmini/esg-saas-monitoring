@@ -49,7 +49,7 @@ GET /api/v1/articles/
 }
 ```
 
-#### 1.2 통합 뉴스 피드
+#### 1.2 통합 뉴스 피드 (⭐ Sprint 5 업데이트)
 ```http
 GET /api/v1/articles/feed
 ```
@@ -57,8 +57,19 @@ GET /api/v1/articles/feed
 **쿼리 파라미터:**
 - `page`: 페이지 번호 (기본값: 1)
 - `size`: 페이지 크기 (기본값: 20)
+- `date_from`: 시작 날짜 ISO 8601 (선택) **[NEW]**
+- `date_to`: 종료 날짜 ISO 8601 (선택) **[NEW]**
 
-#### 1.3 회사별 기사 조회 (⭐ 개선됨 - 스마트 필터링)
+**사용 예시:**
+```http
+# 최근 30일 뉴스 피드
+GET /api/v1/articles/feed?date_from=2025-08-23T00:00:00Z&date_to=2025-09-22T23:59:59Z
+
+# 기본 피드 (날짜 필터 없음)
+GET /api/v1/articles/feed?page=1&size=20
+```
+
+#### 1.3 회사별 기사 조회 (⭐ 개선됨 - 스마트 필터링 + Sprint 5 업데이트)
 ```http
 GET /api/v1/articles/company/{company_id}
 ```
@@ -71,6 +82,17 @@ GET /api/v1/articles/company/{company_id}
 **쿼리 파라미터:**
 - `page`: 페이지 번호 (기본값: 1)
 - `size`: 페이지 크기 (기본값: 20)
+- `date_from`: 시작 날짜 ISO 8601 (선택) **[NEW]**
+- `date_to`: 종료 날짜 ISO 8601 (선택) **[NEW]**
+
+**사용 예시:**
+```http
+# 하나루프의 최근 6개월 기사
+GET /api/v1/articles/company/19?date_from=2025-03-22T00:00:00Z&date_to=2025-09-22T23:59:59Z
+
+# 하나루프의 모든 기사 (스마트 필터링 적용)
+GET /api/v1/articles/company/19?page=1&size=10
+```
 
 **필터링 효과 예시:**
 - **하나루프**: 102개 → 3개 (97% 노이즈 제거)
@@ -119,13 +141,25 @@ GET /api/v1/articles/{article_id}
 
 ### 2. 트렌드 분석 API
 
-#### 2.1 회사별 언급량 트렌드 (⭐ 핵심 기능)
+#### 2.1 회사별 언급량 트렌드 (⭐ 핵심 기능 + Sprint 5 업데이트)
 ```http
 GET /api/v1/articles/trends
 ```
 
 **쿼리 파라미터:**
-- `period_days`: 분석 기간 (기본값: 30일)
+- `period_days`: 분석 기간 (기본값: 30일, **최대: 365일**) **[UPDATED]**
+
+**사용 예시:**
+```http
+# 최근 30일 트렌드 (기본)
+GET /api/v1/articles/trends?period_days=30
+
+# 최근 6개월 트렌드
+GET /api/v1/articles/trends?period_days=180
+
+# 최근 12개월 트렌드 (NEW!)
+GET /api/v1/articles/trends?period_days=365
+```
 
 **응답 예시:**
 ```json
@@ -154,9 +188,21 @@ GET /api/v1/articles/trends
 }
 ```
 
-#### 2.2 회사별 상세 통계
+#### 2.2 회사별 상세 통계 (⭐ Sprint 5 업데이트)
 ```http
 GET /api/v1/articles/company/{company_id}/stats
+```
+
+**쿼리 파라미터:**
+- `period_days`: 분석 기간 (기본값: 30일, **최대: 365일**) **[UPDATED]**
+
+**사용 예시:**
+```http
+# 하나루프의 최근 30일 통계
+GET /api/v1/articles/company/19/stats?period_days=30
+
+# 하나루프의 최근 12개월 통계
+GET /api/v1/articles/company/19/stats?period_days=365
 ```
 
 **응답 예시:**
@@ -409,9 +455,59 @@ export const apiClient = {
 
 ---
 
+## 🛰️ Two-Track 크롤링 (NEW)
+
+정확도와 재현율을 동시에 확보하기 위해 크롤러가 두 트랙으로 수집합니다.
+
+- **정밀 트랙(Precision)**: `"회사명" "대표명"` 또는 `"회사명" "탑키워드"` 조합으로 고정밀 수집
+- **광역 트랙(Broad)**: `"회사명"` 단독으로 보강 수집
+
+### 동작 원리
+- 정밀 트랙에서 최소 `30건` 확보 시 광역 트랙 생략
+- 미달 시 광역 트랙 최대 `2페이지`(페이지당 10건) 보강
+- 결과 병합 후 **URL 정규화(utm 제거 등)** 로 중복 제거
+- 저장 전 3단계 필터(제목 즉시 필터 → 네거티브 필터 → 품질게이트) 적용
+- 정밀 트랙 기사는 관련도 점수에 **+0.15 가산**
+
+### 운영 파라미터(기본값)
+- `PRECISION_MIN_RESULTS = 30`
+- `BROAD_MAX_PAGES = 2`
+- `PRECISION_SCORE_BOOST = 0.15`
+- `DEFAULT_SEARCH_STRATEGY = "two_track"` (회사별로 `search_strategy`로 오버라이드 가능)
+
+### 수동 실행 예시
+```http
+POST /api/v1/crawler/crawl/company/{company_id}?max_articles=100
+```
+
+응답에는 저장 개수와 실행 시간 등이 포함되며, 내부적으로는 정밀/광역 트랙 결과가 병합되어 저장됩니다.
+
+### 주의사항
+- 네이버 API 제약으로 OR 연산은 사용하지 않고 공백 결합(AND 의미)만 사용합니다.
+- 대표명/키워드가 없는 회사는 자동으로 회사명 단독 전략으로 동작합니다.
+
+## 🆕 Sprint 5 업데이트 내용 (2025.09.22)
+
+### **기간 필터링 기능 추가**
+- **Feed API**: `date_from`, `date_to` 파라미터로 날짜 범위 필터링 지원
+- **회사별 API**: `date_from`, `date_to` 파라미터로 날짜 범위 필터링 지원
+- **Trends API**: `period_days` 최대값을 90일 → **365일**로 확장
+
+### **프론트엔드 연동 개선**
+- 기간 선택 (1개월/3개월/6개월/12개월)이 자동으로 API 파라미터로 변환
+- 모든 위젯이 기간 변경 시 동시 업데이트
+- React Query 캐싱으로 성능 최적화
+
+### **실제 테스트 결과**
+- ✅ 30일/180일/365일 모든 기간에서 정상 작동 확인
+- ✅ API 응답 시간 < 1초 달성
+- ✅ 하나루프 데이터: 365일(102건) vs 30일(101건) 정확한 차이 반환
+
+---
+
 ## 🚀 시작하기
 
 1. 백엔드 서버가 실행 중인지 확인: `http://localhost:8000/health`
 2. 회사 목록 확인: `GET /api/v1/articles/companies/list`
 3. 트렌드 데이터 확인: `GET /api/v1/articles/trends`
-
+4. **NEW**: 기간 필터링 테스트: `GET /api/v1/articles/feed?date_from=2025-08-01T00:00:00Z&date_to=2025-09-22T23:59:59Z`
