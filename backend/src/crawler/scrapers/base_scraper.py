@@ -149,8 +149,18 @@ class BaseScraper(ABC):
             logger.info(f"Using fallback exact match query for {company_name}: {query}")
             return query
     
+    def _has_exact_word_match(self, text: str, keyword: str) -> bool:
+        """정확한 단어 경계 매칭"""
+        import re
+        if not text or not keyword:
+            return False
+        
+        # 단어 경계를 고려한 정확한 매칭
+        pattern = r'\b' + re.escape(keyword.strip()) + r'\b'
+        return bool(re.search(pattern, text, re.IGNORECASE))
+
     async def _is_relevant_article(self, title: str, content: str, company_id: int, company_name: str) -> bool:
-        """DB 기반 기사 관련성 검증 - 네거티브 필터링"""
+        """개선된 기사 관련성 검증 - 정확한 네거티브 필터링"""
         try:
             from src.core.database import AsyncSessionLocal
             from src.shared.models import Company
@@ -167,13 +177,13 @@ class BaseScraper(ABC):
                 if row and row.negative_keywords:
                     negative_keywords = row.negative_keywords
                     
-                    # 전체 텍스트 합성 (소문자 변환)
-                    full_text = f"{title} {content}".lower()
+                    # 전체 텍스트 합성
+                    full_text = f"{title} {content}"
                     
-                    # 네거티브 키워드 확인
+                    # 정확한 네거티브 키워드 매칭
                     for neg_keyword in negative_keywords:
-                        if neg_keyword.lower() in full_text:
-                            logger.debug(f"Article filtered out for {company_name} due to negative keyword: {neg_keyword}")
+                        if self._has_exact_word_match(full_text, neg_keyword):
+                            logger.debug(f"Article filtered out for {company_name} due to exact negative keyword match: {neg_keyword}")
                             return False
                 
                 return True

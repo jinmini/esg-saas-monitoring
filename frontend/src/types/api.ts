@@ -96,6 +96,7 @@ export interface CategoryTrendsResponse {
 
 export interface TrendParams {
   period_days?: number;
+  period?: number; // For frontend convenience, will be converted to period_days
 }
 
 // Company Detail Types (New APIs)

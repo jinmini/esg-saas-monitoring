@@ -75,16 +75,19 @@ class NaverNewsScraper(BaseScraper):
                 title = self._clean_html_tags(item.title)
                 summary = self._clean_html_tags(item.description)
                 
-                # 🛡️ 2단계 방어: 제목 기반 즉시 필터링 (가장 강력한 필터)
+                # 🛡️ 2단계 방어: 제목 기반 정확한 매칭 필터링
                 if company_name:
-                    keywords_to_check = [company_name.lower()]
+                    keywords_to_check = [company_name]
                     if company_meta.get('positive_keywords'):
-                        keywords_to_check.extend([kw.lower() for kw in company_meta['positive_keywords']])
+                        keywords_to_check.extend(company_meta['positive_keywords'])
                     
-                    # 제목에 회사명이나 핵심 키워드가 하나도 없으면 즉시 제외
-                    if not any(keyword in title.lower() for keyword in keywords_to_check):
+                    # 제목에 정확한 키워드 매칭이 하나도 없으면 즉시 제외
+                    has_exact_match = any(self._has_exact_word_match(title, keyword) 
+                                        for keyword in keywords_to_check)
+                    
+                    if not has_exact_match:
                         title_filtered_count += 1
-                        logger.debug(f"Title-filtered: '{title}' - no matching keywords")
+                        logger.debug(f"Title-filtered: '{title}' - no exact keyword matches")
                         continue
                 
                 # 네거티브 키워드 기반 관련성 검증 (기존 로직)

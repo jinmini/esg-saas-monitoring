@@ -154,12 +154,50 @@ class CrawlerService:
                 logger.error(f"Failed to commit articles: {str(e)}")
                 return 0
     
+    def _has_exact_word_match(self, text: str, keyword: str) -> bool:
+        """정확한 단어 경계 매칭 (PRD 제안 반영)"""
+        import re
+        if not text or not keyword:
+            return False
+        
+        # 단어 경계를 고려한 정확한 매칭
+        pattern = r'\b' + re.escape(keyword.strip()) + r'\b'
+        return bool(re.search(pattern, text, re.IGNORECASE))
+    
+    def _calculate_context_score(self, title: str, summary: str) -> float:
+        """비즈니스/ESG 컨텍스트 점수 계산 (0.0 ~ 1.0)"""
+        full_text = f"{title} {summary}".lower()
+        
+        # 비즈니스 컨텍스트 키워드 (가중치: 1)
+        business_keywords = [
+            "기업", "회사", "솔루션", "플랫폼", "서비스", "CEO", "대표",
+            "스타트업", "기업가", "창업", "투자", "사업", "경영"
+        ]
+        
+        # ESG 컨텍스트 키워드 (가중치: 2)
+        esg_keywords = [
+            "ESG", "탄소", "환경", "지속가능", "친환경", "녹색", "기후",
+            "배출권", "넷제로", "탄소중립", "재생에너지", "LCA"
+        ]
+        
+        business_score = sum(1 for kw in business_keywords if kw in full_text)
+        esg_score = sum(2 for kw in esg_keywords if kw in full_text)  # ESG 키워드 2배 가중치
+        
+        # 최대 점수 정규화 (비즈니스 3개 + ESG 2개 = 7점 만점)
+        max_possible_score = 7.0
+        total_score = min(business_score + esg_score, max_possible_score)
+        
+        context_score = total_score / max_possible_score
+        logger.debug(f"Context score: {context_score:.2f} (business: {business_score}, esg: {esg_score})")
+        
+        return context_score
+
     async def _calculate_relevance_score(self, article_data: Dict) -> float:
-        """기사의 관련도 점수 계산 (0.0 ~ 1.0)"""
+        """개선된 관련도 점수 계산 (정확한 매칭 + 컨텍스트 고려)"""
         try:
             company_id = article_data.get('company_id')
-            title = article_data.get('title', '').lower()
-            summary = article_data.get('summary', '').lower()
+            title = article_data.get('title', '')
+            summary = article_data.get('summary', '')
             
             if not company_id:
                 return 0.0
@@ -175,52 +213,50 @@ class CrawlerService:
                 if not row:
                     return 0.0
                 
-                company_name = row.company_name.lower()
-                company_name_en = (row.company_name_en or '').lower()
-                positive_keywords = [kw.lower() for kw in (row.positive_keywords or [])]
-                negative_keywords = [kw.lower() for kw in (row.negative_keywords or [])]
+                company_name = row.company_name
+                company_name_en = row.company_name_en or ''
+                positive_keywords = row.positive_keywords or []
+                negative_keywords = row.negative_keywords or []
                 
                 full_text = f"{title} {summary}"
                 score = 0.0
                 
-                # 1. 회사명 정확 매칭 (가중치: 40%)
-                if company_name in title:
-                    score += 0.4
-                elif company_name in summary:
-                    score += 0.2
+                # 1. 회사명 정확 매칭 (가중치: 35%)
+                if self._has_exact_word_match(title, company_name):
+                    score += 0.35
+                elif self._has_exact_word_match(summary, company_name):
+                    score += 0.20
                 
-                # 2. 영어 회사명 매칭 (가중치: 30%)
-                if company_name_en and company_name_en in full_text:
-                    score += 0.3
+                # 2. 영어 회사명 정확 매칭 (가중치: 25%)
+                if company_name_en and self._has_exact_word_match(full_text, company_name_en):
+                    score += 0.25
                 
-                # 3. Positive keywords 매칭 (가중치: 20%)
-                positive_matches = sum(1 for kw in positive_keywords if kw in full_text)
+                # 3. Positive keywords 정확 매칭 (가중치: 20%)
+                positive_matches = sum(1 for kw in positive_keywords 
+                                     if self._has_exact_word_match(full_text, kw))
                 if positive_keywords:
                     positive_ratio = min(positive_matches / len(positive_keywords), 1.0)
                     score += 0.2 * positive_ratio
                 
-                # 4. 제목 내 키워드 밀도 보너스 (가중치: 10%)
-                all_keywords = [company_name] + positive_keywords
-                title_keyword_count = sum(1 for kw in all_keywords if kw in title)
-                if all_keywords:
-                    title_density = min(title_keyword_count / len(all_keywords), 1.0)
-                    score += 0.1 * title_density
+                # 4. 컨텍스트 점수 (가중치: 20%)
+                context_score = self._calculate_context_score(title, summary)
+                score += 0.2 * context_score
                 
-                # 5. Negative keywords 패널티 (-50%)
+                # 5. Negative keywords 패널티 (-60%)
                 for neg_kw in negative_keywords:
-                    if neg_kw in full_text:
-                        score -= 0.5
+                    if self._has_exact_word_match(full_text, neg_kw):
+                        score -= 0.6
                         logger.debug(f"Negative keyword penalty: '{neg_kw}' found in article")
                         break
                 
                 # 점수 정규화 (0.0 ~ 1.0)
                 final_score = max(0.0, min(1.0, score))
                 
-                logger.debug(f"Relevance score for '{title[:50]}...': {final_score:.2f}")
+                logger.debug(f"Enhanced relevance score for '{title[:50]}...': {final_score:.2f}")
                 return final_score
                 
         except Exception as e:
-            logger.error(f"Failed to calculate relevance score: {e}")
+            logger.error(f"Failed to calculate enhanced relevance score: {e}")
             return 0.5  # 에러 시 중간값 반환
     
     async def get_crawl_statistics(self) -> Dict:

@@ -16,23 +16,64 @@ from ..core.database import AsyncSessionLocal
 class ArticleService:
     """기사 조회 서비스"""
     
+    def _has_exact_word_match(self, text: str, keyword: str) -> bool:
+        """정확한 단어 경계 매칭"""
+        import re
+        if not text or not keyword:
+            return False
+        
+        # 단어 경계를 고려한 정확한 매칭
+        pattern = r'\b' + re.escape(keyword.strip()) + r'\b'
+        return bool(re.search(pattern, text, re.IGNORECASE))
+    
+    def _calculate_context_score(self, title: str, summary: str) -> float:
+        """비즈니스/ESG 컨텍스트 점수 계산"""
+        full_text = f"{title} {summary}".lower()
+        
+        # 비즈니스 컨텍스트 키워드
+        business_keywords = [
+            "기업", "회사", "솔루션", "플랫폼", "서비스", "CEO", "대표",
+            "스타트업", "기업가", "창업", "투자", "사업", "경영"
+        ]
+        
+        # ESG 컨텍스트 키워드 (2배 가중치)
+        esg_keywords = [
+            "ESG", "탄소", "환경", "지속가능", "친환경", "녹색", "기후",
+            "배출권", "넷제로", "탄소중립", "재생에너지", "LCA"
+        ]
+        
+        business_score = sum(1 for kw in business_keywords if kw in full_text)
+        esg_score = sum(2 for kw in esg_keywords if kw in full_text)
+        
+        # 정규화 (최대 7점)
+        max_score = 7.0
+        total_score = min(business_score + esg_score, max_score)
+        
+        return total_score / max_score
+
     def _has_company_mention(self, article: Article, company_name: str, positive_keywords: List[str] = None) -> bool:
-        """기사 제목/본문에 회사명이나 관련 키워드가 포함되어 있는지 확인"""
+        """개선된 회사 관련성 판단 (정확한 매칭 + 컨텍스트 고려)"""
         if not company_name:
             return True
         
-        # 제목과 요약을 합쳐서 검사
-        full_text = f"{article.title or ''} {article.summary or ''}".lower()
+        title = article.title or ''
+        summary = article.summary or ''
+        full_text = f"{title} {summary}"
         
-        # 회사명 확인
-        if company_name.lower() in full_text:
+        # 1. 정확한 회사명 매칭
+        if self._has_exact_word_match(full_text, company_name):
             return True
         
-        # positive_keywords가 있으면 추가로 확인
+        # 2. 정확한 positive keywords 매칭
         if positive_keywords:
             for keyword in positive_keywords:
-                if keyword.lower() in full_text:
-                    return True
+                if self._has_exact_word_match(full_text, keyword):
+                    # 키워드 매칭된 경우, 컨텍스트 점수도 고려
+                    context_score = self._calculate_context_score(title, summary)
+                    
+                    # 컨텍스트 점수가 0.3 이상이면 관련성 있다고 판단
+                    if context_score >= 0.3:
+                        return True
         
         return False
     
@@ -126,7 +167,7 @@ class ArticleService:
                 has_prev=has_prev
             )
     
-    async def get_company_articles(self, company_id: int, page: int = 1, size: int = 20) -> ArticleListResponse:
+    async def get_company_articles(self, company_id: int, page: int = 1, size: int = 20, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> ArticleListResponse:
         """특정 회사의 기사 목록 조회 (회사명 포함 기사만 필터링)"""
         async with AsyncSessionLocal() as session:
             # 회사 정보 및 키워드 조회
@@ -146,8 +187,16 @@ class ArticleService:
                     has_prev=False
                 )
             
-            # 해당 회사의 모든 기사 조회
-            query = select(Article).where(Article.company_id == company_id).order_by(desc(Article.published_at))
+            # 해당 회사의 기사 조회 (날짜 필터링 포함)
+            query = select(Article).where(Article.company_id == company_id)
+            
+            # 날짜 필터링 적용
+            if date_from:
+                query = query.where(Article.published_at >= date_from)
+            if date_to:
+                query = query.where(Article.published_at <= date_to)
+                
+            query = query.order_by(desc(Article.published_at))
             result = await session.execute(query)
             all_articles = result.scalars().all()
             
@@ -195,15 +244,17 @@ class ArticleService:
                 has_prev=has_prev
             )
     
-    async def get_feed(self, page: int = 1, size: int = 20) -> FeedResponse:
+    async def get_feed(self, page: int = 1, size: int = 20, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> FeedResponse:
         """통합 뉴스 피드 조회 (최신순, 모든 회사)"""
         async with AsyncSessionLocal() as session:
-            # 최신순 기사 조회
+            # 최신순 기사 조회 (날짜 필터링 포함)
             params = ArticleQueryParams(
                 page=page,
                 size=size,
                 sort="published_at",
-                order="desc"
+                order="desc",
+                date_from=date_from,
+                date_to=date_to
             )
             
             articles_response = await self.get_articles(params)

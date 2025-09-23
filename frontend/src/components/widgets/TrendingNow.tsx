@@ -12,7 +12,7 @@ interface TrendingNowProps {
 }
 
 export function TrendingNow({ selectedPeriod }: TrendingNowProps) {
-  const { data, isLoading, isError } = useCompanyTrends({ period_days: selectedPeriod });
+  const { data, isLoading, isError } = useCompanyTrends({ period: selectedPeriod, enabled: true });
   // 변화 아이콘 렌더링 함수
   const renderChangeIcon = (changeType: string, changeRate: number) => {
     const iconClass = "w-3 h-3";

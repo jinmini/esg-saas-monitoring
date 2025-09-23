@@ -69,7 +69,7 @@ export function useCompanyTrends(params: TrendHookParams) {
   return useQuery({
     queryKey: trendKeys.companies(apiParams),
     queryFn: () => trendsApi.getCompanyTrends(apiParams),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes for period-filtered data
     retry: 1,
     enabled: enabled,
   });
@@ -80,7 +80,7 @@ export function useCategoryTrends(params: TrendHookParams) {
   return useQuery({
     queryKey: trendKeys.categories(apiParams),
     queryFn: () => trendsApi.getCategoryTrends(apiParams),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes for period-filtered data
     retry: 1,
     enabled: enabled,
   });

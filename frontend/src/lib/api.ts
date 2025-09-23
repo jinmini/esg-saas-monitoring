@@ -49,8 +49,21 @@ apiClient.interceptors.response.use(
 // API Functions
 export const articlesApi = {
   // Get articles feed (latest articles)
-  getFeed: async (params?: Pick<ArticleListParams, 'page' | 'size'>): Promise<ArticleListResponse> => {
-    const response = await apiClient.get<ArticleListResponse>('/articles/feed', { params });
+  getFeed: async (params?: Pick<ArticleListParams, 'page' | 'size' | 'period'>): Promise<ArticleListResponse> => {
+    // Convert period to date_from/date_to if period is provided
+    let apiParams: any = { ...params };
+    if (params?.period) {
+      const { periodToDateRange } = await import('@/lib/utils');
+      const dateRange = periodToDateRange(params.period);
+      apiParams = {
+        ...params,
+        date_from: dateRange.date_from,
+        date_to: dateRange.date_to,
+      };
+      delete apiParams.period; // Remove period as it's not an API parameter
+    }
+    
+    const response = await apiClient.get<ArticleListResponse>('/articles/feed', { params: apiParams });
     return response.data;
   },
 
@@ -73,8 +86,21 @@ export const articlesApi = {
   },
 
   // Get company articles (with smart filtering)
-  getCompanyArticles: async (companyId: number, params?: Pick<ArticleListParams, 'page' | 'size'>): Promise<CompanyArticlesResponse> => {
-    const response = await apiClient.get<CompanyArticlesResponse>(`/articles/company/${companyId}`, { params });
+  getCompanyArticles: async (companyId: number, params?: Pick<ArticleListParams, 'page' | 'size' | 'period'>): Promise<CompanyArticlesResponse> => {
+    // Convert period to date_from/date_to if period is provided
+    let apiParams: any = { ...params };
+    if (params?.period) {
+      const { periodToDateRange } = await import('@/lib/utils');
+      const dateRange = periodToDateRange(params.period);
+      apiParams = {
+        ...params,
+        date_from: dateRange.date_from,
+        date_to: dateRange.date_to,
+      };
+      delete apiParams.period; // Remove period as it's not an API parameter
+    }
+    
+    const response = await apiClient.get<CompanyArticlesResponse>(`/articles/company/${companyId}`, { params: apiParams });
     return response.data;
   },
 
@@ -89,13 +115,35 @@ export const articlesApi = {
 export const trendsApi = {
   // Get company trends (for Trending Now widget)
   getCompanyTrends: async (params?: TrendParams): Promise<CompanyTrendsResponse> => {
-    const response = await apiClient.get<CompanyTrendsResponse>('/articles/trends', { params });
+    // Convert period to period_days if period is provided
+    let apiParams: any = { ...params };
+    if (params?.period) {
+      const { periodToPeriodDays } = await import('@/lib/utils');
+      apiParams = {
+        ...params,
+        period_days: periodToPeriodDays(params.period),
+      };
+      delete apiParams.period; // Remove period as it's not an API parameter
+    }
+    
+    const response = await apiClient.get<CompanyTrendsResponse>('/articles/trends', { params: apiParams });
     return response.data;
   },
 
   // Get category trends
   getCategoryTrends: async (params?: TrendParams): Promise<CategoryTrendsResponse> => {
-    const response = await apiClient.get<CategoryTrendsResponse>('/articles/trends/categories', { params });
+    // Convert period to period_days if period is provided
+    let apiParams: any = { ...params };
+    if (params?.period) {
+      const { periodToPeriodDays } = await import('@/lib/utils');
+      apiParams = {
+        ...params,
+        period_days: periodToPeriodDays(params.period),
+      };
+      delete apiParams.period; // Remove period as it's not an API parameter
+    }
+    
+    const response = await apiClient.get<CategoryTrendsResponse>('/articles/trends/categories', { params: apiParams });
     return response.data;
   },
 };

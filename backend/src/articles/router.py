@@ -62,13 +62,25 @@ async def get_articles(
 @router.get("/feed", response_model=FeedResponse)
 async def get_feed(
     page: int = Query(default=1, ge=1, description="페이지 번호"),
-    size: int = Query(default=20, ge=1, le=100, description="페이지 크기")
+    size: int = Query(default=20, ge=1, le=100, description="페이지 크기"),
+    date_from: Optional[datetime] = Query(default=None, description="시작 날짜 (ISO 8601)"),
+    date_to: Optional[datetime] = Query(default=None, description="종료 날짜 (ISO 8601)")
 ):
     """
     통합 뉴스 피드 조회
+    
+    - **page**: 페이지 번호 (1부터 시작)
+    - **size**: 페이지당 기사 수 (최대 100개)
+    - **date_from**: 시작 날짜 (선택)
+    - **date_to**: 종료 날짜 (선택)
     """
     try:
-        return await article_service.get_feed(page=page, size=size)
+        return await article_service.get_feed(
+            page=page, 
+            size=size,
+            date_from=date_from,
+            date_to=date_to
+        )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get feed: {str(e)}")
@@ -78,14 +90,26 @@ async def get_feed(
 async def get_company_articles(
     company_id: int,
     page: int = Query(default=1, ge=1, description="페이지 번호"),
-    size: int = Query(default=20, ge=1, le=100, description="페이지 크기")
+    size: int = Query(default=20, ge=1, le=100, description="페이지 크기"),
+    date_from: Optional[datetime] = Query(default=None, description="시작 날짜 (ISO 8601)"),
+    date_to: Optional[datetime] = Query(default=None, description="종료 날짜 (ISO 8601)")
 ):
-    """특정 회사의 기사 목록 조회"""
+    """
+    특정 회사의 기사 목록 조회 (스마트 필터링 적용)
+    
+    - **company_id**: 회사 ID
+    - **page**: 페이지 번호 (1부터 시작)
+    - **size**: 페이지당 기사 수 (최대 100개)
+    - **date_from**: 시작 날짜 (선택)
+    - **date_to**: 종료 날짜 (선택)
+    """
     try:
         return await article_service.get_company_articles(
             company_id=company_id,
             page=page,
-            size=size
+            size=size,
+            date_from=date_from,
+            date_to=date_to
         )
         
     except Exception as e:
@@ -112,12 +136,12 @@ async def search_articles(
 
 @router.get("/trends", response_model=MentionTrendsResponse)
 async def get_mention_trends(
-    period_days: int = Query(default=30, ge=1, le=90, description="분석 기간 (일)")
+    period_days: int = Query(default=30, ge=1, le=365, description="분석 기간 (일)")
 ):
     """
     회사별 언급량 트렌드 분석 (상위 10개)
     
-    - **period_days**: 분석 기간 (기본값: 30일)
+    - **period_days**: 분석 기간 (기본값: 30일, 최대: 365일)
     - 직전 동일 기간 대비 증감률 계산
     - 현재 언급량 기준으로 상위 10개 회사 반환
     """
@@ -131,13 +155,13 @@ async def get_mention_trends(
 @router.get("/company/{company_id}/stats", response_model=CompanyMentionStats)
 async def get_company_mention_stats(
     company_id: int,
-    period_days: int = Query(default=30, ge=1, le=90, description="분석 기간 (일)")
+    period_days: int = Query(default=30, ge=1, le=365, description="분석 기간 (일)")
 ):
     """
     특정 회사의 언급량 통계
     
     - **company_id**: 회사 ID
-    - **period_days**: 분석 기간 (기본값: 30일)
+    - **period_days**: 분석 기간 (기본값: 30일, 최대: 365일)
     - 일별 언급량 데이터 포함
     """
     try:
