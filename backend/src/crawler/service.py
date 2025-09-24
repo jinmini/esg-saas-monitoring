@@ -223,11 +223,15 @@ class CrawlerService:
                 full_text = f"{title} {summary}"
                 score = 0.0
                 
-                # 1. 회사명 정확 매칭 (가중치: 35%)
-                if self._has_exact_word_match(title, company_name):
+                # 1. 회사명 정확 매칭 (가중치: 35% / 20%) + 부재 시 감점(-0.10)
+                title_has_company = self._has_exact_word_match(title, company_name)
+                summary_has_company = self._has_exact_word_match(summary, company_name)
+                if title_has_company:
                     score += 0.35
-                elif self._has_exact_word_match(summary, company_name):
+                elif summary_has_company:
                     score += 0.20
+                else:
+                    score -= 0.10  # 제목/요약 모두에 회사명이 없으면 감점
                 
                 # 2. 영어 회사명 정확 매칭 (가중치: 25%)
                 if company_name_en and self._has_exact_word_match(full_text, company_name_en):

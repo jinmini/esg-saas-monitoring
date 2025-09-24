@@ -4,7 +4,7 @@ from datetime import datetime
 from loguru import logger
 
 from .base_scraper import BaseScraper
-from ..schemas import NaverNewsResponse, NaverNewsItem
+from ..schemas import NaverNewsResponse
 from ...core.config import settings
 
 
@@ -59,42 +59,21 @@ class NaverNewsScraper(BaseScraper):
                 raise Exception(f"Request error: {str(e)}")
     
     async def parse_articles(self, response_data: dict, company_id: int, company_name: str = None, source_track: str = None, query_used: str = None) -> List[dict]:
-        """네이버 API 응답을 Article 모델 형식으로 변환 (2단계 필터링 적용)"""
+        """네이버 API 응답을 Article 모델 형식으로 변환
+
+        하드 필터링(제목 기반/네거티브 기반)을 제거하고, 모든 품질 판단은
+        저장 직전의 Quality Gate(관련도 점수 계산)로 일원화한다.
+        """
         try:
             # Pydantic 모델로 검증
             naver_response = NaverNewsResponse(**response_data)
-            
-            # DB에서 회사 메타데이터 조회
-            company_meta = await self._get_company_metadata(company_id) if company_name else {}
-            
+
             articles = []
-            title_filtered_count = 0
-            relevance_filtered_count = 0
-            
+
             for item in naver_response.items:
                 title = self._clean_html_tags(item.title)
                 summary = self._clean_html_tags(item.description)
-                
-                # 🛡️ 2단계 방어: 제목 기반 정확한 매칭 필터링
-                if company_name:
-                    keywords_to_check = [company_name]
-                    if company_meta.get('positive_keywords'):
-                        keywords_to_check.extend(company_meta['positive_keywords'])
-                    
-                    # 제목에 정확한 키워드 매칭이 하나도 없으면 즉시 제외
-                    has_exact_match = any(self._has_exact_word_match(title, keyword) 
-                                        for keyword in keywords_to_check)
-                    
-                    if not has_exact_match:
-                        title_filtered_count += 1
-                        logger.debug(f"Title-filtered: '{title}' - no exact keyword matches")
-                        continue
-                
-                # 네거티브 키워드 기반 관련성 검증 (기존 로직)
-                if company_name and not await self._is_relevant_article(title, summary, company_id, company_name):
-                    relevance_filtered_count += 1
-                    continue
-                
+
                 article_data = {
                     "company_id": company_id,
                     "title": title,
@@ -111,11 +90,6 @@ class NaverNewsScraper(BaseScraper):
                 articles.append(article_data)
             
             logger.info(f"Parsed {len(articles)} articles for {company_name} (company_id: {company_id})")
-            if title_filtered_count > 0:
-                logger.info(f"🛡️ Title-filtered out {title_filtered_count} articles for {company_name}")
-            if relevance_filtered_count > 0:
-                logger.info(f"🛡️ Relevance-filtered out {relevance_filtered_count} articles for {company_name}")
-            
             return articles
             
         except Exception as e:
