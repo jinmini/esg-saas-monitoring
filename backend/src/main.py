@@ -4,6 +4,7 @@ from src.core.config import settings
 from src.core.database import test_db_connection
 from src.crawler.router import router as crawler_router
 from src.articles.router import router as articles_router
+from src.events.router import router as events_router
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -25,6 +26,7 @@ app.add_middleware(
 # 라우터 등록
 app.include_router(crawler_router, prefix="/api/v1")
 app.include_router(articles_router, prefix="/api/v1")
+app.include_router(events_router, prefix="/api/v1")
 
 
 @app.on_event("startup")
