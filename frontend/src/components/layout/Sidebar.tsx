@@ -28,7 +28,7 @@ const menuItems = [
     label: 'ESG Analysis',
     href: '/esg-analysis',
     icon: BarChart3,
-    description: 'ESG 관련 정보 및 분석'
+    description: 'ESG 액션 캘린더 및 중요 일정'
   },
   {
     id: 'domestic-policy',

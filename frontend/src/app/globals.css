@@ -1,8 +1,17 @@
 @import "tailwindcss";
 
+/* FullCalendar CSS 외부 import는 제거 (Tailwind v4 빌드 깨짐 방지) */
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* FullCalendar Custom Variables (Notion-style) */
+  --fc-border-color: #e5e7eb;
+  --fc-today-bg-color: #f0fdf4;
+  --fc-event-border-radius: 6px;
+  --fc-event-border-width: 1px;
+  --fc-daygrid-event-dot-width: 8px;
 }
 
 @theme inline {
@@ -16,6 +25,8 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --fc-border-color: #374151;
+    --fc-today-bg-color: #064e3b;
   }
 }
 
@@ -23,4 +34,334 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ===============================
+   FullCalendar Notion-style Customization
+   =============================== */
+
+/* Calendar Container - Notion Style */
+.fc-theme-standard .fc-scrollgrid {
+  border: none !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 1px 2px -1px rgb(0 0 0 / 0.02) !important;
+  background: #ffffff !important;
+}
+
+/* Remove all internal borders for clean look */
+.fc-theme-standard td, 
+.fc-theme-standard th {
+  border: none !important;
+}
+
+/* Add subtle grid lines */
+.fc-daygrid-day {
+  border-right: 1px solid #f3f4f6 !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.fc-col-header-cell {
+  border-right: 1px solid #f3f4f6 !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+/* Hide FullCalendar Default Header Completely */
+.fc-header-toolbar {
+  display: none !important;
+}
+
+.fc-toolbar {
+  display: none !important;
+}
+
+/* Calendar Header - Clean Notion Style */
+.fc-theme-standard .fc-scrollgrid-section-header > td {
+  border: none !important;
+  background: #fafafa !important;
+  padding: 16px 12px !important;
+}
+
+.fc-col-header-cell {
+  background: #fafafa !important;
+  font-weight: 500 !important;
+  color: #6b7280 !important;
+  font-size: 0.875rem !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  padding: 16px 12px !important;
+}
+
+/* Week View - Same styling as month view */
+.fc-dayGridWeek-view .fc-col-header-cell {
+  padding: 16px 12px !important;
+  text-align: center !important;
+}
+
+/* Calendar Days - Notion Minimal Style */
+.fc-daygrid-day {
+  min-height: 120px !important;
+  background: white !important;
+  position: relative !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.fc-daygrid-day:hover {
+  background-color: #f9fafb !important;
+}
+
+.fc-daygrid-day-top {
+  justify-content: flex-start !important;
+  padding: 12px !important;
+}
+
+.fc-daygrid-day-number {
+  color: #374151 !important;
+  font-weight: 400 !important;
+  font-size: 0.875rem !important;
+  width: 28px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+/* Date number styling */
+.date-number {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Selected date styling - Red circle on date number only */
+.date-number.selected {
+  background-color: #ef4444 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Today Styling - Minimal Circle on date number */
+.fc-day-today .date-number {
+  background-color: #374151 !important;
+  color: white !important;
+  font-weight: 500 !important;
+}
+
+.fc-day-today {
+  background-color: white !important; /* Remove background color */
+}
+
+/* Override FullCalendar's default today styling */
+.fc-day-today .fc-daygrid-day-number {
+  background: none !important;
+  color: inherit !important;
+}
+
+/* Event Styling - Notion Soft Pills */
+.fc-event {
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 4px 8px !important;
+  margin: 2px 1px !important;
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  box-shadow: none !important;
+}
+
+.fc-event:hover {
+  transform: none !important;
+  opacity: 0.8 !important;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.06) !important;
+}
+
+.fc-event-title {
+  font-weight: 400 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.3 !important;
+}
+
+/* Category-specific Event Colors - Soft Pastel */
+.fc-event.event-지원사업 {
+  background-color: #eff6ff !important;
+  color: #1e40af !important;
+  border: none !important;
+}
+
+.fc-event.event-공시마감 {
+  background-color: #fef2f2 !important;
+  color: #b91c1c !important;
+  border: none !important;
+}
+
+.fc-event.event-정책발표 {
+  background-color: #f0fdf4 !important;
+  color: #15803d !important;
+  border: none !important;
+}
+
+.fc-event.event-컨퍼런스 {
+  background-color: #f9fafb !important;
+  color: #4b5563 !important;
+  border: none !important;
+}
+
+/* Toolbar */
+.fc-toolbar {
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.fc-toolbar-title {
+  color: #111827;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.fc-button-primary {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+  border-radius: 6px !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 500 !important;
+}
+
+.fc-button-primary:hover {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+}
+
+.fc-button-primary:disabled {
+  opacity: 0.6 !important;
+}
+
+/* Remove default FullCalendar focus styles */
+.fc-event:focus {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* 이전/다음 달의 날짜 스타일링 - 더 연하게 */
+.fc-day-other .fc-daygrid-day-number {
+  color: #d1d5db !important; /* gray-300 */
+  font-weight: 300 !important;
+  opacity: 0.4 !important;
+}
+
+.fc-day-other .fc-daygrid-day-top {
+  opacity: 0.4 !important;
+}
+
+.fc-day-other .fc-event {
+  opacity: 0.2 !important;
+}
+
+/* 새로운 실제 버튼 스타일 */
+.add-event-btn {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 4px !important;
+  background-color: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  opacity: 0.7 !important;
+  transition: all 0.2s ease !important;
+  z-index: 10 !important;
+}
+
+.fc-daygrid-day:hover .add-event-btn {
+  display: flex !important;
+}
+
+.add-event-btn:hover {
+  opacity: 1 !important;
+  background-color: #e5e7eb !important;
+}
+
+/* Radix UI Dialog 애니메이션 */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoom-in {
+  from { transform: scale(0.95); }
+  to { transform: scale(1); }
+}
+
+@keyframes zoom-out {
+  from { transform: scale(1); }
+  to { transform: scale(0.95); }
+}
+
+@keyframes slide-in-from-top {
+  from { transform: translateY(-2%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slide-out-to-top {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2%); }
+}
+
+.animate-in {
+  animation: fade-in 150ms ease-out, zoom-in 150ms ease-out, slide-in-from-top 150ms ease-out;
+}
+
+.animate-out {
+  animation: fade-out 150ms ease-in, zoom-out 150ms ease-in, slide-out-to-top 150ms ease-in;
+}
+
+.fade-in-0 { animation: fade-in 150ms ease-out; }
+.fade-out-0 { animation: fade-out 150ms ease-in; }
+.zoom-in-95 { animation: zoom-in 150ms ease-out; }
+.zoom-out-95 { animation: zoom-out 150ms ease-in; }
+.slide-in-from-top-48 { animation: slide-in-from-top 150ms ease-out; }
+.slide-out-to-top-48 { animation: slide-out-to-top 150ms ease-in; }
+
+/* Week View Specific Styles */
+.fc-dayGridWeek-view .fc-daygrid-day {
+  min-height: 150px !important; /* 주간 뷰에서 더 높은 셀 */
+}
+
+.fc-dayGridWeek-view .fc-daygrid-day-top {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  padding: 0 !important;
+}
+
+.fc-dayGridWeek-view .fc-daygrid-day-number {
+  position: relative !important;
+}
+
+.fc-dayGridWeek-view .date-number {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 0.9rem !important;
 }
