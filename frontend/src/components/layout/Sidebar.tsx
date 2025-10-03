@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { 
   TrendingUp, 
   BarChart3, 
-  Building2, 
+  FileEdit, 
   FileText 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,11 +31,11 @@ const menuItems = [
     description: 'ESG 액션 캘린더 및 중요 일정'
   },
   {
-    id: 'domestic-policy',
-    label: 'Domestic Policy',
-    href: '/domestic-policy',
-    icon: Building2,
-    description: '국내 ESG, 환경 관련 사업'
+    id: 'editor-poc',
+    label: 'Editor POC',
+    href: '/editor-poc',
+    icon: FileEdit,
+    description: 'Tiptap 기반 리치 텍스트 에디터'
   }
 ];
 
@@ -102,7 +102,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* 하단 정보 */}
       <div className="p-4 border-t border-gray-200">
         <div className="text-xs text-gray-500 text-center">
-          Sprint 3 - Dashboard
+          Sprint 7 - Editor PoC
         </div>
       </div>
     </aside>
