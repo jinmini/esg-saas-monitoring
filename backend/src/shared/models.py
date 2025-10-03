@@ -159,3 +159,54 @@ class Event(Base, TimestampMixin):
     
     def __repr__(self):
         return f"<Event(id={self.id}, title={self.title}, start_date={self.start_date}, category={self.category})>"
+
+
+class Document(Base, TimestampMixin):
+    """ESG 보고서 문서 테이블"""
+    __tablename__ = "documents"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_public = Column(Boolean, default=False, nullable=False, index=True)
+    is_template = Column(Boolean, default=False, nullable=False, index=True)
+    
+    user = relationship("User")
+    chapters = relationship("Chapter", back_populates="document", cascade="all, delete-orphan", order_by="Chapter.order")
+    
+    def __repr__(self):
+        return f"<Document(id={self.id}, title={self.title})>"
+
+
+class Chapter(Base, TimestampMixin):
+    """문서 챕터 테이블"""
+    __tablename__ = "chapters"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    order = Column(Integer, nullable=False, default=0)
+    is_collapsed = Column(Boolean, default=False, nullable=False)
+    
+    document = relationship("Document", back_populates="chapters")
+    sections = relationship("Section", back_populates="chapter", cascade="all, delete-orphan", order_by="Section.order")
+    
+    def __repr__(self):
+        return f"<Chapter(id={self.id}, title={self.title})>"
+
+
+class Section(Base, TimestampMixin):
+    """챕터 섹션 테이블"""
+    __tablename__ = "sections"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    chapter_id = Column(Integer, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=False, default='')
+    order = Column(Integer, nullable=False, default=0)
+    
+    chapter = relationship("Chapter", back_populates="sections")
+    
+    def __repr__(self):
+        return f"<Section(id={self.id}, title={self.title})>"
