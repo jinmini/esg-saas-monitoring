@@ -23,6 +23,7 @@
     "@tanstack/react-query": "^5.89.0",
     "@tanstack/react-query-devtools": "^5.89.0",
     "@tiptap/extension-color": "^2.26.2",
+    "@tiptap/extension-drag-handle-react": "^2.26.2",
     "@tiptap/extension-highlight": "^2.26.2",
     "@tiptap/extension-link": "^2.26.2",
     "@tiptap/extension-text-align": "^2.26.2",

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useDocumentStore } from '@/store/documentStore';
-import { DocumentChapter } from '@/types/document';
+import { useDocumentStore, DocumentChapter } from '@/store/documentStore';
 import { SectionItem } from './SectionItem';
 import { ChevronDown, ChevronRight, Plus, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

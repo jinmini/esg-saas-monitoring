@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useDocumentStore } from '@/store/documentStore';
-import { DocumentSection } from '@/types/document';
+import { useDocumentStore, DocumentSection } from '@/store/documentStore';
 import { FileText, Edit2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
