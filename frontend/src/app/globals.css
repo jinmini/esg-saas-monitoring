@@ -24,7 +24,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground: #0a0a0a;
     --fc-border-color: #374151;
     --fc-today-bg-color: #064e3b;
   }

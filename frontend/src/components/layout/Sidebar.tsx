@@ -36,6 +36,13 @@ const menuItems = [
     href: '/editor-poc',
     icon: FileEdit,
     description: 'Tiptap 기반 리치 텍스트 에디터'
+  },
+  {
+    id: 'canvas-poc',
+    label: 'Canvas POC',
+    href: '/canvas-poc',
+    icon: FileEdit,
+    description: 'Konva 기반 자유 배치 에디터'
   }
 ];
 
