@@ -15,6 +15,15 @@ import type {
   EventCategoriesResponse,
   EventCreateRequest,
   EventUpdateRequest,
+  Document,
+  DocumentListItem,
+  DocumentCreateRequest,
+  DocumentUpdateRequest,
+  DocumentBulkUpdateRequest,
+  ChapterCreateRequest,
+  SectionCreateRequest,
+  DocumentChapter,
+  DocumentSection,
 } from '@/types/api';
 
 // API Base Configuration
@@ -228,6 +237,85 @@ export const eventsApi = {
     }
     
     return events;
+  },
+};
+
+// Documents API Functions (ESG Report Management)
+export const documentsApi = {
+  // Get document list
+  getList: async (params?: {
+    user_id?: number;
+    is_template?: boolean;
+    is_public?: boolean;
+    skip?: number;
+    limit?: number;
+  }): Promise<DocumentListItem[]> => {
+    const response = await apiClient.get<DocumentListItem[]>('/documents/', { params });
+    return response.data;
+  },
+
+  // Get single document with full structure
+  getById: async (id: number): Promise<Document> => {
+    const response = await apiClient.get<Document>(`/documents/${id}`);
+    return response.data;
+  },
+
+  // Create new document
+  create: async (document: DocumentCreateRequest, user_id?: number): Promise<Document> => {
+    const params = user_id ? { user_id } : {};
+    const response = await apiClient.post<Document>('/documents/', document, { params });
+    return response.data;
+  },
+
+  // Update document metadata
+  update: async (id: number, document: DocumentUpdateRequest): Promise<Document> => {
+    const response = await apiClient.put<Document>(`/documents/${id}`, document);
+    return response.data;
+  },
+
+  // Delete document
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/documents/${id}`);
+  },
+
+  // Bulk update (save entire document structure)
+  bulkUpdate: async (id: number, document: DocumentBulkUpdateRequest): Promise<{
+    success: boolean;
+    message: string;
+    document: Document;
+  }> => {
+    const response = await apiClient.post(`/documents/${id}/bulk-update`, document);
+    return response.data;
+  },
+
+  // Chapter operations
+  createChapter: async (documentId: number, chapter: ChapterCreateRequest): Promise<DocumentChapter> => {
+    const response = await apiClient.post<DocumentChapter>(`/documents/${documentId}/chapters`, chapter);
+    return response.data;
+  },
+
+  updateChapter: async (chapterId: number, chapter: Partial<ChapterCreateRequest>): Promise<DocumentChapter> => {
+    const response = await apiClient.put<DocumentChapter>(`/documents/chapters/${chapterId}`, chapter);
+    return response.data;
+  },
+
+  deleteChapter: async (chapterId: number): Promise<void> => {
+    await apiClient.delete(`/documents/chapters/${chapterId}`);
+  },
+
+  // Section operations
+  createSection: async (chapterId: number, section: SectionCreateRequest): Promise<DocumentSection> => {
+    const response = await apiClient.post<DocumentSection>(`/documents/chapters/${chapterId}/sections`, section);
+    return response.data;
+  },
+
+  updateSection: async (sectionId: number, section: Partial<SectionCreateRequest>): Promise<DocumentSection> => {
+    const response = await apiClient.put<DocumentSection>(`/documents/sections/${sectionId}`, section);
+    return response.data;
+  },
+
+  deleteSection: async (sectionId: number): Promise<void> => {
+    await apiClient.delete(`/documents/sections/${sectionId}`);
   },
 };
 

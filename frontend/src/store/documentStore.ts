@@ -1,290 +1,407 @@
 import { create } from 'zustand';
-import { Document, DocumentChapter, DocumentSection, DocumentStore } from '@/types/document';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { Document as APIDocument } from '@/types/api';
+import { documentsApi } from '@/lib/api';
 
 /**
- * ESG 보고서 기본 템플릿
- * 환경(E), 사회(S), 거버넌스(G) 3대 축 구조
+ * Frontend Document Types (string IDs for local state)
  */
-const createESGTemplate = (): Document => {
-  const now = new Date();
+export interface DocumentSection {
+  id: string;
+  title: string;
+  content: string;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DocumentChapter {
+  id: string;
+  title: string;
+  order: number;
+  isCollapsed: boolean;
+  sections: DocumentSection[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Document {
+  id: string | number; // string for local, number for backend
+  title: string;
+  description?: string;
+  isPublic: boolean;
+  isTemplate: boolean;
+  chapters: DocumentChapter[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface DocumentStore {
+  document: Document | null;
+  activeSectionId: string | null;
+  isLoading: boolean;
+  isSaving: boolean;
+  lastSavedAt: Date | null;
   
+  // Document operations
+  setDocument: (document: Document) => void;
+  updateDocumentTitle: (title: string) => void;
+  loadDocument: (documentId: number) => Promise<void>;
+  saveDocument: (documentId?: number) => Promise<void>;
+  loadTemplate: (templateId: number) => Promise<void>;
+  
+  // Chapter operations
+  addChapter: (title: string) => void;
+  updateChapter: (chapterId: string, title: string) => void;
+  deleteChapter: (chapterId: string) => void;
+  toggleChapterCollapse: (chapterId: string) => void;
+  
+  // Section operations
+  addSection: (chapterId: string, title: string) => void;
+  updateSection: (sectionId: string, updates: Partial<DocumentSection>) => void;
+  deleteSection: (sectionId: string) => void;
+  setActiveSection: (sectionId: string | null) => void;
+  
+  // Getters
+  getActiveSection: () => DocumentSection | null;
+  getSectionById: (sectionId: string) => DocumentSection | null;
+  getChapterById: (chapterId: string) => DocumentChapter | null;
+}
+
+/**
+ * Convert API Document to Frontend Document
+ */
+const apiToFrontendDocument = (apiDoc: APIDocument): Document => {
   return {
-    id: 'doc-1',
-    title: 'ESG 보고서 2025',
-    description: 'ESG 통합 보고서',
-    chapters: [
-      {
-        id: 'chapter-1',
-        title: '환경 (Environmental)',
-        order: 1,
-        isCollapsed: false,
-        createdAt: now,
-        updatedAt: now,
-        sections: [
-          {
-            id: 'section-1-1',
-            title: '기후변화 대응',
-            content: '<h2>기후변화 대응</h2><p>기후변화 대응 전략을 입력하세요...</p>',
-            order: 1,
-            chapterId: 'chapter-1',
-            createdAt: now,
-            updatedAt: now,
-          },
-          {
-            id: 'section-1-2',
-            title: '에너지 관리',
-            content: '<h2>에너지 관리</h2><p>에너지 효율화 및 재생에너지 사용 현황을 입력하세요...</p>',
-            order: 2,
-            chapterId: 'chapter-1',
-            createdAt: now,
-            updatedAt: now,
-          },
-          {
-            id: 'section-1-3',
-            title: '자원 순환',
-            content: '<h2>자원 순환</h2><p>폐기물 관리 및 재활용 정책을 입력하세요...</p>',
-            order: 3,
-            chapterId: 'chapter-1',
-            createdAt: now,
-            updatedAt: now,
-          },
-        ],
-      },
-      {
-        id: 'chapter-2',
-        title: '사회 (Social)',
-        order: 2,
-        isCollapsed: false,
-        createdAt: now,
-        updatedAt: now,
-        sections: [
-          {
-            id: 'section-2-1',
-            title: '인권 및 노동',
-            content: '<h2>인권 및 노동</h2><p>근무 환경 및 인권 정책을 입력하세요...</p>',
-            order: 1,
-            chapterId: 'chapter-2',
-            createdAt: now,
-            updatedAt: now,
-          },
-          {
-            id: 'section-2-2',
-            title: '다양성 및 포용',
-            content: '<h2>다양성 및 포용</h2><p>다양성 증진 및 포용적 문화 조성 활동을 입력하세요...</p>',
-            order: 2,
-            chapterId: 'chapter-2',
-            createdAt: now,
-            updatedAt: now,
-          },
-          {
-            id: 'section-2-3',
-            title: '지역사회 공헌',
-            content: '<h2>지역사회 공헌</h2><p>사회공헌 활동 및 지역사회 협력 사례를 입력하세요...</p>',
-            order: 3,
-            chapterId: 'chapter-2',
-            createdAt: now,
-            updatedAt: now,
-          },
-        ],
-      },
-      {
-        id: 'chapter-3',
-        title: '거버넌스 (Governance)',
-        order: 3,
-        isCollapsed: false,
-        createdAt: now,
-        updatedAt: now,
-        sections: [
-          {
-            id: 'section-3-1',
-            title: '이사회 구조',
-            content: '<h2>이사회 구조</h2><p>이사회 구성 및 운영 현황을 입력하세요...</p>',
-            order: 1,
-            chapterId: 'chapter-3',
-            createdAt: now,
-            updatedAt: now,
-          },
-          {
-            id: 'section-3-2',
-            title: '윤리 경영',
-            content: '<h2>윤리 경영</h2><p>윤리강령 및 준법경영 체계를 입력하세요...</p>',
-            order: 2,
-            chapterId: 'chapter-3',
-            createdAt: now,
-            updatedAt: now,
-          },
-          {
-            id: 'section-3-3',
-            title: '리스크 관리',
-            content: '<h2>리스크 관리</h2><p>리스크 관리 체계 및 내부통제 시스템을 입력하세요...</p>',
-            order: 3,
-            chapterId: 'chapter-3',
-            createdAt: now,
-            updatedAt: now,
-          },
-        ],
-      },
-    ],
+    id: apiDoc.id,
+    title: apiDoc.title,
+    description: apiDoc.description,
+    isPublic: apiDoc.is_public,
+    isTemplate: apiDoc.is_template,
+    chapters: apiDoc.chapters.map(chapter => ({
+      id: chapter.id?.toString() || `chapter-${Date.now()}`,
+      title: chapter.title,
+      order: chapter.order,
+      isCollapsed: chapter.is_collapsed,
+      sections: chapter.sections.map(section => ({
+        id: section.id?.toString() || `section-${Date.now()}`,
+        title: section.title,
+        content: section.content,
+        order: section.order,
+        createdAt: section.created_at ? new Date(section.created_at) : new Date(),
+        updatedAt: section.updated_at ? new Date(section.updated_at) : new Date(),
+      })),
+      createdAt: chapter.created_at ? new Date(chapter.created_at) : new Date(),
+      updatedAt: chapter.updated_at ? new Date(chapter.updated_at) : new Date(),
+    })),
+    createdAt: new Date(apiDoc.created_at),
+    updatedAt: new Date(apiDoc.updated_at),
+  };
+};
+
+/**
+ * Convert Frontend Document to API format
+ */
+const frontendToApiDocument = (doc: Document) => {
+  return {
+    title: doc.title,
+    description: doc.description,
+    is_public: doc.isPublic,
+    is_template: doc.isTemplate,
+    chapters: doc.chapters.map(chapter => ({
+      title: chapter.title,
+      order: chapter.order,
+      is_collapsed: chapter.isCollapsed,
+      sections: chapter.sections.map(section => ({
+        title: section.title,
+        content: section.content,
+        order: section.order,
+      })),
+    })),
+  };
+};
+
+/**
+ * Create empty document
+ */
+const createEmptyDocument = (): Document => {
+  const now = new Date();
+  return {
+    id: 'new',
+    title: '새 문서',
+    description: '',
+    isPublic: false,
+    isTemplate: false,
+    chapters: [],
     createdAt: now,
     updatedAt: now,
   };
 };
 
 /**
- * Zustand 문서 관리 스토어
+ * Zustand Document Store with Backend Integration
  */
-export const useDocumentStore = create<DocumentStore>((set, get) => ({
-  document: createESGTemplate(),
-  activeSectionId: 'section-1-1', // 기본값: 첫 번째 섹션
+export const useDocumentStore = create<DocumentStore>()(
+  persist(
+    (set, get) => ({
+      document: null,
+      activeSectionId: null,
+      isLoading: false,
+      isSaving: false,
+      lastSavedAt: null,
 
-  // Document 관리
-  setDocument: (document) => set({ document }),
-  
-  updateDocumentTitle: (title) =>
-    set((state) => ({
-      document: { ...state.document, title, updatedAt: new Date() },
-    })),
+      // Document operations
+      setDocument: (document) => set({ document, activeSectionId: document.chapters[0]?.sections[0]?.id || null }),
 
-  // Chapter 관리
-  addChapter: (title) =>
-    set((state) => {
-      const newChapter: DocumentChapter = {
-        id: `chapter-${Date.now()}`,
-        title,
-        order: state.document.chapters.length + 1,
-        isCollapsed: false,
-        sections: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      return {
-        document: {
-          ...state.document,
-          chapters: [...state.document.chapters, newChapter],
-          updatedAt: new Date(),
-        },
-      };
-    }),
-
-  updateChapter: (chapterId, title) =>
-    set((state) => ({
-      document: {
-        ...state.document,
-        chapters: state.document.chapters.map((chapter) =>
-          chapter.id === chapterId
-            ? { ...chapter, title, updatedAt: new Date() }
-            : chapter
-        ),
-        updatedAt: new Date(),
-      },
-    })),
-
-  deleteChapter: (chapterId) =>
-    set((state) => ({
-      document: {
-        ...state.document,
-        chapters: state.document.chapters.filter((chapter) => chapter.id !== chapterId),
-        updatedAt: new Date(),
-      },
-      // 삭제된 챕터의 섹션이 활성화되어 있으면 초기화
-      activeSectionId: state.document.chapters
-        .find((c) => c.id === chapterId)
-        ?.sections.some((s) => s.id === state.activeSectionId)
-        ? null
-        : state.activeSectionId,
-    })),
-
-  toggleChapterCollapse: (chapterId) =>
-    set((state) => ({
-      document: {
-        ...state.document,
-        chapters: state.document.chapters.map((chapter) =>
-          chapter.id === chapterId
-            ? { ...chapter, isCollapsed: !chapter.isCollapsed }
-            : chapter
-        ),
-      },
-    })),
-
-  // Section 관리
-  addSection: (chapterId, title) =>
-    set((state) => {
-      const chapter = state.document.chapters.find((c) => c.id === chapterId);
-      if (!chapter) return state;
-
-      const newSection: DocumentSection = {
-        id: `section-${Date.now()}`,
-        title,
-        content: `<h2>${title}</h2><p>내용을 입력하세요...</p>`,
-        order: chapter.sections.length + 1,
-        chapterId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      return {
-        document: {
-          ...state.document,
-          chapters: state.document.chapters.map((c) =>
-            c.id === chapterId
-              ? { ...c, sections: [...c.sections, newSection], updatedAt: new Date() }
-              : c
-          ),
-          updatedAt: new Date(),
-        },
-      };
-    }),
-
-  updateSection: (sectionId, updates) =>
-    set((state) => ({
-      document: {
-        ...state.document,
-        chapters: state.document.chapters.map((chapter) => ({
-          ...chapter,
-          sections: chapter.sections.map((section) =>
-            section.id === sectionId
-              ? { ...section, ...updates, updatedAt: new Date() }
-              : section
-          ),
+      updateDocumentTitle: (title) =>
+        set((state) => ({
+          document: state.document
+            ? { ...state.document, title, updatedAt: new Date() }
+            : null,
         })),
-        updatedAt: new Date(),
+
+      loadDocument: async (documentId: number) => {
+        set({ isLoading: true });
+        try {
+          const apiDoc = await documentsApi.getById(documentId);
+          const frontendDoc = apiToFrontendDocument(apiDoc);
+          set({
+            document: frontendDoc,
+            activeSectionId: frontendDoc.chapters[0]?.sections[0]?.id || null,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Failed to load document:', error);
+          set({ isLoading: false });
+          throw error;
+        }
       },
-    })),
 
-  deleteSection: (sectionId) =>
-    set((state) => ({
-      document: {
-        ...state.document,
-        chapters: state.document.chapters.map((chapter) => ({
-          ...chapter,
-          sections: chapter.sections.filter((section) => section.id !== sectionId),
-        })),
-        updatedAt: new Date(),
+      loadTemplate: async (templateId: number) => {
+        set({ isLoading: true });
+        try {
+          const apiDoc = await documentsApi.getById(templateId);
+          const frontendDoc = apiToFrontendDocument(apiDoc);
+          // Reset ID to 'new' for template copy
+          frontendDoc.id = 'new';
+          frontendDoc.isTemplate = false;
+          frontendDoc.title = `${frontendDoc.title} (사본)`;
+          set({
+            document: frontendDoc,
+            activeSectionId: frontendDoc.chapters[0]?.sections[0]?.id || null,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Failed to load template:', error);
+          set({ isLoading: false });
+          throw error;
+        }
       },
-      activeSectionId: state.activeSectionId === sectionId ? null : state.activeSectionId,
-    })),
 
-  setActiveSection: (sectionId) => set({ activeSectionId: sectionId }),
+      saveDocument: async (documentId?: number) => {
+        const state = get();
+        if (!state.document) return;
 
-  // Getter 헬퍼
-  getActiveSection: () => {
-    const state = get();
-    if (!state.activeSectionId) return null;
-    return state.getSectionById(state.activeSectionId);
-  },
+        set({ isSaving: true });
+        try {
+          const apiData = frontendToApiDocument(state.document);
 
-  getSectionById: (sectionId) => {
-    const state = get();
-    for (const chapter of state.document.chapters) {
-      const section = chapter.sections.find((s) => s.id === sectionId);
-      if (section) return section;
+          if (documentId && typeof state.document.id === 'number') {
+            // Update existing document
+            const result = await documentsApi.bulkUpdate(documentId, apiData);
+            const updatedDoc = apiToFrontendDocument(result.document);
+            set({
+              document: updatedDoc,
+              isSaving: false,
+              lastSavedAt: new Date(),
+            });
+          } else {
+            // Create new document
+            const result = await documentsApi.create(apiData);
+            const newDoc = apiToFrontendDocument(result);
+            set({
+              document: newDoc,
+              isSaving: false,
+              lastSavedAt: new Date(),
+            });
+          }
+        } catch (error) {
+          console.error('Failed to save document:', error);
+          set({ isSaving: false });
+          throw error;
+        }
+      },
+
+      // Chapter operations
+      addChapter: (title) =>
+        set((state) => {
+          if (!state.document) return state;
+
+          const newChapter: DocumentChapter = {
+            id: `chapter-${Date.now()}`,
+            title,
+            order: state.document.chapters.length + 1,
+            isCollapsed: false,
+            sections: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          return {
+            document: {
+              ...state.document,
+              chapters: [...state.document.chapters, newChapter],
+              updatedAt: new Date(),
+            },
+          };
+        }),
+
+      updateChapter: (chapterId, title) =>
+        set((state) => {
+          if (!state.document) return state;
+          return {
+            document: {
+              ...state.document,
+              chapters: state.document.chapters.map((chapter) =>
+                chapter.id === chapterId
+                  ? { ...chapter, title, updatedAt: new Date() }
+                  : chapter
+              ),
+              updatedAt: new Date(),
+            },
+          };
+        }),
+
+      deleteChapter: (chapterId) =>
+        set((state) => {
+          if (!state.document) return state;
+          const deletedChapter = state.document.chapters.find((c) => c.id === chapterId);
+          const hasActiveSection = deletedChapter?.sections.some(
+            (s) => s.id === state.activeSectionId
+          );
+
+          return {
+            document: {
+              ...state.document,
+              chapters: state.document.chapters.filter((chapter) => chapter.id !== chapterId),
+              updatedAt: new Date(),
+            },
+            activeSectionId: hasActiveSection ? null : state.activeSectionId,
+          };
+        }),
+
+      toggleChapterCollapse: (chapterId) =>
+        set((state) => {
+          if (!state.document) return state;
+          return {
+            document: {
+              ...state.document,
+              chapters: state.document.chapters.map((chapter) =>
+                chapter.id === chapterId
+                  ? { ...chapter, isCollapsed: !chapter.isCollapsed }
+                  : chapter
+              ),
+            },
+          };
+        }),
+
+      // Section operations
+      addSection: (chapterId, title) =>
+        set((state) => {
+          if (!state.document) return state;
+          const chapter = state.document.chapters.find((c) => c.id === chapterId);
+          if (!chapter) return state;
+
+          const newSection: DocumentSection = {
+            id: `section-${Date.now()}`,
+            title,
+            content: `<h2>${title}</h2><p>내용을 입력하세요...</p>`,
+            order: chapter.sections.length + 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          return {
+            document: {
+              ...state.document,
+              chapters: state.document.chapters.map((c) =>
+                c.id === chapterId
+                  ? { ...c, sections: [...c.sections, newSection], updatedAt: new Date() }
+                  : c
+              ),
+              updatedAt: new Date(),
+            },
+          };
+        }),
+
+      updateSection: (sectionId, updates) =>
+        set((state) => {
+          if (!state.document) return state;
+          return {
+            document: {
+              ...state.document,
+              chapters: state.document.chapters.map((chapter) => ({
+                ...chapter,
+                sections: chapter.sections.map((section) =>
+                  section.id === sectionId
+                    ? { ...section, ...updates, updatedAt: new Date() }
+                    : section
+                ),
+              })),
+              updatedAt: new Date(),
+            },
+          };
+        }),
+
+      deleteSection: (sectionId) =>
+        set((state) => {
+          if (!state.document) return state;
+          return {
+            document: {
+              ...state.document,
+              chapters: state.document.chapters.map((chapter) => ({
+                ...chapter,
+                sections: chapter.sections.filter((section) => section.id !== sectionId),
+              })),
+              updatedAt: new Date(),
+            },
+            activeSectionId: state.activeSectionId === sectionId ? null : state.activeSectionId,
+          };
+        }),
+
+      setActiveSection: (sectionId) => set({ activeSectionId: sectionId }),
+
+      // Getters
+      getActiveSection: () => {
+        const state = get();
+        if (!state.activeSectionId || !state.document) return null;
+        return state.getSectionById(state.activeSectionId);
+      },
+
+      getSectionById: (sectionId) => {
+        const state = get();
+        if (!state.document) return null;
+        for (const chapter of state.document.chapters) {
+          const section = chapter.sections.find((s) => s.id === sectionId);
+          if (section) return section;
+        }
+        return null;
+      },
+
+      getChapterById: (chapterId) => {
+        const state = get();
+        if (!state.document) return null;
+        return state.document.chapters.find((c) => c.id === chapterId) || null;
+      },
+    }),
+    {
+      name: 'esg-document-storage',
+      storage: createJSONStorage(() => localStorage),
+      // Persist only document data, not loading states
+      partialize: (state) => ({
+        document: state.document,
+        activeSectionId: state.activeSectionId,
+        lastSavedAt: state.lastSavedAt,
+      }),
     }
-    return null;
-  },
-
-  getChapterById: (chapterId) => {
-    const state = get();
-    return state.document.chapters.find((c) => c.id === chapterId) || null;
-  },
-}));
-
+  )
+);

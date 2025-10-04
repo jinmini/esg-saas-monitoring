@@ -214,3 +214,111 @@ export const EVENT_CATEGORY_COLORS: Record<EventCategory, {
     dot: 'bg-gray-500'
   }
 };
+
+// ===============================
+// Document Management Types
+// ===============================
+
+export interface DocumentSection {
+  id?: number;
+  chapter_id?: number;
+  title: string;
+  content: string;
+  order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DocumentChapter {
+  id?: number;
+  document_id?: number;
+  title: string;
+  order: number;
+  is_collapsed: boolean;
+  sections: DocumentSection[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Document {
+  id: number;
+  user_id?: number;
+  title: string;
+  description?: string;
+  is_public: boolean;
+  is_template: boolean;
+  chapters: DocumentChapter[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentListItem {
+  id: number;
+  user_id?: number;
+  title: string;
+  description?: string;
+  is_public: boolean;
+  is_template: boolean;
+  chapter_count: number;
+  section_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DocumentCreateRequest {
+  title: string;
+  description?: string;
+  is_public?: boolean;
+  is_template?: boolean;
+  chapters?: Array<{
+    title: string;
+    order: number;
+    is_collapsed?: boolean;
+    sections?: Array<{
+      title: string;
+      content: string;
+      order: number;
+    }>;
+  }>;
+}
+
+export interface DocumentUpdateRequest {
+  title?: string;
+  description?: string;
+  is_public?: boolean;
+  is_template?: boolean;
+}
+
+export interface DocumentBulkUpdateRequest {
+  title?: string;
+  description?: string;
+  is_public?: boolean;
+  is_template?: boolean;
+  chapters: Array<{
+    title: string;
+    order: number;
+    is_collapsed?: boolean;
+    sections: Array<{
+      title: string;
+      content: string;
+      order: number;
+    }>;
+  }>;
+}
+
+export interface ChapterCreateRequest {
+  title: string;
+  order: number;
+  is_collapsed?: boolean;
+  sections?: Array<{
+    title: string;
+    content: string;
+    order: number;
+  }>;
+}
+
+export interface SectionCreateRequest {
+  title: string;
+  content: string;
+  order: number;
+}

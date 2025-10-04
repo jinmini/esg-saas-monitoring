@@ -12,7 +12,17 @@ interface DocumentOutlineProps {
 export function DocumentOutline({ className }: DocumentOutlineProps) {
   const { document, addChapter, updateDocumentTitle } = useDocumentStore();
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [tempTitle, setTempTitle] = useState(document.title);
+  const [tempTitle, setTempTitle] = useState(document?.title || '');
+
+  if (!document) {
+    return (
+      <div className={`flex flex-col h-full bg-white border-r border-gray-200 ${className}`}>
+        <div className="flex items-center justify-center h-full text-gray-500">
+          <p>문서를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleTitleSave = () => {
     if (tempTitle.trim()) {
@@ -102,4 +112,3 @@ export function DocumentOutline({ className }: DocumentOutlineProps) {
     </div>
   );
 }
-
