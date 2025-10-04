@@ -61,12 +61,11 @@ export default function CanvasPOCPage() {
   };
 
   // 객체 업데이트
-  const handleObjectUpdate = (objectId: string, attrs: Partial<CanvasObject>) => {
-    setObjects(
-      objects.map((obj) =>
-        obj.id === objectId ? { ...obj, ...attrs } : obj
-      )
+  const handleObjectUpdate = (objectId: string, attrs: any) => {
+    const newObjects = objects.map((obj) =>
+      obj.id === objectId ? { ...obj, ...attrs } : obj
     );
+    setObjects(newObjects as CanvasObject[]);
   };
 
   // 셀 텍스트 편집
@@ -114,15 +113,16 @@ export default function CanvasPOCPage() {
     setSelectedObjectId(null);
   };
 
-  // 비율 유지 토글
+  // 비율 유지 토글 (이미지 전용)
   const toggleAspectRatio = () => {
     if (!selectedObjectId) return;
     setObjects(
-      objects.map((obj) =>
-        obj.id === selectedObjectId
-          ? { ...obj, maintainAspectRatio: !obj.maintainAspectRatio }
-          : obj
-      )
+      objects.map((obj) => {
+        if (obj.id === selectedObjectId && obj.type === 'image') {
+          return { ...obj, maintainAspectRatio: !obj.maintainAspectRatio };
+        }
+        return obj;
+      })
     );
   };
 
@@ -229,7 +229,7 @@ export default function CanvasPOCPage() {
                 </div>
 
                 {/* 이미지 전용 옵션 */}
-                {selectedObject.type === 'image' && (
+                {selectedObject.type === 'image' && 'maintainAspectRatio' in selectedObject && (
                   <div className="flex items-center justify-between">
                     <label className="text-xs text-gray-600">비율 유지</label>
                     <button
