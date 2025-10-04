@@ -3,14 +3,16 @@
 import React, { useRef, useState } from 'react';
 import { Stage, Layer, Rect, Text } from 'react-konva';
 import Konva from 'konva';
-import { A4_WIDTH_SCREEN, A4_HEIGHT_SCREEN } from '@/types/canvas';
+import { A4_WIDTH_SCREEN, A4_HEIGHT_SCREEN, CanvasObject } from '@/types/canvas';
 import { CanvasImage } from './CanvasImage';
+import { CanvasTable } from './CanvasTable';
 
 interface A4PageProps {
   pageIndex: number;
-  objects?: any[];
+  objects?: CanvasObject[];
   onObjectUpdate?: (objectId: string, attrs: any) => void;
   onObjectSelect?: (objectId: string | null) => void;
+  onCellEdit?: (objectId: string, rowIndex: number, colIndex: number, text: string) => void;
   selectedObjectId?: string | null;
   className?: string;
 }
@@ -20,6 +22,7 @@ export function A4Page({
   objects = [],
   onObjectUpdate,
   onObjectSelect,
+  onCellEdit,
   selectedObjectId,
   className,
 }: A4PageProps) {
@@ -119,7 +122,19 @@ export function A4Page({
                 );
               }
               
-              // 다른 타입들은 추후 구현
+              if (obj.type === 'table') {
+                return (
+                  <CanvasTable
+                    key={obj.id}
+                    object={obj}
+                    isSelected={selectedObjectId === obj.id}
+                    onSelect={() => onObjectSelect?.(obj.id)}
+                    onUpdate={(attrs) => onObjectUpdate?.(obj.id, attrs)}
+                    onCellEdit={(row, col, text) => onCellEdit?.(obj.id, row, col, text)}
+                  />
+                );
+              }
+              
               return null;
             })}
 

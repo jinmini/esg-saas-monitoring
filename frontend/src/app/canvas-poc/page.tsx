@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { A4Page } from '@/components/canvas/A4Page';
-import { ImageObject } from '@/types/canvas';
-import { FileImage, Plus, Save, Download, AlertCircle } from 'lucide-react';
+import { ImageObject, TableObject, CanvasObject } from '@/types/canvas';
+import { createDefaultTable, updateCellText, addTableRow, addTableColumn, deleteTableRow, deleteTableColumn } from '@/utils/tableUtils';
+import { FileImage, Plus, Save, Download, AlertCircle, Table as TableIcon } from 'lucide-react';
 
 export default function CanvasPOCPage() {
-  const [objects, setObjects] = useState<ImageObject[]>([]);
+  const [objects, setObjects] = useState<CanvasObject[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
 
   // 이미지 업로드 핸들러
@@ -46,12 +47,63 @@ export default function CanvasPOCPage() {
     reader.readAsDataURL(file);
   };
 
+  // 테이블 생성
+  const handleCreateTable = () => {
+    const rows = parseInt(window.prompt('행 수를 입력하세요:', '3') || '3');
+    const cols = parseInt(window.prompt('열 수를 입력하세요:', '3') || '3');
+    
+    if (rows > 0 && cols > 0 && rows <= 20 && cols <= 10) {
+      const newTable = createDefaultTable(150, 150, rows, cols, 0, objects.length);
+      setObjects([...objects, newTable]);
+    } else {
+      alert('행은 1~20, 열은 1~10 범위로 입력해주세요.');
+    }
+  };
+
   // 객체 업데이트
-  const handleObjectUpdate = (objectId: string, attrs: Partial<ImageObject>) => {
+  const handleObjectUpdate = (objectId: string, attrs: Partial<CanvasObject>) => {
     setObjects(
       objects.map((obj) =>
         obj.id === objectId ? { ...obj, ...attrs } : obj
       )
+    );
+  };
+
+  // 셀 텍스트 편집
+  const handleCellEdit = (objectId: string, rowIndex: number, colIndex: number, text: string) => {
+    setObjects(
+      objects.map((obj) => {
+        if (obj.id === objectId && obj.type === 'table') {
+          return updateCellText(obj, rowIndex, colIndex, text);
+        }
+        return obj;
+      })
+    );
+  };
+
+  // 테이블 행 추가
+  const handleAddRow = (position: 'top' | 'bottom') => {
+    if (!selectedObjectId) return;
+    setObjects(
+      objects.map((obj) => {
+        if (obj.id === selectedObjectId && obj.type === 'table') {
+          return addTableRow(obj, position);
+        }
+        return obj;
+      })
+    );
+  };
+
+  // 테이블 열 추가
+  const handleAddColumn = (position: 'left' | 'right') => {
+    if (!selectedObjectId) return;
+    setObjects(
+      objects.map((obj) => {
+        if (obj.id === selectedObjectId && obj.type === 'table') {
+          return addTableColumn(obj, position);
+        }
+        return obj;
+      })
     );
   };
 
@@ -75,6 +127,7 @@ export default function CanvasPOCPage() {
   };
 
   const selectedObject = objects.find((obj) => obj.id === selectedObjectId);
+  const isTableSelected = selectedObject?.type === 'table';
 
   return (
     <DashboardLayout>
@@ -105,6 +158,15 @@ export default function CanvasPOCPage() {
                 className="hidden"
               />
             </label>
+
+            {/* 테이블 추가 */}
+            <button
+              onClick={handleCreateTable}
+              className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              <TableIcon className="w-4 h-4" />
+              <span>테이블 추가</span>
+            </button>
 
             <button className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
               <Save className="w-4 h-4" />
@@ -166,23 +228,64 @@ export default function CanvasPOCPage() {
                   <p className="text-sm">{Math.round(selectedObject.rotation)}°</p>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <label className="text-xs text-gray-600">비율 유지</label>
-                  <button
-                    onClick={toggleAspectRatio}
-                    className={`px-3 py-1 text-xs rounded ${
-                      selectedObject.maintainAspectRatio
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {selectedObject.maintainAspectRatio ? 'ON' : 'OFF'}
-                  </button>
-                </div>
+                {/* 이미지 전용 옵션 */}
+                {selectedObject.type === 'image' && (
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-gray-600">비율 유지</label>
+                    <button
+                      onClick={toggleAspectRatio}
+                      className={`px-3 py-1 text-xs rounded ${
+                        selectedObject.maintainAspectRatio
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {selectedObject.maintainAspectRatio ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+                )}
+
+                {/* 테이블 전용 옵션 */}
+                {isTableSelected && (
+                  <div className="space-y-2 border-t border-gray-200 pt-3 mt-3">
+                    <p className="text-xs font-semibold text-gray-700">테이블 편집</p>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleAddRow('top')}
+                        className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                      >
+                        위에 행 추가
+                      </button>
+                      <button
+                        onClick={() => handleAddRow('bottom')}
+                        className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                      >
+                        아래 행 추가
+                      </button>
+                      <button
+                        onClick={() => handleAddColumn('left')}
+                        className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                      >
+                        왼쪽 열 추가
+                      </button>
+                      <button
+                        onClick={() => handleAddColumn('right')}
+                        className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100"
+                      >
+                        오른쪽 열 추가
+                      </button>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 mt-2">
+                      💡 셀을 더블클릭하여 텍스트를 편집하세요
+                    </p>
+                  </div>
+                )}
 
                 <button
                   onClick={handleDeleteSelected}
-                  className="w-full px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                  className="w-full px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm mt-3"
                 >
                   삭제
                 </button>
@@ -222,6 +325,7 @@ export default function CanvasPOCPage() {
               selectedObjectId={selectedObjectId}
               onObjectSelect={setSelectedObjectId}
               onObjectUpdate={handleObjectUpdate}
+              onCellEdit={handleCellEdit}
             />
           </div>
         </div>
