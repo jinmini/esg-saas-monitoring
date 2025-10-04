@@ -43,6 +43,13 @@ const menuItems = [
     href: '/canvas-poc',
     icon: FileEdit,
     description: 'Konva 기반 자유 배치 에디터'
+  },
+  {
+    id: 'report-editor',
+    label: 'Report Editor',
+    href: '/report-editor',
+    icon: FileEdit,
+    description: '통합 보고서 에디터 (Unified)'
   }
 ];
 
