@@ -4,9 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  TrendingUp, 
+  LayoutDashboard, 
   BarChart3, 
-  FileEdit, 
+  TrendingUp, 
   FileText 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,13 @@ interface SidebarProps {
 
 const menuItems = [
   {
+    id: 'dashboard',
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    description: '대시보드'
+  },
+  {
     id: 'market-insight',
     label: 'Market Insight',
     href: '/',
@@ -24,33 +31,19 @@ const menuItems = [
     description: '시장 인사이트 및 뉴스피드 분석'
   },
   {
-    id: 'esg-analysis',
-    label: 'ESG Analysis',
-    href: '/esg-analysis',
+    id: 'analysis',
+    label: 'Analysis',
+    href: '/analysis',
     icon: BarChart3,
     description: 'ESG 액션 캘린더 및 중요 일정'
   },
   {
-    id: 'editor-poc',
-    label: 'Editor POC',
-    href: '/editor-poc',
-    icon: FileEdit,
-    description: 'Tiptap 기반 리치 텍스트 에디터'
+    id: 'editor',
+    label : 'Report Editor',
+    href: '/editor/dashboard',
+    icon: FileText,
+    description: '현재 작업 중인 보고서 편집'
   },
-  {
-    id: 'canvas-poc',
-    label: 'Canvas POC',
-    href: '/canvas-poc',
-    icon: FileEdit,
-    description: 'Konva 기반 자유 배치 에디터'
-  },
-  {
-    id: 'report-editor',
-    label: 'Report Editor',
-    href: '/report-editor',
-    icon: FileEdit,
-    description: '통합 보고서 에디터 (Unified)'
-  }
 ];
 
 export function Sidebar({ className }: SidebarProps) {
