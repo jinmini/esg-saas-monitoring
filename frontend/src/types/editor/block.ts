@@ -146,6 +146,7 @@ export const createEmptyBlock = (type: BlockType = 'paragraph'): BlockNode => {
       return {
         id,
         blockType: 'paragraph',
+        attributes: {}, // Backend 필수 필드
         content: [createTextInline('')],
       };
 
@@ -171,6 +172,7 @@ export const createEmptyBlock = (type: BlockType = 'paragraph'): BlockNode => {
       return {
         id,
         blockType: 'quote',
+        attributes: {}, // Backend 필수 필드
         content: [createTextInline('')],
       };
 
@@ -180,6 +182,7 @@ export const createEmptyBlock = (type: BlockType = 'paragraph'): BlockNode => {
       return {
         id,
         blockType: 'table',
+        attributes: {}, // Backend 필수 필드
         data: {
           rows,
           cols,
@@ -202,6 +205,7 @@ export const createEmptyBlock = (type: BlockType = 'paragraph'): BlockNode => {
       return {
         id,
         blockType: 'chart',
+        attributes: {}, // Backend 필수 필드
         data: { type: 'bar', data: [], options: {} },
       };
 
@@ -209,6 +213,7 @@ export const createEmptyBlock = (type: BlockType = 'paragraph'): BlockNode => {
       return {
         id,
         blockType: 'esgMetric',
+        attributes: {}, // Backend 필수 필드
         data: {
           metricName: '',
           category: 'environmental',
@@ -222,6 +227,7 @@ export const createEmptyBlock = (type: BlockType = 'paragraph'): BlockNode => {
       return {
         id,
         blockType: 'paragraph',
+        attributes: {}, // Backend 필수 필드
         content: [createTextInline('')],
       };
   }

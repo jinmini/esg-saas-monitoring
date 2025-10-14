@@ -84,17 +84,20 @@ export const Canvas: React.FC<CanvasProps> = ({
   } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
 
-  // 초기 문서 로드
-  useEffect(() => {
-    setDocument(initialContent);
-  }, [initialContent, setDocument]);
+  // ✅ 초기 문서 로드는 EditorShell에서 처리하므로 여기서는 삭제
+  // Canvas는 Zustand store에서 document를 읽기만 함
+  
+  // ❌ 제거: 중복 setDocument 호출 방지
+  // useEffect(() => {
+  //   setDocument(initialContent);
+  // }, [initialContent, setDocument]);
 
-  // 문서 변경 콜백
-  useEffect(() => {
-    if (document && onContentChange) {
-      onContentChange(document);
-    }
-  }, [document, onContentChange]);
+  // ❌ 제거: onContentChange는 현재 사용되지 않으며, 매 변경마다 호출되어 성능 저하 발생
+  // useEffect(() => {
+  //   if (document && onContentChange) {
+  //     onContentChange(document);
+  //   }
+  // }, [document, onContentChange]);
 
   // 블록 포커스 처리
   const handleBlockFocus = useCallback(
@@ -462,7 +465,7 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     return (
       <Block
-        key={block.id}
+        key={sortableId}
         sortableId={sortableId}
         block={block}
         sectionId={sectionId}

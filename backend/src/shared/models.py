@@ -173,40 +173,29 @@ class Document(Base, TimestampMixin):
     is_template = Column(Boolean, default=False, nullable=False, index=True)
     
     user = relationship("User")
-    chapters = relationship("Chapter", back_populates="document", cascade="all, delete-orphan", order_by="Chapter.order")
+    sections = relationship("Section", back_populates="document", cascade="all, delete-orphan", order_by="Section.order")
     
     def __repr__(self):
         return f"<Document(id={self.id}, title={self.title})>"
 
 
-class Chapter(Base, TimestampMixin):
-    """문서 챕터 테이블"""
-    __tablename__ = "chapters"
+class Section(Base, TimestampMixin):
+    """문서 섹션 테이블 (Document 직접 하위)"""
+    __tablename__ = "sections"
     
     id = Column(Integer, primary_key=True, index=True)
     document_id = Column(Integer, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(255), nullable=False)
-    order = Column(Integer, nullable=False, default=0)
-    is_collapsed = Column(Boolean, default=False, nullable=False)
-    
-    document = relationship("Document", back_populates="chapters")
-    sections = relationship("Section", back_populates="chapter", cascade="all, delete-orphan", order_by="Section.order")
-    
-    def __repr__(self):
-        return f"<Chapter(id={self.id}, title={self.title})>"
-
-
-class Section(Base, TimestampMixin):
-    """챕터 섹션 테이블"""
-    __tablename__ = "sections"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    chapter_id = Column(Integer, ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = Column(String(255), nullable=False)
-    content = Column(Text, nullable=False, default='')
+    description = Column(Text, nullable=True)
     order = Column(Integer, nullable=False, default=0)
     
-    chapter = relationship("Chapter", back_populates="sections")
+    # JSONB 필드들 (프론트엔드 타입과 일치)
+    blocks = Column(JSON, nullable=False, default=[])
+    gri_reference = Column(JSON, nullable=True)
+    # metadata는 SQLAlchemy 예약어이므로 section_metadata로 저장, Pydantic에서 alias 처리
+    section_metadata = Column("metadata", JSON, nullable=True)
+    
+    document = relationship("Document", back_populates="sections")
     
     def __repr__(self):
         return f"<Section(id={self.id}, title={self.title})>"

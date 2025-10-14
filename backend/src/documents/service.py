@@ -4,10 +4,9 @@ from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from fastapi import HTTPException, status
 
-from .models import Document, Chapter, Section
+from .models import Document, Section
 from .schemas import (
     DocumentCreate, DocumentUpdate, DocumentBulkUpdate,
-    ChapterCreate, ChapterUpdate,
     SectionCreate, SectionUpdate
 )
 
@@ -36,33 +35,24 @@ class DocumentService:
             is_template=data.is_template
         )
         
-        # 챕터 및 섹션 생성
-        for chapter_data in data.chapters:
-            chapter = Chapter(
-                title=chapter_data.title,
-                order=chapter_data.order,
-                is_collapsed=chapter_data.is_collapsed
+        # Section 생성 (blocks를 JSON으로 저장)
+        for section_data in data.sections:
+            section = Section(
+                title=section_data.title,
+                description=section_data.description,
+                order=section_data.order,
+                blocks=[block.model_dump() for block in section_data.blocks],
+                gri_reference=[ref.model_dump() for ref in section_data.griReference] if section_data.griReference else None,
+                section_metadata=section_data.metadata.model_dump() if section_data.metadata else None
             )
-            
-            # 섹션 생성
-            for section_data in chapter_data.sections:
-                section = Section(
-                    title=section_data.title,
-                    content=section_data.content,
-                    order=section_data.order
-                )
-                chapter.sections.append(section)
-            
-            document.chapters.append(chapter)
+            document.sections.append(section)
         
         self.db.add(document)
         await self.db.commit()
         await self.db.refresh(document)
         
         # 관계 로드
-        await self.db.refresh(document, ['chapters'])
-        for chapter in document.chapters:
-            await self.db.refresh(chapter, ['sections'])
+        await self.db.refresh(document, ['sections'])
         
         return document
     
@@ -70,9 +60,7 @@ class DocumentService:
         """문서 조회 (전체 계층 구조 포함)"""
         stmt = (
             select(Document)
-            .options(
-                selectinload(Document.chapters).selectinload(Chapter.sections)
-            )
+            .options(selectinload(Document.sections))
             .where(Document.id == document_id)
         )
         result = await self.db.execute(stmt)
@@ -125,7 +113,7 @@ class DocumentService:
         return document
     
     async def delete_document(self, document_id: int) -> bool:
-        """문서 삭제 (CASCADE로 챕터/섹션도 삭제됨)"""
+        """문서 삭제 (CASCADE로 섹션도 삭제됨)"""
         document = await self.get_document(document_id)
         if not document:
             return False
@@ -161,29 +149,23 @@ class DocumentService:
         if data.is_template is not None:
             document.is_template = data.is_template
         
-        # 기존 챕터/섹션 모두 삭제 후 재생성 (단순 전략)
+        # 기존 섹션 모두 삭제 후 재생성 (단순 전략)
         await self.db.execute(
-            delete(Chapter).where(Chapter.document_id == document_id)
+            delete(Section).where(Section.document_id == document_id)
         )
         
-        # 새 챕터/섹션 생성
-        for chapter_data in data.chapters:
-            chapter = Chapter(
+        # 새 섹션 생성
+        for section_data in data.sections:
+            section = Section(
                 document_id=document_id,
-                title=chapter_data.title,
-                order=chapter_data.order,
-                is_collapsed=chapter_data.is_collapsed
+                title=section_data.title,
+                description=section_data.description,
+                order=section_data.order,
+                blocks=[block.model_dump() for block in section_data.blocks],
+                gri_reference=[ref.model_dump() for ref in section_data.griReference] if section_data.griReference else None,
+                section_metadata=section_data.metadata.model_dump() if section_data.metadata else None
             )
-            
-            for section_data in chapter_data.sections:
-                section = Section(
-                    title=section_data.title,
-                    content=section_data.content,
-                    order=section_data.order
-                )
-                chapter.sections.append(section)
-            
-            document.chapters.append(chapter)
+            document.sections.append(section)
         
         await self.db.commit()
         await self.db.refresh(document)
@@ -192,15 +174,15 @@ class DocumentService:
         return await self.get_document(document_id)
     
     # ====================================
-    # Chapter CRUD
+    # Section CRUD
     # ====================================
     
-    async def create_chapter(
+    async def create_section(
         self, 
         document_id: int, 
-        data: ChapterCreate
-    ) -> Chapter:
-        """챕터 생성"""
+        data: SectionCreate
+    ) -> Section:
+        """섹션 생성"""
         # 문서 존재 확인
         document = await self.get_document(document_id)
         if not document:
@@ -209,92 +191,14 @@ class DocumentService:
                 detail=f"Document {document_id} not found"
             )
         
-        chapter = Chapter(
+        section = Section(
             document_id=document_id,
             title=data.title,
+            description=data.description,
             order=data.order,
-            is_collapsed=data.is_collapsed
-        )
-        
-        # 섹션 생성
-        for section_data in data.sections:
-            section = Section(
-                title=section_data.title,
-                content=section_data.content,
-                order=section_data.order
-            )
-            chapter.sections.append(section)
-        
-        self.db.add(chapter)
-        await self.db.commit()
-        await self.db.refresh(chapter)
-        await self.db.refresh(chapter, ['sections'])
-        
-        return chapter
-    
-    async def update_chapter(
-        self, 
-        chapter_id: int, 
-        data: ChapterUpdate
-    ) -> Chapter:
-        """챕터 업데이트"""
-        stmt = select(Chapter).where(Chapter.id == chapter_id)
-        result = await self.db.execute(stmt)
-        chapter = result.scalar_one_or_none()
-        
-        if not chapter:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Chapter {chapter_id} not found"
-            )
-        
-        update_data = data.model_dump(exclude_unset=True)
-        for key, value in update_data.items():
-            setattr(chapter, key, value)
-        
-        await self.db.commit()
-        await self.db.refresh(chapter)
-        return chapter
-    
-    async def delete_chapter(self, chapter_id: int) -> bool:
-        """챕터 삭제"""
-        stmt = select(Chapter).where(Chapter.id == chapter_id)
-        result = await self.db.execute(stmt)
-        chapter = result.scalar_one_or_none()
-        
-        if not chapter:
-            return False
-        
-        await self.db.delete(chapter)
-        await self.db.commit()
-        return True
-    
-    # ====================================
-    # Section CRUD
-    # ====================================
-    
-    async def create_section(
-        self, 
-        chapter_id: int, 
-        data: SectionCreate
-    ) -> Section:
-        """섹션 생성"""
-        # 챕터 존재 확인
-        stmt = select(Chapter).where(Chapter.id == chapter_id)
-        result = await self.db.execute(stmt)
-        chapter = result.scalar_one_or_none()
-        
-        if not chapter:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Chapter {chapter_id} not found"
-            )
-        
-        section = Section(
-            chapter_id=chapter_id,
-            title=data.title,
-            content=data.content,
-            order=data.order
+            blocks=[block.model_dump() for block in data.blocks],
+            gri_reference=[ref.model_dump() for ref in data.griReference] if data.griReference else None,
+            section_metadata=data.metadata.model_dump() if data.metadata else None
         )
         
         self.db.add(section)
@@ -319,7 +223,31 @@ class DocumentService:
                 detail=f"Section {section_id} not found"
             )
         
+        # 부분 업데이트
         update_data = data.model_dump(exclude_unset=True)
+        
+        # blocks 처리
+        if 'blocks' in update_data and update_data['blocks'] is not None:
+            update_data['blocks'] = [
+                block.model_dump() if hasattr(block, 'model_dump') else block 
+                for block in update_data['blocks']
+            ]
+        
+        # griReference 처리
+        if 'griReference' in update_data and update_data['griReference'] is not None:
+            update_data['griReference'] = [
+                ref.model_dump() if hasattr(ref, 'model_dump') else ref
+                for ref in update_data['griReference']
+            ]
+        
+        # metadata 처리 (section_metadata로 변환)
+        if 'metadata' in update_data and update_data['metadata'] is not None:
+            if hasattr(update_data['metadata'], 'model_dump'):
+                update_data['section_metadata'] = update_data['metadata'].model_dump()
+            else:
+                update_data['section_metadata'] = update_data['metadata']
+            del update_data['metadata']
+        
         for key, value in update_data.items():
             setattr(section, key, value)
         
@@ -339,4 +267,3 @@ class DocumentService:
         await self.db.delete(section)
         await self.db.commit()
         return True
-

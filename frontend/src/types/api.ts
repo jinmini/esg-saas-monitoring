@@ -216,9 +216,157 @@ export const EVENT_CATEGORY_COLORS: Record<EventCategory, {
 };
 
 // ===============================
-// Document Management Types
+// Document Management Types (API v2)
 // ===============================
 
+/**
+ * API Document Types (Backend 응답 형식)
+ * - 구조: Document → Section → blocks[]
+ * - Section.blocks는 BlockNode[] (JSONB)
+ */
+
+export interface APIBlockNode {
+  id: string;
+  blockType: 'paragraph' | 'heading' | 'image' | 'list' | 'quote' | 'table' | 'chart' | 'esgMetric';
+  attributes?: Record<string, any>;
+  content?: APIInlineNode[];
+  data?: any;
+  children?: any[];
+}
+
+export interface APIInlineNode {
+  id: string;
+  type: 'inline';
+  text: string;
+  marks?: string[];
+  link?: {
+    url: string;
+    title?: string;
+    target?: '_blank' | '_self';
+  };
+  annotation?: {
+    id: string;
+    authorId: string;
+    text: string;
+    createdAt: string;
+    resolved?: boolean;
+  };
+}
+
+export interface APIGRIReference {
+  code: string[];
+  framework: 'GRI' | 'SASB' | 'TCFD' | 'ISO26000' | 'ESRS';
+}
+
+export interface APISectionMetadata {
+  owner?: string;
+  category?: 'E' | 'S' | 'G' | 'General';
+  tags?: string[];
+  status?: 'draft' | 'in_review' | 'approved' | 'archived' | 'rejected';
+  attachments?: Array<{
+    id: string;
+    name: string;
+    url: string;
+    type: 'file' | 'image' | 'pdf';
+    uploadedAt: string;
+    uploadedBy: string;
+  }>;
+}
+
+export interface APIDocumentSection {
+  id: number;
+  document_id: number;
+  title: string;
+  description?: string;
+  order: number;
+  blocks: APIBlockNode[];
+  griReference?: APIGRIReference[];
+  metadata?: APISectionMetadata;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface APIDocument {
+  id: number;
+  user_id?: number;
+  title: string;
+  description?: string;
+  is_public: boolean;
+  is_template: boolean;
+  sections: APIDocumentSection[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface APIDocumentListItem {
+  id: number;
+  user_id?: number;
+  title: string;
+  description?: string;
+  is_public: boolean;
+  is_template: boolean;
+  section_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface APIDocumentCreateRequest {
+  title: string;
+  description?: string;
+  is_public?: boolean;
+  is_template?: boolean;
+  sections?: Array<{
+    title: string;
+    description?: string;
+    order: number;
+    blocks?: APIBlockNode[];
+    griReference?: APIGRIReference[];
+    metadata?: APISectionMetadata;
+  }>;
+}
+
+export interface APIDocumentUpdateRequest {
+  title?: string;
+  description?: string;
+  is_public?: boolean;
+  is_template?: boolean;
+}
+
+export interface APIDocumentBulkUpdateRequest {
+  title?: string;
+  description?: string;
+  sections: Array<{
+    title: string;
+    description?: string;
+    order: number;
+    blocks: APIBlockNode[];
+    griReference?: APIGRIReference[];
+    metadata?: APISectionMetadata;
+  }>;
+}
+
+export interface APISectionCreateRequest {
+  title: string;
+  description?: string;
+  order: number;
+  blocks?: APIBlockNode[];
+  griReference?: APIGRIReference[];
+  metadata?: APISectionMetadata;
+}
+
+export interface APISectionUpdateRequest {
+  title?: string;
+  description?: string;
+  blocks?: APIBlockNode[];
+  griReference?: APIGRIReference[];
+  metadata?: APISectionMetadata;
+}
+
+// ===============================
+// Legacy v1 Types (호환성 유지)
+// ===============================
+
+/** @deprecated Use APIDocument instead */
 export interface DocumentSection {
   id?: number;
   chapter_id?: number;
@@ -229,6 +377,7 @@ export interface DocumentSection {
   updated_at?: string;
 }
 
+/** @deprecated Use APIDocument instead */
 export interface DocumentChapter {
   id?: number;
   document_id?: number;
@@ -240,6 +389,7 @@ export interface DocumentChapter {
   updated_at?: string;
 }
 
+/** @deprecated Use APIDocument instead */
 export interface Document {
   id: number;
   user_id?: number;
@@ -252,6 +402,7 @@ export interface Document {
   updated_at: string;
 }
 
+/** @deprecated Use APIDocumentListItem instead */
 export interface DocumentListItem {
   id: number;
   user_id?: number;
@@ -265,6 +416,7 @@ export interface DocumentListItem {
   updated_at: string;
 }
 
+/** @deprecated Use APIDocumentCreateRequest instead */
 export interface DocumentCreateRequest {
   title: string;
   description?: string;
@@ -282,6 +434,7 @@ export interface DocumentCreateRequest {
   }>;
 }
 
+/** @deprecated Use APIDocumentUpdateRequest instead */
 export interface DocumentUpdateRequest {
   title?: string;
   description?: string;
@@ -289,6 +442,7 @@ export interface DocumentUpdateRequest {
   is_template?: boolean;
 }
 
+/** @deprecated Use APIDocumentBulkUpdateRequest instead */
 export interface DocumentBulkUpdateRequest {
   title?: string;
   description?: string;
@@ -306,6 +460,7 @@ export interface DocumentBulkUpdateRequest {
   }>;
 }
 
+/** @deprecated Use APISectionCreateRequest instead */
 export interface ChapterCreateRequest {
   title: string;
   order: number;
@@ -317,6 +472,7 @@ export interface ChapterCreateRequest {
   }>;
 }
 
+/** @deprecated Use APISectionCreateRequest instead */
 export interface SectionCreateRequest {
   title: string;
   content: string;

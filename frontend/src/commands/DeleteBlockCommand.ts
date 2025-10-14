@@ -23,9 +23,10 @@ export class DeleteBlockCommand implements EditorCommand {
 
     store.pushHistory();
 
-    store.deleteBlock(blockId, sectionId);
-
-    store.setEditing(true);
+    setTimeout(() => {
+      store.deleteBlock(blockId, sectionId);
+      store.setEditing(true);
+    }, 10);
   }
 
   undo(): void {

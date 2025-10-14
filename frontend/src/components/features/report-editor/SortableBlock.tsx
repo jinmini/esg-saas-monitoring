@@ -7,17 +7,12 @@ interface SortableBlockProps {
   children: React.ReactNode;
 }
 
-/**
- * Drag Handle Context
- * BlockActions에서 드래그 핸들 props에 접근할 수 있도록 제공
- */
 interface DragHandleContextValue {
   listeners: ReturnType<typeof useSortable>['listeners'];
   attributes: ReturnType<typeof useSortable>['attributes'];
 }
 
 const DragHandleContext = createContext<DragHandleContextValue | null>(null);
-
 export const useDragHandle = () => {
   const context = useContext(DragHandleContext);
   if (!context) {
@@ -28,11 +23,6 @@ export const useDragHandle = () => {
 
 /**
  * 드래그 가능한 블록 래퍼
- * 
- * 역할:
- * - @dnd-kit/sortable의 useSortable hook 사용
- * - 드래그 중 시각적 피드백 (투명도, 그림자)
- * - DragHandleContext 제공으로 자식 컴포넌트에서 드래그 핸들 구현 가능
  */
 export const SortableBlock: React.FC<SortableBlockProps> = ({ id, children }) => {
   const {
@@ -46,13 +36,14 @@ export const SortableBlock: React.FC<SortableBlockProps> = ({ id, children }) =>
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? 'none' : transition, // ✅ dragging 중에는 transition 제거
     opacity: isDragging ? 0.5 : 1,
   };
 
   return (
     <DragHandleContext.Provider value={{ listeners, attributes }}>
       <div
+        key={id} // ✅ React key 안정화
         ref={setNodeRef}
         style={style}
         className={`sortable-block ${isDragging ? 'dragging shadow-2xl' : ''}`}
@@ -62,4 +53,3 @@ export const SortableBlock: React.FC<SortableBlockProps> = ({ id, children }) =>
     </DragHandleContext.Provider>
   );
 };
-

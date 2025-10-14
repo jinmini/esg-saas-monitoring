@@ -11,9 +11,11 @@ interface InlineRendererProps {
  * marks 배열에 따라 bold, italic 등의 스타일을 적용
  */
 export const InlineRenderer: React.FC<InlineRendererProps> = ({ content, className = '' }) => {
+  if (!Array.isArray(content) || content.length === 0) return null; // ✅ 안전 가드 추가
+
   return (
     <>
-      {content.map((inline, index) => {
+      {content.map((inline) => {
         let text: React.ReactNode = inline.text;
         const marks = inline.marks || [];
 
@@ -43,9 +45,7 @@ export const InlineRenderer: React.FC<InlineRendererProps> = ({ content, classNa
         }
 
         if (marks.includes('highlight')) {
-          text = (
-            <mark className="bg-yellow-200 px-1 rounded">{text}</mark>
-          );
+          text = <mark className="bg-yellow-200 px-1 rounded">{text}</mark>;
         }
 
         // 링크 처리
@@ -62,8 +62,9 @@ export const InlineRenderer: React.FC<InlineRendererProps> = ({ content, classNa
           );
         }
 
+        // ✅ key는 반드시 고정된 inline.id를 사용
         return (
-          <span key={`inline-${index}`} className={className}>
+          <span key={inline.id} className={className}>
             {text}
           </span>
         );
@@ -71,4 +72,3 @@ export const InlineRenderer: React.FC<InlineRendererProps> = ({ content, classNa
     </>
   );
 };
-

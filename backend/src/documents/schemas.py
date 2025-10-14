@@ -1,16 +1,112 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any, Literal, Union
 from datetime import datetime
 
 
 # ============================================
-# Section Schemas
+# InlineNode (프론트엔드와 100% 일치)
 # ============================================
 
+class InlineLink(BaseModel):
+    """하이퍼링크 객체"""
+    url: str
+    title: Optional[str] = None
+    target: Optional[str] = '_blank'
+
+
+class InlineAnnotation(BaseModel):
+    """주석/코멘트 정보"""
+    id: str
+    authorId: str
+    text: str
+    createdAt: str
+    resolved: Optional[bool] = False
+
+
+class InlineNode(BaseModel):
+    """블록 내부의 최소 단위 텍스트 노드"""
+    id: str  # 프론트엔드 추가 필드
+    type: Literal['inline'] = 'inline'
+    text: str
+    marks: Optional[List[str]] = Field(default_factory=list)
+    link: Optional[InlineLink] = None
+    annotation: Optional[InlineAnnotation] = None
+
+
+# ============================================
+# BlockNode (프론트엔드 타입과 일치)
+# ============================================
+
+class BlockAttributes(BaseModel):
+    """블록 공통 속성"""
+    align: Optional[str] = None
+    indent: Optional[int] = None
+    level: Optional[int] = None
+    backgroundColor: Optional[str] = None
+    border: Optional[str] = None
+    padding: Optional[Union[int, str]] = None
+    style: Optional[Dict[str, Any]] = None
+    
+    # 특정 블록 전용 속성
+    listType: Optional[str] = None  # list 블록용 (ordered/unordered)
+    startNumber: Optional[int] = None  # ordered list용
+    width: Optional[Union[int, str]] = None  # image용
+    height: Optional[Union[int, str]] = None  # image용
+
+
+class ListItemNode(BaseModel):
+    """리스트 아이템"""
+    id: str
+    content: List[InlineNode]
+
+
+class BlockNode(BaseModel):
+    """문서 콘텐츠의 최소 독립 단위"""
+    id: str
+    blockType: str  # paragraph, heading, image, list, quote, table, chart, esgMetric
+    attributes: Optional[BlockAttributes] = None
+    content: Optional[List[InlineNode]] = None
+    data: Optional[Dict[str, Any]] = None
+    children: Optional[List[ListItemNode]] = None  # list 블록용
+
+
+# ============================================
+# Section (프론트엔드와 일치)
+# ============================================
+
+class GRIReference(BaseModel):
+    """ESG 표준 매핑"""
+    code: List[str]
+    framework: Literal['GRI', 'SASB', 'TCFD', 'ISO26000', 'ESRS']
+
+
+class SectionAttachment(BaseModel):
+    """섹션 첨부파일"""
+    id: str
+    name: str
+    url: str
+    type: Literal['file', 'image', 'pdf']
+    uploadedAt: str
+    uploadedBy: str
+
+
+class SectionMetadata(BaseModel):
+    """섹션 메타데이터"""
+    owner: Optional[str] = None
+    category: Optional[Literal['E', 'S', 'G', 'General']] = None
+    tags: Optional[List[str]] = None
+    status: Optional[Literal['draft', 'in_review', 'approved', 'archived', 'rejected']] = None
+    attachments: Optional[List[SectionAttachment]] = None
+
+
 class SectionBase(BaseModel):
+    """섹션 기본 스키마"""
     title: str = Field(..., min_length=1, max_length=255)
-    content: str = Field(default='')
+    description: Optional[str] = None
     order: int = Field(default=0, ge=0)
+    blocks: List[BlockNode] = Field(default_factory=list)
+    griReference: Optional[List[GRIReference]] = Field(None, alias="gri_reference")
+    metadata: Optional[SectionMetadata] = Field(None, alias="section_metadata")
 
 
 class SectionCreate(SectionBase):
@@ -21,60 +117,31 @@ class SectionCreate(SectionBase):
 class SectionUpdate(BaseModel):
     """섹션 업데이트 요청 (부분 업데이트 허용)"""
     title: Optional[str] = Field(None, min_length=1, max_length=255)
-    content: Optional[str] = None
-    order: Optional[int] = Field(None, ge=0)
+    description: Optional[str] = None
+    order: Optional[int] = None
+    blocks: Optional[List[BlockNode]] = None
+    griReference: Optional[List[GRIReference]] = Field(None, alias="gri_reference")
+    metadata: Optional[SectionMetadata] = Field(None, alias="section_metadata")
 
 
 class SectionResponse(SectionBase):
     """섹션 응답"""
     id: int
-    chapter_id: int
-    created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-
-# ============================================
-# Chapter Schemas
-# ============================================
-
-class ChapterBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=255)
-    order: int = Field(default=0, ge=0)
-    is_collapsed: bool = Field(default=False)
-
-
-class ChapterCreate(ChapterBase):
-    """챕터 생성 요청"""
-    sections: Optional[List[SectionCreate]] = Field(default_factory=list)
-
-
-class ChapterUpdate(BaseModel):
-    """챕터 업데이트 요청 (부분 업데이트 허용)"""
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    order: Optional[int] = Field(None, ge=0)
-    is_collapsed: Optional[bool] = None
-
-
-class ChapterResponse(ChapterBase):
-    """챕터 응답 (섹션 포함)"""
-    id: int
     document_id: int
-    sections: List[SectionResponse] = []
     created_at: datetime
     updated_at: datetime
     
     class Config:
         from_attributes = True
+        populate_by_name = True  # alias와 실제 필드명 모두 허용
 
 
 # ============================================
-# Document Schemas
+# Document
 # ============================================
 
 class DocumentBase(BaseModel):
+    """문서 기본 스키마"""
     title: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     is_public: bool = Field(default=False)
@@ -83,7 +150,7 @@ class DocumentBase(BaseModel):
 
 class DocumentCreate(DocumentBase):
     """문서 생성 요청 (중첩 구조 지원)"""
-    chapters: Optional[List[ChapterCreate]] = Field(default_factory=list)
+    sections: List[SectionCreate] = Field(default_factory=list)
 
 
 class DocumentUpdate(BaseModel):
@@ -98,7 +165,7 @@ class DocumentResponse(DocumentBase):
     """문서 응답 (전체 계층 구조 포함)"""
     id: int
     user_id: Optional[int]
-    chapters: List[ChapterResponse] = []
+    sections: List[SectionResponse] = []
     created_at: datetime
     updated_at: datetime
     
@@ -107,12 +174,11 @@ class DocumentResponse(DocumentBase):
 
 
 class DocumentListResponse(DocumentBase):
-    """문서 목록 응답 (챕터/섹션 제외, 메타데이터만)"""
+    """문서 목록 응답 (섹션 제외, 메타데이터만)"""
     id: int
     user_id: Optional[int]
     created_at: datetime
     updated_at: datetime
-    chapter_count: int = 0
     section_count: int = 0
     
     class Config:
@@ -129,7 +195,7 @@ class DocumentBulkUpdate(BaseModel):
     description: Optional[str] = None
     is_public: Optional[bool] = None
     is_template: Optional[bool] = None
-    chapters: List[ChapterCreate]  # 전체 챕터/섹션 구조
+    sections: List[SectionCreate]  # 전체 섹션 구조
 
 
 class DocumentBulkUpdateResponse(BaseModel):
@@ -137,4 +203,3 @@ class DocumentBulkUpdateResponse(BaseModel):
     success: bool
     message: str
     document: DocumentResponse
-

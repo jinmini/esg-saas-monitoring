@@ -7,7 +7,6 @@ from .service import DocumentService
 from .schemas import (
     DocumentCreate, DocumentUpdate, DocumentResponse, DocumentListResponse,
     DocumentBulkUpdate, DocumentBulkUpdateResponse,
-    ChapterCreate, ChapterUpdate, ChapterResponse,
     SectionCreate, SectionUpdate, SectionResponse
 )
 
@@ -32,7 +31,7 @@ async def create_document(
     - **description**: 문서 설명
     - **is_public**: 공개 여부
     - **is_template**: 템플릿 여부
-    - **chapters**: 챕터 및 섹션 목록
+    - **sections**: 섹션 및 블록 목록 (JSON)
     """
     service = DocumentService(db)
     return await service.create_document(user_id, data)
@@ -48,7 +47,7 @@ async def list_documents(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    문서 목록 조회 (메타데이터만, 챕터/섹션 제외)
+    문서 목록 조회 (메타데이터만, 섹션 제외)
     
     - **user_id**: 특정 사용자의 문서만 조회
     - **is_template**: true면 템플릿만, false면 일반 문서만
@@ -63,7 +62,7 @@ async def list_documents(
         limit=limit
     )
     
-    # 챕터/섹션 개수 계산
+    # 섹션 개수 계산
     result = []
     for doc in documents:
         doc_dict = {
@@ -75,8 +74,7 @@ async def list_documents(
             "is_template": doc.is_template,
             "created_at": doc.created_at,
             "updated_at": doc.updated_at,
-            "chapter_count": len(doc.chapters) if hasattr(doc, 'chapters') else 0,
-            "section_count": sum(len(ch.sections) for ch in doc.chapters) if hasattr(doc, 'chapters') else 0
+            "section_count": len(doc.sections) if hasattr(doc, 'sections') else 0
         }
         result.append(DocumentListResponse(**doc_dict))
     
@@ -92,6 +90,7 @@ async def get_document(
     문서 상세 조회 (전체 계층 구조 포함)
     
     - **document_id**: 문서 ID
+    - 응답에 모든 sections와 blocks JSON이 포함됨
     """
     service = DocumentService(db)
     document = await service.get_document(document_id)
@@ -127,7 +126,7 @@ async def delete_document(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    문서 삭제 (CASCADE로 챕터/섹션도 삭제됨)
+    문서 삭제 (CASCADE로 섹션도 삭제됨)
     
     - **document_id**: 문서 ID
     """
@@ -157,7 +156,7 @@ async def bulk_update_document(
     MVP 최적화: 프론트에서 저장 버튼 클릭 시 전체 문서 구조를 한 번에 전송
     
     - **document_id**: 문서 ID
-    - **data**: 전체 챕터/섹션 구조
+    - **data**: 전체 섹션/블록 구조
     """
     service = DocumentService(db)
     document = await service.bulk_update_document(document_id, data)
@@ -170,79 +169,23 @@ async def bulk_update_document(
 
 
 # ====================================
-# Chapter Endpoints
-# ====================================
-
-@router.post("/{document_id}/chapters", response_model=ChapterResponse, status_code=status.HTTP_201_CREATED)
-async def create_chapter(
-    document_id: int,
-    data: ChapterCreate,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    챕터 생성
-    
-    - **document_id**: 문서 ID
-    - **data**: 챕터 데이터 (섹션 포함 가능)
-    """
-    service = DocumentService(db)
-    return await service.create_chapter(document_id, data)
-
-
-@router.put("/chapters/{chapter_id}", response_model=ChapterResponse)
-async def update_chapter(
-    chapter_id: int,
-    data: ChapterUpdate,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    챕터 업데이트 (제목, 순서, 접기 상태 등)
-    
-    - **chapter_id**: 챕터 ID
-    - **data**: 업데이트할 필드
-    """
-    service = DocumentService(db)
-    return await service.update_chapter(chapter_id, data)
-
-
-@router.delete("/chapters/{chapter_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_chapter(
-    chapter_id: int,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    챕터 삭제 (CASCADE로 하위 섹션도 삭제됨)
-    
-    - **chapter_id**: 챕터 ID
-    """
-    service = DocumentService(db)
-    success = await service.delete_chapter(chapter_id)
-    
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Chapter {chapter_id} not found"
-        )
-
-
-# ====================================
 # Section Endpoints
 # ====================================
 
-@router.post("/chapters/{chapter_id}/sections", response_model=SectionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/{document_id}/sections", response_model=SectionResponse, status_code=status.HTTP_201_CREATED)
 async def create_section(
-    chapter_id: int,
+    document_id: int,
     data: SectionCreate,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    섹션 생성
+    섹션 생성 (Document 직접 하위)
     
-    - **chapter_id**: 챕터 ID
-    - **data**: 섹션 데이터
+    - **document_id**: 문서 ID
+    - **data**: 섹션 데이터 (blocks JSON 포함)
     """
     service = DocumentService(db)
-    return await service.create_section(chapter_id, data)
+    return await service.create_section(document_id, data)
 
 
 @router.put("/sections/{section_id}", response_model=SectionResponse)
@@ -252,10 +195,10 @@ async def update_section(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    섹션 업데이트 (제목, 내용, 순서 등)
+    섹션 업데이트 (제목, 블록, 메타데이터 등)
     
     - **section_id**: 섹션 ID
-    - **data**: 업데이트할 필드
+    - **data**: 업데이트할 필드 (blocks JSON 포함 가능)
     """
     service = DocumentService(db)
     return await service.update_section(section_id, data)
@@ -279,4 +222,3 @@ async def delete_section(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Section {section_id} not found"
         )
-

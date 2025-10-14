@@ -40,7 +40,7 @@ const menuItems = [
   {
     id: 'editor',
     label : 'Report Editor',
-    href: '/editor/dashboard',
+    href: '/report/[documentId]',
     icon: FileText,
     description: '현재 작업 중인 보고서 편집'
   },

@@ -15,13 +15,14 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-# CORS 미들웨어 추가
+# CORS 미들웨어 추가 (OPTIONS preflight 요청 허용)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=["*"],  # 개발 중에는 모든 origin 허용
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # 라우터 등록

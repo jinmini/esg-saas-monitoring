@@ -26,8 +26,6 @@ export class UpdateBlockContentCommand implements EditorCommand {
 
     if (!store.document) return;
 
-    store.pushHistory();
-
     store.updateBlock(blockId, sectionId, { content });
 
     store.setEditing(true);
