@@ -1,8 +1,8 @@
- // src/app/(platform)/dashboard/page.tsx
+// src/app/(main)/dashboard/page.tsx
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'; // (가상: shadcn/ui 컴포넌트)
-import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { FileText, TrendingUp, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 

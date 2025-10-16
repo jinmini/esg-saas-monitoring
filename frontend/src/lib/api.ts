@@ -24,6 +24,17 @@ import type {
   SectionCreateRequest,
   DocumentChapter,
   DocumentSection,
+  // Version API Types
+  VersionCreate,
+  VersionResponse,
+  VersionListParams,
+  VersionListResponse,
+  VersionRestoreResponse,
+  VersionDiffRequest,
+  VersionDiffResponse,
+  // Document List API Types
+  APIDocumentListResponse,
+  APIDocumentListParams,
 } from '@/types/api';
 
 // API Base Configuration
@@ -252,15 +263,15 @@ export const eventsApi = {
 
 // Documents API Functions (ESG Report Management - API v2)
 export const documentsApi = {
-  // Get document list
-  getList: async (params?: {
-    user_id?: number;
-    is_template?: boolean;
-    is_public?: boolean;
-    skip?: number;
-    limit?: number;
-  }): Promise<import('@/types/api').APIDocumentListItem[]> => {
-    const response = await apiClient.get<import('@/types/api').APIDocumentListItem[]>('/documents/', { params });
+  // Get document list with pagination
+  getList: async (params?: APIDocumentListParams): Promise<APIDocumentListResponse> => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Documents List:', params);
+    }
+    const response = await apiClient.get<APIDocumentListResponse>('/documents/', { params });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Documents List Response:', response.data);
+    }
     return response.data;
   },
 
@@ -303,7 +314,11 @@ export const documentsApi = {
     message: string;
     document: import('@/types/api').APIDocument;
   }> => {
-    const response = await apiClient.post(`/documents/${id}/bulk-update`, document);
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      document: import('@/types/api').APIDocument;
+    }>(`/documents/${id}/bulk-update`, document);
     return response.data;
   },
 
@@ -334,6 +349,27 @@ export const documentsApi = {
     await apiClient.delete(`/documents/sections/${sectionId}`);
   },
 
+  // Create document from template
+  createFromTemplate: async (
+    templateId: number,
+    title: string,
+    userId?: number
+  ): Promise<import('@/types/api').APIDocument> => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Create from Template:', { templateId, title, userId });
+    }
+    const params = userId ? { user_id: userId } : {};
+    const response = await apiClient.post<import('@/types/api').APIDocument>(
+      `/documents/${templateId}/copy`,
+      { title },
+      { params }
+    );
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Created Document:', response.data);
+    }
+    return response.data;
+  },
+
   // ==========================================
   // Legacy v1 API (호환성 유지)
   // ==========================================
@@ -353,6 +389,110 @@ export const documentsApi = {
   /** @deprecated Use bulkUpdate instead */
   deleteChapter: async (chapterId: number): Promise<void> => {
     await apiClient.delete(`/documents/chapters/${chapterId}`);
+  },
+};
+
+// ===============================
+// Version API Functions (Phase 1 - Version & Snapshot System)
+// ===============================
+
+export const versionsApi = {
+  /**
+   * 버전 생성 (수동 저장 또는 자동 저장)
+   * @param documentId - 대상 문서 ID
+   * @param data - 버전 생성 요청 데이터
+   * @returns 생성된 버전 상세 정보
+   */
+  create: async (
+    documentId: number,
+    data: VersionCreate
+  ): Promise<VersionResponse> => {
+    const response = await apiClient.post<VersionResponse>(
+      `/documents/${documentId}/versions`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * 버전 목록 조회 (페이지네이션)
+   * @param documentId - 대상 문서 ID
+   * @param params - 페이지네이션 및 필터 파라미터 (skip/limit)
+   * @returns 버전 목록 (메타데이터만, snapshot_data 제외)
+   */
+  list: async (
+    documentId: number,
+    params?: VersionListParams
+  ): Promise<VersionListResponse> => {
+    const response = await apiClient.get<VersionListResponse>(
+      `/documents/${documentId}/versions`,
+      { params }
+    );
+    return response.data;
+  },
+
+  /**
+   * 특정 버전 상세 조회 (snapshot_data 포함)
+   * @param versionId - 버전 ID
+   * @returns 버전 상세 정보 (전체 DocumentNode 포함)
+   */
+  getById: async (versionId: number): Promise<VersionResponse> => {
+    const response = await apiClient.get<VersionResponse>(
+      `/versions/${versionId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * 버전 복원 (선택한 버전으로 문서 복원 + 현재 상태 백업)
+   * @param documentId - 대상 문서 ID
+   * @param versionId - 복원할 버전 ID
+   * @returns 복원 결과 (복원된 버전 번호 + 백업 버전 번호 + 복원된 문서)
+   */
+  restore: async (
+    documentId: number,
+    versionId: number
+  ): Promise<VersionRestoreResponse> => {
+    const response = await apiClient.post<VersionRestoreResponse>(
+      `/documents/${documentId}/versions/${versionId}/restore`
+    );
+    return response.data;
+  },
+
+  /**
+   * 버전 삭제 (최신 버전이 아닌 경우에만 삭제 가능)
+   * @param versionId - 삭제할 버전 ID
+   * @returns 삭제 성공 여부
+   */
+  delete: async (versionId: number): Promise<{ success: boolean }> => {
+    const response = await apiClient.delete(`/versions/${versionId}`);
+    return { success: response.status === 204 || response.status === 200 };
+  },
+
+  /**
+   * 버전 비교 (Phase 1.4 - Diff View)
+   * @param documentId - 대상 문서 ID
+   * @param data - 비교할 버전 ID들
+   * @returns Diff 분석 결과 (추가/제거/수정된 섹션 및 블록)
+   */
+  compare: async (
+    documentId: number,
+    data: VersionDiffRequest
+  ): Promise<VersionDiffResponse> => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Version Diff:', { documentId, data });
+    }
+    
+    const response = await apiClient.post<VersionDiffResponse>(
+      `/documents/${documentId}/versions/diff`,
+      data
+    );
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Version Diff Result:', response.data);
+    }
+    
+    return response.data;
   },
 };
 

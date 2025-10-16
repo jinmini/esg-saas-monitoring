@@ -10,6 +10,7 @@ import { SidebarLeft } from './sidebar/SidebarLeft';
 import { SidebarRight } from './sidebar/SidebarRight';
 import { Canvas } from './canvas/Canvas';
 import { CommandDebugger } from './CommandDebugger';
+import { VersionDrawer } from './versions/VersionDrawer';
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -177,6 +178,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
       {/* Command System 디버거 (개발 모드) */}
       {process.env.NODE_ENV === 'development' && <CommandDebugger />}
+
+      {/* Version Drawer */}
+      <VersionDrawer documentId={documentId} />
     </div>
   );
 };

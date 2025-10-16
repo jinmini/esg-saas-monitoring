@@ -6,6 +6,7 @@ from src.crawler.router import router as crawler_router
 from src.articles.router import router as articles_router
 from src.events.router import router as events_router
 from src.documents.router import router as documents_router
+from src.documents.version_router import router as version_router  # ✅ 버전 관리 라우터 추가
 
 # FastAPI 앱 생성
 app = FastAPI(
@@ -30,6 +31,7 @@ app.include_router(crawler_router, prefix="/api/v1")
 app.include_router(articles_router, prefix="/api/v1")
 app.include_router(events_router, prefix="/api/v1")
 app.include_router(documents_router, prefix="/api/v1")
+app.include_router(version_router)  # ✅ 버전 관리 라우터 등록 (prefix 이미 포함)
 
 
 @app.on_event("startup")

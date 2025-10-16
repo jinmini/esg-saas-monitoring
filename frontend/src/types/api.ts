@@ -310,6 +310,23 @@ export interface APIDocumentListItem {
   updated_at: string;
 }
 
+export interface APIDocumentListResponse {
+  documents: APIDocumentListItem[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_next: boolean;
+}
+
+export interface APIDocumentListParams {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  is_template?: boolean;
+  sort_by?: 'created_at' | 'updated_at' | 'title';
+  sort_order?: 'asc' | 'desc';
+}
+
 export interface APIDocumentCreateRequest {
   title: string;
   description?: string;
@@ -477,4 +494,117 @@ export interface SectionCreateRequest {
   title: string;
   content: string;
   order: number;
+}
+
+// ===============================
+// Document Version Management Types (Phase 1 - Version System)
+// ===============================
+
+/**
+ * Version 메타데이터 (목록 조회용)
+ */
+export interface VersionMetadata {
+  id: number;
+  version_number: number;
+  comment: string | null;
+  is_auto_saved: boolean;
+  author_id: number | null;
+  author_name: string | null;
+  sections_count: number;
+  blocks_count: number;
+  chars_count: number;
+  created_at: string; // ISO 8601
+}
+
+/**
+ * Version 생성 요청 (수동 저장 / 자동 저장)
+ */
+export interface VersionCreate {
+  comment?: string | null;
+  is_auto_saved?: boolean;
+}
+
+/**
+ * Version 상세 응답 (snapshot_data 포함)
+ */
+export interface VersionResponse {
+  id: number;
+  document_id: number;
+  version_number: number;
+  comment: string | null;
+  is_auto_saved: boolean;
+  author_id: number | null;
+  author_name: string | null;
+  snapshot_data: APIDocument; // 전체 DocumentNode JSON
+  sections_count: number;
+  blocks_count: number;
+  chars_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Version 목록 응답 (페이지네이션)
+ */
+export interface VersionListResponse {
+  total: number;
+  has_next: boolean;
+  has_prev: boolean;
+  versions: VersionMetadata[];
+}
+
+/**
+ * Version 복원 응답
+ */
+export interface VersionRestoreResponse {
+  success: boolean;
+  message: string;
+  restored_version_number: number;
+  backup_version_number: number;
+  document: APIDocument;
+}
+
+/**
+ * Version Diff 요청 (Phase 1.4)
+ */
+export interface VersionDiffRequest {
+  source_version_id: number;
+  target_version_id?: number | null; // null이면 현재 문서와 비교
+}
+
+/**
+ * Section Diff 상세 정보 (Phase 1.4 - DiffViewer 재사용)
+ */
+export interface SectionDiff {
+  section_id: string;
+  section_title: string;
+  changes: {
+    blocks_added: number;
+    blocks_removed: number;
+    blocks_modified: number;
+  };
+}
+
+/**
+ * Version Diff 응답 (Phase 1.4)
+ */
+export interface VersionDiffResponse {
+  source_version: number;
+  target_version: number | null;
+  sections_added: string[];
+  sections_removed: string[];
+  sections_modified: SectionDiff[];
+  blocks_added: number;
+  blocks_removed: number;
+  blocks_modified: number;
+}
+
+/**
+ * Version 목록 조회 파라미터
+ * - skip/limit: 백엔드 FastAPI 파라미터와 일치
+ */
+export interface VersionListParams {
+  skip?: number;
+  limit?: number;
+  include_auto_saved?: boolean;
 }

@@ -44,6 +44,7 @@ interface UIActions {
   
   // 모달/드로어
   toggleVersionDrawer: () => void;
+  setVersionDrawerOpen: (open: boolean) => void;
   togglePermissionDrawer: () => void;
   toggleCommentModal: () => void;
   
@@ -86,6 +87,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   // 모달/드로어
   toggleVersionDrawer: () => set((state) => ({ isVersionDrawerOpen: !state.isVersionDrawerOpen })),
+  setVersionDrawerOpen: (open) => set({ isVersionDrawerOpen: open }),
   togglePermissionDrawer: () => set((state) => ({ isPermissionDrawerOpen: !state.isPermissionDrawerOpen })),
   toggleCommentModal: () => set((state) => ({ isCommentModalOpen: !state.isCommentModalOpen })),
 

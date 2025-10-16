@@ -26,7 +26,7 @@ const menuItems = [
   {
     id: 'market-insight',
     label: 'Market Insight',
-    href: '/',
+    href: '/market-insight',
     icon: TrendingUp,
     description: '시장 인사이트 및 뉴스피드 분석'
   },
@@ -40,7 +40,7 @@ const menuItems = [
   {
     id: 'editor',
     label : 'Report Editor',
-    href: '/report/[documentId]',
+    href: '/report/dashboard',
     icon: FileText,
     description: '현재 작업 중인 보고서 편집'
   },

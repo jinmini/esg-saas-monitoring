@@ -185,6 +185,15 @@ class DocumentListResponse(DocumentBase):
         from_attributes = True
 
 
+class DocumentListPaginatedResponse(BaseModel):
+    """문서 목록 페이지네이션 응답"""
+    documents: List[DocumentListResponse]
+    total: int
+    skip: int
+    limit: int
+    has_next: bool
+
+
 # ============================================
 # Bulk Update Schema (Hybrid API용)
 # ============================================
@@ -202,4 +211,7 @@ class DocumentBulkUpdateResponse(BaseModel):
     """Bulk 업데이트 응답"""
     success: bool
     message: str
-    document: DocumentResponse
+    document: "DocumentResponse"  # ✅ ForwardRef로 순환 참조 방지
+    
+    class Config:
+        from_attributes = True

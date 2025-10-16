@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from fastapi import HTTPException, status
@@ -75,7 +75,7 @@ class DocumentService:
         limit: int = 100
     ) -> List[Document]:
         """문서 목록 조회"""
-        stmt = select(Document)
+        stmt = select(Document).options(selectinload(Document.sections))
         
         # 필터링
         if user_id is not None:
@@ -89,6 +89,26 @@ class DocumentService:
         
         result = await self.db.execute(stmt)
         return result.scalars().all()
+    
+    async def count_documents(
+        self,
+        user_id: Optional[int] = None,
+        is_template: Optional[bool] = None,
+        is_public: Optional[bool] = None
+    ) -> int:
+        """문서 개수 조회 (필터 적용)"""
+        stmt = select(func.count(Document.id))
+        
+        # 필터링
+        if user_id is not None:
+            stmt = stmt.where(Document.user_id == user_id)
+        if is_template is not None:
+            stmt = stmt.where(Document.is_template == is_template)
+        if is_public is not None:
+            stmt = stmt.where(Document.is_public == is_public)
+        
+        result = await self.db.execute(stmt)
+        return result.scalar_one()
     
     async def update_document(
         self, 

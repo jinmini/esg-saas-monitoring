@@ -6,6 +6,7 @@ from src.core.database import get_db
 from .service import DocumentService
 from .schemas import (
     DocumentCreate, DocumentUpdate, DocumentResponse, DocumentListResponse,
+    DocumentListPaginatedResponse,
     DocumentBulkUpdate, DocumentBulkUpdateResponse,
     SectionCreate, SectionUpdate, SectionResponse
 )
@@ -37,7 +38,7 @@ async def create_document(
     return await service.create_document(user_id, data)
 
 
-@router.get("/", response_model=List[DocumentListResponse])
+@router.get("/", response_model=DocumentListPaginatedResponse)
 async def list_documents(
     user_id: Optional[int] = Query(None, description="사용자 ID 필터"),
     is_template: Optional[bool] = Query(None, description="템플릿만 조회"),
@@ -52,6 +53,7 @@ async def list_documents(
     - **user_id**: 특정 사용자의 문서만 조회
     - **is_template**: true면 템플릿만, false면 일반 문서만
     - **is_public**: true면 공개 문서만, false면 비공개 문서만
+    - 페이지네이션 메타데이터 포함 (total, skip, limit, has_next)
     """
     service = DocumentService(db)
     documents = await service.list_documents(
@@ -60,6 +62,13 @@ async def list_documents(
         is_public=is_public,
         skip=skip,
         limit=limit
+    )
+    
+    # 전체 문서 수 조회
+    total = await service.count_documents(
+        user_id=user_id,
+        is_template=is_template,
+        is_public=is_public
     )
     
     # 섹션 개수 계산
@@ -78,7 +87,13 @@ async def list_documents(
         }
         result.append(DocumentListResponse(**doc_dict))
     
-    return result
+    return DocumentListPaginatedResponse(
+        documents=result,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_next=(skip + limit) < total
+    )
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)
