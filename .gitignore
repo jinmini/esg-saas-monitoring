@@ -37,6 +37,8 @@ ENV/
 env.bak/
 venv.bak/
 backend/venv/
+venv312/
+
 
 # PyCharm
 .idea/
@@ -142,6 +144,8 @@ next-env.d.ts
 
 .playwright-mcp/
 
+data/
 
-
+.fix_chromadb.ps1
+.install_ai_deps.ps1
 

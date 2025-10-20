@@ -7,111 +7,217 @@ import {
   LayoutDashboard, 
   BarChart3, 
   TrendingUp, 
-  FileText 
+  FileText,
+  PanelLeftClose 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/store/uiStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
   className?: string;
 }
 
-const menuItems = [
+interface SubMenuItem {
+  id: string;
+  label: string;
+  href: string;
+  external?: boolean; // 외부 링크 여부
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
+  subItems?: SubMenuItem[];
+}
+
+const menuItems: MenuItem[] = [
   {
     id: 'dashboard',
     label: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    description: '대시보드'
   },
   {
     id: 'market-insight',
     label: 'Market Insight',
     href: '/market-insight',
     icon: TrendingUp,
-    description: '시장 인사이트 및 뉴스피드 분석'
+    subItems: [
+      {
+        id: 'kr-saas',
+        label: 'KR SaaS',
+        href: 'https://petalite-tuna-6c9.notion.site/Carbon-SaaS-253394aaa2f48027980efdc021952484',
+        external: true,
+      },
+      // Global은 준비 중이므로 주석 처리
+      // {
+      //   id: 'global-saas',
+      //   label: 'Global SaaS',
+      //   href: 'https://notion.site/your-global-url',
+      //   external: true,
+      // },
+    ],
   },
   {
     id: 'analysis',
     label: 'Analysis',
     href: '/analysis',
     icon: BarChart3,
-    description: 'ESG 액션 캘린더 및 중요 일정'
+    subItems: [
+      {
+        id: 'esg-calendar',
+        label: 'ESG Calendar',
+        href: 'https://notion.site/your-calendar-url', // 실제 Notion Calendar URL로 교체 필요
+        external: true,
+      },
+    ],
   },
   {
     id: 'editor',
     label : 'Report Editor',
     href: '/report/dashboard',
     icon: FileText,
-    description: '현재 작업 중인 보고서 편집'
   },
 ];
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
+  const { isGlobalSidebarOpen, toggleGlobalSidebar } = useUIStore();
 
   return (
-    <aside className={cn('w-60 bg-gray-50 border-r border-gray-200 flex flex-col', className)}>
-      {/* ESG SIP 브랜딩 영역 */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">ESG SIP</h1>
-            <p className="text-xs text-gray-600">SaaS Intelligence Platform</p>
-          </div>
-        </div>
-      </div>
+    <AnimatePresence>
+      {isGlobalSidebarOpen && (
+        <motion.aside
+          initial={{ x: -240, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -240, opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeInOut' }}
+          className={cn('w-60 bg-white flex flex-col relative', className)}
+        >
+          {/* 닫기 버튼 */}
+          <button
+            onClick={toggleGlobalSidebar}
+            className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded transition-colors z-10"
+            title="사이드바 닫기"
+          >
+            <PanelLeftClose size={18} className="text-gray-500" />
+          </button>
 
-      {/* 네비게이션 메뉴 */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors group',
-                    isActive 
-                      ? 'bg-green-100 text-green-700 border border-green-200' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  )}
-                >
-                  <Icon 
-                    className={cn(
-                      'w-5 h-5 transition-colors',
-                      isActive ? 'text-green-600' : 'text-gray-500 group-hover:text-gray-700'
-                    )} 
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className={cn(
-                      'text-sm font-medium truncate',
-                      isActive ? 'text-green-700' : 'text-gray-900'
-                    )}>
-                      {item.label}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate mt-0.5">
-                      {item.description}
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+          {/* ESG SIP 브랜딩 영역 - 미니멀 */}
+          <div className="p-6">
+            <Link href="/dashboard" className="flex items-center space-x-3 group">
+              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-base font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+                  ESG SIP
+                </h1>
+                <p className="text-xs text-gray-500">Intelligence Platform</p>
+              </div>
+            </Link>
+          </div>
 
-      {/* 하단 정보 */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="text-xs text-gray-500 text-center">
-          Sprint 7 - Editor PoC
-        </div>
-      </div>
-    </aside>
+          {/* 네비게이션 메뉴 - 미니멀 */}
+          <nav className="flex-1 px-3 py-2">
+            <ul className="space-y-1">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                const hasSubItems = item.subItems && item.subItems.length > 0;
+                
+                return (
+                  <li key={item.id}>
+                    {/* 메인 메뉴 */}
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        'flex items-center space-x-3 px-3 py-2.5 rounded-lg transition-all group',
+                        isActive 
+                          ? 'bg-green-50 text-green-700' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      )}
+                    >
+                      <Icon 
+                        className={cn(
+                          'w-5 h-5 transition-colors',
+                          isActive ? 'text-green-600' : 'text-gray-400 group-hover:text-gray-600'
+                        )} 
+                      />
+                      <span className={cn(
+                        'text-sm font-medium',
+                        isActive ? 'text-green-700' : 'text-gray-700'
+                      )}>
+                        {item.label}
+                      </span>
+                    </Link>
+
+                    {/* 하위 메뉴 */}
+                    {hasSubItems && item.subItems && (
+                      <ul className="mt-1 ml-8 space-y-1">
+                        {item.subItems.map((subItem) => {
+                          const isSubActive = pathname === subItem.href;
+                          
+                          // 외부 링크인 경우
+                          if (subItem.external) {
+                            return (
+                              <li key={subItem.id}>
+                                <a
+                                  href={subItem.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                                >
+                                  <span>{subItem.label}</span>
+                                  <svg 
+                                    className="w-3.5 h-3.5 opacity-50" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              </li>
+                            );
+                          }
+                          
+                          // 내부 링크인 경우
+                          return (
+                            <li key={subItem.id}>
+                              <Link
+                                href={subItem.href}
+                                className={cn(
+                                  'flex items-center px-3 py-2 rounded-lg transition-all text-sm',
+                                  isSubActive
+                                    ? 'bg-green-50 text-green-700 font-medium'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                                )}
+                              >
+                                {subItem.label}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* 하단 정보 - 미니멀 */}
+          <div className="p-4">
+            <div className="text-xs text-gray-400 text-center">
+              v1.0.0
+            </div>
+          </div>
+        </motion.aside>
+      )}
+    </AnimatePresence>
   );
 }

@@ -42,4 +42,7 @@ export {
   ApplyMarkCommand,
 };
 
-export type { EditorCommand, CommandType, InsertBlockPayload, UpdateBlockContentPayload, DeleteBlockPayload, ApplyMarkPayload, MoveBlockPayload, UpdateBlockAttributesPayload, CommandHistoryEntry, CommandResult, } from '@/types/editor/commands';
+// CommandType은 enum이므로 값으로도 사용 가능하도록 export
+export { CommandType } from '@/types/editor/commands';
+
+export type { EditorCommand, InsertBlockPayload, UpdateBlockContentPayload, DeleteBlockPayload, ApplyMarkPayload, MoveBlockPayload, UpdateBlockAttributesPayload, CommandHistoryEntry, CommandResult, } from '@/types/editor/commands';

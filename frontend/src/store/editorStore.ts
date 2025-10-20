@@ -64,6 +64,10 @@ interface EditorActions {
   
   // 인라인 텍스트 마크 적용/제거
   applyMark: (blockId: string, sectionId: string, inlineIndex: number, mark: TextMark, toggle?: boolean) => void;
+  
+  // AI Assist 메타데이터 관리
+  updateBlockMetadata: (blockId: string, sectionId: string, metadata: Record<string, any>) => void;
+  updateBlockTextContent: (blockId: string, sectionId: string, text: string) => void;
 
   // 선택 영역 관리
   setSelection: (selection: EditorSelection | null) => void;
@@ -377,7 +381,87 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       },
     });
   },
-
+  
+  // AI Assist: 블록 메타데이터 업데이트 (ESG 프레임워크 태깅)
+  updateBlockMetadata: (blockId, sectionId, metadata) => {
+    const { document, pushHistory } = get();
+    if (!document) return;
+    
+    pushHistory();
+    
+    const newSections = document.sections.map((section) => {
+      if (section.id !== sectionId) return section;
+      
+      const newBlocks = section.blocks.map((block) => {
+        if (block.id !== blockId) return block;
+        
+        return {
+          ...block,
+          data: {
+            ...(block.data || {}),
+            aiAssist: {
+              ...(block.data?.aiAssist || {}),
+              ...metadata,
+            },
+          },
+        };
+      });
+      
+      return {
+        ...section,
+        blocks: newBlocks,
+      };
+    });
+    
+    set({
+      document: {
+        ...document,
+        sections: newSections,
+        metadata: { ...document.metadata, updatedAt: new Date().toISOString() },
+      },
+    });
+  },
+  
+  // AI Assist: 블록 텍스트 내용 업데이트 (내용 확장)
+  updateBlockTextContent: (blockId, sectionId, text) => {
+    const { document, pushHistory } = get();
+    if (!document) return;
+    
+    pushHistory();
+    
+    const newSections = document.sections.map((section) => {
+      if (section.id !== sectionId) return section;
+      
+      const newBlocks = section.blocks.map((block) => {
+        if (block.id !== blockId) return block;
+        
+        // 텍스트를 InlineNode로 변환
+        const newContent: InlineNode[] = [{
+          id: crypto.randomUUID(),
+          type: 'text',
+          text,
+        }];
+        
+        return {
+          ...block,
+          content: newContent,
+        };
+      });
+      
+      return {
+        ...section,
+        blocks: newBlocks,
+      };
+    });
+    
+    set({
+      document: {
+        ...document,
+        sections: newSections,
+        metadata: { ...document.metadata, updatedAt: new Date().toISOString() },
+      },
+    });
+  },
 
   // 선택 영역 설정
   setSelection: (selection) => {

@@ -11,7 +11,7 @@ import { SidebarRight } from './sidebar/SidebarRight';
 import { Canvas } from './canvas/Canvas';
 import { CommandDebugger } from './CommandDebugger';
 import { VersionDrawer } from './versions/VersionDrawer';
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface EditorShellProps {
@@ -50,6 +50,15 @@ export const EditorShell: React.FC<EditorShellProps> = ({
 
   // ✅ 초기 로드 시에만 Zustand store에 저장 (중복 덮어쓰기 방지)
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // CommandDebugger 표시 상태 (개발 모드에서만)
+  const [showDebugger, setShowDebugger] = useState(() => {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      const stored = localStorage.getItem('command-debugger-visible');
+      return stored !== 'false'; // 기본값 true
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (document && isInitialLoad) {
@@ -131,6 +140,22 @@ export const EditorShell: React.FC<EditorShellProps> = ({
             <PanelRightOpen size={20} />
           </motion.button>
         )}
+        
+        {/* Command Debugger 토글 버튼 (개발 모드) */}
+        {process.env.NODE_ENV === 'development' && !showDebugger && (
+          <motion.button
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            onClick={() => {
+              setShowDebugger(true);
+              localStorage.setItem('command-debugger-visible', 'true');
+            }}
+            className="absolute right-4 bottom-4 z-10 p-2 bg-gray-900 text-white rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
+            title="Command Debugger 열기"
+          >
+            <Terminal size={20} />
+          </motion.button>
+        )}
 
         {/* 좌측 사이드바 */}
         <AnimatePresence>
@@ -177,7 +202,9 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       </div>
 
       {/* Command System 디버거 (개발 모드) */}
-      {process.env.NODE_ENV === 'development' && <CommandDebugger />}
+      {process.env.NODE_ENV === 'development' && showDebugger && (
+        <CommandDebugger onClose={() => setShowDebugger(false)} />
+      )}
 
       {/* Version Drawer */}
       <VersionDrawer documentId={documentId} />

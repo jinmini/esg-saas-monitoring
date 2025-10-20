@@ -19,7 +19,7 @@ export default function ESGReportEditorPage() {
   const documentId = params.documentId ? Number(params.documentId) : null;
 
   const handleBack = () => {
-    router.push('/');
+    router.push('/report/dashboard');
   };
 
   // documentId가 없거나 유효하지 않은 경우

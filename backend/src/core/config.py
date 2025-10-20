@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import List
+from src.ai_assist.config import AIAssistConfig
 
 
 class Settings(BaseSettings):
@@ -29,6 +30,9 @@ class Settings(BaseSettings):
     
     # Logging
     LOG_LEVEL: str = "INFO"
+    
+    # AI Assist
+    AI_ASSIST: AIAssistConfig = AIAssistConfig()
     
     class Config:
         env_file = ".env.dev"

@@ -4,19 +4,30 @@ import React from 'react';
 import { useCommand } from '@/hooks/useCommand';
 import { useEditorStore } from '@/store/editorStore';
 import { 
-  InsertBlockCommand, 
-  DeleteBlockCommand,
-  UpdateBlockContentCommand 
+  CommandType,
+  InsertBlockPayload,
+  UpdateBlockContentPayload,
+  DeleteBlockPayload 
 } from '@/commands';
-import { Terminal, Plus, Trash2, Edit } from 'lucide-react';
+import { Terminal, Plus, Trash2, Edit, X } from 'lucide-react';
+
+interface CommandDebuggerProps {
+  onClose?: () => void;
+}
 
 /**
  * Command System 디버거 컴포넌트
  * 개발 모드에서만 표시되며, Command 실행을 테스트할 수 있음
  */
-export const CommandDebugger: React.FC = () => {
-  const { execute, undo, redo, canUndo, canRedo, historySize } = useCommand();
+export const CommandDebugger: React.FC<CommandDebuggerProps> = ({ onClose }) => {
+  const { dispatch, undo, redo, canUndo, canRedo, historySize } = useCommand();
   const { document } = useEditorStore();
+
+  // 표시 상태 저장 및 닫기
+  const handleClose = () => {
+    localStorage.setItem('command-debugger-visible', 'false');
+    onClose?.();
+  };
 
   if (process.env.NODE_ENV !== 'development') {
     return null;
@@ -27,24 +38,24 @@ export const CommandDebugger: React.FC = () => {
     if (!document || document.sections.length === 0) return;
 
     const firstSection = document.sections[0];
-    const newBlock = {
-      id: `block-test-${Date.now()}`,
-      type: 'paragraph' as const,
-      content: [
-        {
-          text: '🧪 Command로 추가된 테스트 블록입니다.',
-          marks: ['bold' as const],
-        },
-      ],
-    };
-
-    const command = new InsertBlockCommand({
+    const payload: InsertBlockPayload = {
       sectionId: firstSection.id,
       position: 0,
-      block: newBlock,
-    });
+      block: {
+        id: `block-test-${Date.now()}`,
+        blockType: 'paragraph',
+        content: [
+          {
+            id: `inline-test-${Date.now()}`,
+            type: 'inline',
+            text: '🧪 Command로 추가된 테스트 블록입니다.',
+            marks: ['bold'],
+          },
+        ],
+      },
+    };
 
-    const result = execute(command);
+    const result = dispatch(CommandType.INSERT_BLOCK, payload);
     console.log('Insert command result:', result);
   };
 
@@ -57,12 +68,12 @@ export const CommandDebugger: React.FC = () => {
 
     const firstBlock = firstSection.blocks[0];
 
-    const command = new DeleteBlockCommand({
+    const payload: DeleteBlockPayload = {
       sectionId: firstSection.id,
       blockId: firstBlock.id,
-    });
+    };
 
-    const result = execute(command);
+    const result = dispatch(CommandType.DELETE_BLOCK, payload);
     console.log('Delete command result:', result);
   };
 
@@ -74,32 +85,46 @@ export const CommandDebugger: React.FC = () => {
     if (firstSection.blocks.length === 0) return;
 
     const firstBlock = firstSection.blocks[0];
+    const timestamp = Date.now();
 
-    const command = new UpdateBlockContentCommand({
+    const payload: UpdateBlockContentPayload = {
       sectionId: firstSection.id,
       blockId: firstBlock.id,
       content: [
         {
+          id: `inline-${timestamp}-1`,
+          type: 'inline',
           text: '✏️ Command로 수정된 블록입니다 - ',
           marks: [],
         },
         {
+          id: `inline-${timestamp}-2`,
+          type: 'inline',
           text: new Date().toLocaleTimeString('ko-KR'),
-          marks: ['italic' as const],
+          marks: ['italic'],
         },
       ],
-    });
+    };
 
-    const result = execute(command);
+    const result = dispatch(CommandType.UPDATE_BLOCK_CONTENT, payload);
     console.log('Update command result:', result);
   };
 
   return (
     <div className="fixed bottom-4 right-4 bg-gray-900 text-white p-4 rounded-lg shadow-2xl w-80 z-50">
       {/* 헤더 */}
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-700">
-        <Terminal size={16} />
-        <h3 className="text-sm font-semibold">Command Debugger</h3>
+      <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          <Terminal size={16} />
+          <h3 className="text-sm font-semibold">Command Debugger</h3>
+        </div>
+        <button
+          onClick={handleClose}
+          className="p-1 hover:bg-gray-800 rounded transition-colors"
+          title="디버거 닫기"
+        >
+          <X size={16} />
+        </button>
       </div>
 
       {/* 히스토리 정보 */}

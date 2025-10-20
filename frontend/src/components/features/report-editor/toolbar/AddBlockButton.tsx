@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AddBlockButtonProps {
-  onClick: () => void;
+  onClick: (element?: HTMLElement) => void;
   label?: string;
 }
 
@@ -17,12 +17,19 @@ export const AddBlockButton: React.FC<AddBlockButtonProps> = ({
   onClick,
   label = '블록 추가하려면 클릭하거나 / 입력',
 }) => {
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+
+  const handleClick = () => {
+    onClick(buttonRef.current || undefined);
+  };
+
   return (
     <motion.button
+      ref={buttonRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       whileHover={{ scale: 1.02 }}
-      onClick={onClick}
+      onClick={handleClick}
       className="
         group
         w-full 

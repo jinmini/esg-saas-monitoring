@@ -8,6 +8,7 @@ interface UIState {
   // 패널 상태
   isSidebarLeftOpen: boolean;
   isSidebarRightOpen: boolean;
+  isGlobalSidebarOpen: boolean; // 글로벌 사이드바 (DashboardLayout)
   
   // 선택 상태
   selectedSectionId: string | null;
@@ -32,6 +33,8 @@ interface UIActions {
   toggleSidebarRight: () => void;
   setSidebarLeft: (open: boolean) => void;
   setSidebarRight: (open: boolean) => void;
+  toggleGlobalSidebar: () => void;
+  setGlobalSidebar: (open: boolean) => void;
   
   // 선택 상태
   setSelectedSection: (sectionId: string | null) => void;
@@ -57,6 +60,7 @@ type UIStore = UIState & UIActions;
 const initialState: UIState = {
   isSidebarLeftOpen: true,
   isSidebarRightOpen: true,
+  isGlobalSidebarOpen: true,
   selectedSectionId: null,
   selectedBlockId: null,
   saveStatus: 'idle',
@@ -75,6 +79,8 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSidebarRight: () => set((state) => ({ isSidebarRightOpen: !state.isSidebarRightOpen })),
   setSidebarLeft: (open) => set({ isSidebarLeftOpen: open }),
   setSidebarRight: (open) => set({ isSidebarRightOpen: open }),
+  toggleGlobalSidebar: () => set((state) => ({ isGlobalSidebarOpen: !state.isGlobalSidebarOpen })),
+  setGlobalSidebar: (open) => set({ isGlobalSidebarOpen: open }),
 
   // 선택 상태
   setSelectedSection: (sectionId) => set({ selectedSectionId: sectionId }),

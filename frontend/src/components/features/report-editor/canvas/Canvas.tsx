@@ -83,6 +83,26 @@ export const Canvas: React.FC<CanvasProps> = ({
     sectionId: string;
   } | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+
+  // BlockTypeMenu가 열릴 때 Canvas 스크롤 방지
+  useEffect(() => {
+    const wrapper = canvasWrapperRef.current;
+    if (!wrapper) return;
+
+    if (showBlockTypeMenu) {
+      // 메뉴가 열릴 때: 스크롤 방지
+      wrapper.style.overflow = 'hidden';
+    } else {
+      // 메뉴가 닫힐 때: 스크롤 허용
+      wrapper.style.overflow = 'auto';
+    }
+
+    // cleanup
+    return () => {
+      wrapper.style.overflow = 'auto';
+    };
+  }, [showBlockTypeMenu]);
 
   // ✅ 초기 문서 로드는 EditorShell에서 처리하므로 여기서는 삭제
   // Canvas는 Zustand store에서 document를 읽기만 함
@@ -185,11 +205,22 @@ export const Canvas: React.FC<CanvasProps> = ({
   );
 
   // 블록 타입 메뉴 열기
-  const openBlockTypeMenu = useCallback((sectionId: string, position: number, event?: React.MouseEvent) => {
-    if (event) {
-      const rect = event.currentTarget.getBoundingClientRect();
+  const openBlockTypeMenu = useCallback((sectionId: string, position: number, targetElement?: HTMLElement) => {
+    if (targetElement) {
+      const rect = targetElement.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // BlockTypeMenu 예상 높이 (최대 높이 약 450px - 헤더, 푸터 포함)
+      const menuHeight = 450;
+      
+      // 블록 아래에 메뉴를 표시할 공간이 충분한지 확인
+      const spaceBelow = viewportHeight - rect.bottom;
+      const shouldShowBelow = spaceBelow >= menuHeight;
+      
       setBlockTypeMenuPosition({
-        top: rect.bottom + window.scrollY + 8,
+        top: shouldShowBelow 
+          ? rect.bottom + window.scrollY + 8  // 아래에 표시 (공간 충분)
+          : rect.top + window.scrollY - menuHeight - 8,    // 위에 표시 (공간 부족)
         left: rect.left + window.scrollX,
       });
     }
@@ -340,10 +371,17 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (text.length === 0 || text === '/') {
           e.preventDefault();
           
-          // 커서 위치 기준으로 메뉴 표시
+          // 화면 공간에 따라 메뉴 위치 결정
           const rect = target.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const menuHeight = 450;
+          const spaceBelow = viewportHeight - rect.bottom;
+          const shouldShowBelow = spaceBelow >= menuHeight;
+          
           setBlockTypeMenuPosition({
-            top: rect.bottom + window.scrollY + 8,
+            top: shouldShowBelow
+              ? rect.bottom + window.scrollY + 8  // 아래에 표시
+              : rect.top + window.scrollY - menuHeight - 8,    // 위에 표시
             left: rect.left + window.scrollX,
           });
           
@@ -387,14 +425,38 @@ export const Canvas: React.FC<CanvasProps> = ({
           redo();
         }
       }
-      // ESC: 슬래시 커맨드 취소
+      // ESC: 슬래시 커맨드 취소 및 / 문자 입력
       else if (e.key === 'Escape' && showBlockTypeMenu && slashCommandBlock) {
         e.preventDefault();
+        
+        // / 문자를 블록에 입력
+        const section = document?.sections.find((s) => s.id === slashCommandBlock.sectionId);
+        const block = section?.blocks.find((b: BlockNode) => b.id === slashCommandBlock.blockId);
+        
+        if (block && block.content) {
+          const newContent: InlineNode[] = [
+            {
+              id: `inline-${Date.now()}`,
+              type: 'inline',
+              text: '/',
+              marks: [],
+            }
+          ];
+          
+          const command = new UpdateBlockContentCommand({
+            sectionId: slashCommandBlock.sectionId,
+            blockId: slashCommandBlock.blockId,
+            content: newContent,
+          });
+          
+          execute(command);
+        }
+        
         setShowBlockTypeMenu(false);
         setSlashCommandBlock(null);
       }
     },
-    [applyFormat, undo, redo, canUndo, canRedo, showBlockTypeMenu, slashCommandBlock]
+    [applyFormat, undo, redo, canUndo, canRedo, showBlockTypeMenu, slashCommandBlock, document, execute]
   );
 
   // Drag & Drop 센서 설정
@@ -482,7 +544,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         onMouseEnter={() => setHoveredBlockId(block.id)}
         onMouseLeave={() => setHoveredBlockId(null)}
         onUpdateContent={handleUpdateContent}
-        onAddBelow={() => openBlockTypeMenu(sectionId, blockIndex + 1)}
+        onAddBelow={(element?: HTMLElement) => openBlockTypeMenu(sectionId, blockIndex + 1, element)}
         onDelete={() => handleDeleteBlock(block.id, sectionId)}
         onDuplicate={() => handleDuplicateBlock(block.id, sectionId)}
         onMoveUp={() => handleMoveBlock(block.id, sectionId, 'up')}
@@ -505,7 +567,10 @@ export const Canvas: React.FC<CanvasProps> = ({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <div className="editor-canvas-wrapper relative w-full h-full bg-gray-100">
+      <div 
+        ref={canvasWrapperRef}
+        className="editor-canvas-wrapper relative w-full h-full bg-gray-100 overflow-auto"
+      >
         {/* 플로팅 툴바 */}
         <AnimatePresence>
           {showToolbar && !readOnly && (
@@ -627,7 +692,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                     {/* 섹션 끝에 블록 추가 버튼 */}
                     {!readOnly && (
                       <AddBlockButton
-                        onClick={() => openBlockTypeMenu(section.id, section.blocks.length)}
+                        onClick={(element) => openBlockTypeMenu(section.id, section.blocks.length, element)}
                       />
                     )}
                   </div>

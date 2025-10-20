@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { 
   MessageSquare, 
@@ -9,8 +9,10 @@ import {
   MoreHorizontal,
   User,
   Clock,
+  Sparkles,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AssistPanel from '@/components/ai-assist/AssistPanel';
 
 interface Comment {
   id: string;
@@ -26,16 +28,17 @@ interface SidebarRightProps {
   // 추후 댓글 시스템 구현 시 Props 확장
 }
 
+type SidebarTab = 'comments' | 'ai-assist';
+
 /**
- * 우측 사이드바 - 댓글/코멘트 패널
+ * 우측 사이드바 - 댓글/AI Assist 패널
  * - 문서 내 댓글 표시
- * - 댓글 작성/답글
- * - 해결/재개 상태 관리
- * 
- * 현재는 Mock UI만 구현 (실제 댓글 기능은 나중에)
+ * - AI Assist 기능 (ESG 매핑, 내용 확장)
+ * - 탭 전환 UI
  */
 export const SidebarRight: React.FC<SidebarRightProps> = () => {
   const { isSidebarRightOpen } = useUIStore();
+  const [activeTab, setActiveTab] = useState<SidebarTab>('ai-assist');
   const [filter, setFilter] = React.useState<'all' | 'unresolved' | 'mine'>('all');
 
   // Mock 댓글 데이터
@@ -78,73 +81,137 @@ export const SidebarRight: React.FC<SidebarRightProps> = () => {
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       className="sidebar-right w-80 bg-white border-l border-gray-200 flex flex-col h-full"
     >
-      {/* 헤더 */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-700 uppercase flex items-center gap-2">
-            <MessageSquare size={16} />
-            댓글
-          </h2>
-          <span className="text-xs text-gray-500">
-            {mockComments.length}개
-          </span>
-        </div>
-
-        {/* 필터 버튼 */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          <FilterButton
-            active={filter === 'all'}
-            onClick={() => setFilter('all')}
-            label="전체"
-          />
-          <FilterButton
-            active={filter === 'unresolved'}
-            onClick={() => setFilter('unresolved')}
-            label="미해결"
-            count={mockComments.filter(c => !c.resolved).length}
-          />
-          <FilterButton
-            active={filter === 'mine'}
-            onClick={() => setFilter('mine')}
-            label="내 댓글"
-          />
-        </div>
+      {/* 탭 헤더 */}
+      <div className="flex border-b border-gray-200">
+        <TabButton
+          icon={<Sparkles size={16} />}
+          label="AI Assist"
+          active={activeTab === 'ai-assist'}
+          onClick={() => setActiveTab('ai-assist')}
+        />
+        <TabButton
+          icon={<MessageSquare size={16} />}
+          label="댓글"
+          active={activeTab === 'comments'}
+          onClick={() => setActiveTab('comments')}
+          badge={mockComments.length}
+        />
       </div>
 
-      {/* 댓글 목록 */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {mockComments.map((comment) => (
-          <CommentThread key={comment.id} comment={comment} />
-        ))}
+      {/* AI Assist 탭 */}
+      {activeTab === 'ai-assist' && (
+        <div className="flex-1 overflow-hidden">
+          <AssistPanel onClose={() => setActiveTab('comments')} />
+        </div>
+      )}
 
-        {/* 빈 상태 */}
-        {mockComments.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
-            <MessageSquare size={48} className="mb-2 opacity-50" />
-            <p className="text-sm">아직 댓글이 없습니다</p>
-            <p className="text-xs mt-1">텍스트를 선택하고 댓글을 작성해보세요</p>
+      {/* 댓글 탭 */}
+      {activeTab === 'comments' && (
+        <>
+          {/* 헤더 */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase flex items-center gap-2">
+                <MessageSquare size={16} />
+                댓글
+              </h2>
+              <span className="text-xs text-gray-500">
+                {mockComments.length}개
+              </span>
+            </div>
+
+            {/* 필터 버튼 */}
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              <FilterButton
+                active={filter === 'all'}
+                onClick={() => setFilter('all')}
+                label="전체"
+              />
+              <FilterButton
+                active={filter === 'unresolved'}
+                onClick={() => setFilter('unresolved')}
+                label="미해결"
+                count={mockComments.filter(c => !c.resolved).length}
+              />
+              <FilterButton
+                active={filter === 'mine'}
+                onClick={() => setFilter('mine')}
+                label="내 댓글"
+              />
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* 푸터 - 새 댓글 입력 */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="새 댓글 작성... (구현 예정)"
-            disabled
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
-          />
-          <button
-            disabled
-            className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Send size={16} />
-          </button>
-        </div>
-      </div>
+          {/* 댓글 목록 */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {mockComments.map((comment) => (
+              <CommentThread key={comment.id} comment={comment} />
+            ))}
+
+            {/* 빈 상태 */}
+            {mockComments.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                <MessageSquare size={48} className="mb-2 opacity-50" />
+                <p className="text-sm">아직 댓글이 없습니다</p>
+                <p className="text-xs mt-1">텍스트를 선택하고 댓글을 작성해보세요</p>
+              </div>
+            )}
+          </div>
+
+          {/* 푸터 - 새 댓글 입력 */}
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="새 댓글 작성... (구현 예정)"
+                disabled
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+              <button
+                disabled
+                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </motion.div>
+  );
+};
+
+/**
+ * 탭 버튼 컴포넌트
+ */
+interface TabButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: number;
+}
+
+const TabButton: React.FC<TabButtonProps> = ({ icon, label, active, onClick, badge }) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium
+        border-b-2 transition-colors relative
+        ${active
+          ? 'border-indigo-600 text-indigo-600 bg-white'
+          : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+        }
+      `}
+    >
+      {icon}
+      <span>{label}</span>
+      {badge !== undefined && badge > 0 && (
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-xs text-white">
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </button>
   );
 };
 

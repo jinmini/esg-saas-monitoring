@@ -1,0 +1,30 @@
+# AI and ML Dependencies for ESG Mapping
+# CUDA Version: 12.9 (NVIDIA GeForce RTX 3050)
+
+# ============================================
+# 중요: PyTorch CUDA 버전은 별도 설치 필요
+# ============================================
+# 먼저 실행: pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# 그 다음: pip install -r requirements/ai.txt
+
+# LLM - Google Gemini API
+google-genai>=1.0.0
+
+# Embeddings & Vector DB
+# sentence-transformers 3.x는 torch 2.x 호환
+sentence-transformers>=3.0.0
+# chromadb: 0.4.22는 C++ 컴파일 필요, 0.4.24는 pre-built wheel 제공
+chromadb==1.1.1
+
+# NLP & Deep Learning
+# PyTorch는 위 명령어로 별도 설치 (CUDA 12.1 지원)
+# torch는 이 파일에서 제외 (CUDA 버전 충돌 방지)
+transformers>=4.36.0
+
+# Data Processing
+numpy>=1.26.0
+pandas>=2.1.0
+
+# Utilities
+tqdm>=4.66.0
+

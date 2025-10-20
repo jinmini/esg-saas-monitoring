@@ -116,6 +116,7 @@ export function useCommand() {
 
   return {
     execute,
+    dispatch,
     undo: undoCommand,
     redo: redoCommand,
     canUndo,

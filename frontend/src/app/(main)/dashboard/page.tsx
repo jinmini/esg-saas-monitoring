@@ -30,7 +30,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           {/* Report Editor 카드 */}
-          <Link href="/editor/dashboard">
+          <Link href="/report/dashboard">
             <Card className="hover:border-green-500 hover:shadow-lg transition-all">
               <CardHeader>
                 <div className="flex items-center space-x-4">

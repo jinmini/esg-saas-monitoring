@@ -4,6 +4,7 @@ import { InlineNode } from '@/types/editor/inline';
 import { BlockActions } from '../toolbar/BlockActions';
 import { useBlockRender } from '../hooks/useBlockRender';
 import { SortableBlock } from '../SortableBlock';
+import { extractTextFromBlock } from '@/utils/blockUtils';
 
 interface BlockProps {
   sortableId: string; // Drag & Drop을 위한 고유 ID
@@ -22,7 +23,7 @@ interface BlockProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onUpdateContent: (blockId: string, newContent: InlineNode[]) => void;
-  onAddBelow: () => void;
+  onAddBelow: (element?: HTMLElement) => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onMoveUp: () => void;
@@ -63,10 +64,20 @@ export const Block: React.FC<BlockProps> = ({
 }) => {
   // 블록 타입에 맞는 컴포넌트 가져오기
   const BlockComponent = useBlockRender(block.blockType);
+  const blockRef = React.useRef<HTMLDivElement>(null);
+  
+  // AI Assist를 위한 블록 텍스트 추출
+  const blockContent = React.useMemo(() => extractTextFromBlock(block), [block]);
+
+  // AddBelow 핸들러 - element 전달
+  const handleAddBelow = () => {
+    onAddBelow(blockRef.current || undefined);
+  };
 
   return (
     <SortableBlock id={sortableId}>
       <div
+        ref={blockRef}
         className="relative group"
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -78,11 +89,12 @@ export const Block: React.FC<BlockProps> = ({
             sectionId={sectionId}
             canMoveUp={blockIndex > 0}
             canMoveDown={blockIndex < totalBlocks - 1}
-            onAddBelow={onAddBelow}
+            onAddBelow={handleAddBelow}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onMoveUp={onMoveUp}
             onMoveDown={onMoveDown}
+            blockContent={blockContent}
           />
         )}
 

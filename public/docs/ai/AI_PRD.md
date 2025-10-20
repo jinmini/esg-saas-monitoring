@@ -53,6 +53,66 @@
 └────────────────────────────────────────────────────────┘
 ```
 
+## backend 아키텍처
+backend/src/ai_assist/
+├── __init__.py
+├── router.py
+├── config.py
+├── exceptions.py
+├── models.py
+│
+├── core/
+│   ├── gemini_client.py
+│   ├── rate_limiter.py
+│   ├── prompt_base.py
+│   ├── monitoring.py
+│   └── embeddings.py              # ✅ HuggingFaceEmbeddings 초기화 (e5-base)
+│
+├── summarize/
+│   ├── service.py
+│   ├── prompts.py
+│   └── schemas.py
+│
+├── rewrite/
+│   ├── service.py
+│   ├── prompts.py
+│   └── schemas.py
+│
+└── esg_mapping/
+    ├── service.py                 # ESG 매핑 핵심 로직 (map_esg)
+    ├── prompts.py                 # ESG 매핑용 Prompt 템플릿
+    ├── schemas.py                 # 요청/응답 스키마
+    │
+    ├── data/
+    │   ├── gri_2021.jsonl         # ✅ JSONL 형식 (line-separated)
+    │   ├── sasb_2023.jsonl
+    │   ├── tcfd_2024.jsonl
+    │   └── esrs_2024.jsonl
+    │
+    ├── loaders/
+    │   └── jsonl_loader.py        # ✅ JSONL 파일 Stream 로더
+    │
+    ├── vectorstore/
+    │   ├── embed_pipeline.py      # ✅ 임베딩 및 인덱싱 (multilingual-e5-base)
+    │   ├── chroma_manager.py      # ✅ Chroma vectorstore 핸들러
+    │   └── refresh_task.py        # ✅ 데이터 변경 감지 후 재임베딩
+    │
+    └── utils/
+        ├── file_watcher.py        # 파일 변경 감지 (옵션)
+        └── validator.py           # JSONL Schema 검증
+
+
+## frontend 아키텍처
+frontend/
+└── components/
+    └── features/
+        └── ai-assist/
+            ├── AIAssistPanel.tsx        # 오른쪽 사이드바
+            ├── AISuggestionCard.tsx     # 제안 카드
+            ├── AIActionMenu.tsx         # 블록 우클릭 메뉴
+            └── hooks/
+                ├── useAIAssist.ts       # React Query
+                └── useAISuggestion.ts
 ---
 
 ## 🧩 2️⃣ 데이터 플로우 (Summarize 예시)
