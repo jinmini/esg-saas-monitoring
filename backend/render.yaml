@@ -42,7 +42,7 @@ services:
       
       # CORS
       - key: CORS_ORIGINS
-        value: http://localhost:3000,https://*.vercel.app
+        value: http://localhost:3000,https://*.vercel.app, https://jinmini.com
       
       - key: ENVIRONMENT
         value: production
