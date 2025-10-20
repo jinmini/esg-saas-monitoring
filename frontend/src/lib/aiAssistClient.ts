@@ -6,7 +6,7 @@
  * @see public/docs/api/AI_ASSIST_API_SPEC.md
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
 import {
   ESGMappingRequest,
   ESGMappingResponse,
@@ -35,7 +35,7 @@ const API_CONFIG = {
 /**
  * Axios 인스턴스 생성
  */
-const apiClient: AxiosInstance = axios.create(API_CONFIG);
+const apiClient = axios.create(API_CONFIG);
 
 // ============================================
 // Request/Response 인터셉터
@@ -48,7 +48,9 @@ apiClient.interceptors.request.use(
   (config) => {
     // Request ID 생성 (프론트엔드)
     const requestId = `fe-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    config.headers['X-Request-ID'] = requestId;
+    if (config.headers) {
+      config.headers['X-Request-ID'] = requestId;
+    }
     
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
@@ -70,7 +72,7 @@ apiClient.interceptors.request.use(
  * Response Interceptor: 헤더 추출 및 에러 처리
  */
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (response) => {
     // 응답 헤더 추출 (Request ID 추적)
     const requestId = response.headers['x-request-id'];
     const responseTime = response.headers['x-response-time'];
@@ -87,7 +89,7 @@ apiClient.interceptors.response.use(
     
     // 응답 데이터에 메타 정보 추가
     if (response.data && typeof response.data === 'object') {
-      response.data._meta = {
+      (response.data as any)._meta = {
         requestId,
         responseTime,
       };
@@ -95,7 +97,7 @@ apiClient.interceptors.response.use(
     
     return response;
   },
-  (error: AxiosError<APIError>) => {
+  (error: any) => {
     // 에러 응답 처리
     const requestId = error.response?.headers?.['x-request-id'];
     
@@ -134,7 +136,7 @@ export interface APIResponse<T> {
 /**
  * 응답 헤더에서 메타 정보 추출
  */
-function extractMetadata<T>(response: AxiosResponse<T>): APIResponse<T> {
+function extractMetadata<T>(response: any): APIResponse<T> {
   return {
     data: response.data,
     requestId: response.headers['x-request-id'],
@@ -164,7 +166,7 @@ export const aiAssistAPI = {
       );
       return extractMetadata(response);
     } catch (error) {
-      throw this.handleError(error as AxiosError<APIError>, 'ESG 매핑 실패');
+      throw this.handleError(error, 'ESG 매핑 실패');
     }
   },
 
@@ -182,7 +184,7 @@ export const aiAssistAPI = {
       );
       return extractMetadata(response);
     } catch (error) {
-      throw this.handleError(error as AxiosError<APIError>, '내용 확장 실패');
+      throw this.handleError(error, '내용 확장 실패');
     }
   },
 
@@ -198,7 +200,7 @@ export const aiAssistAPI = {
       );
       return extractMetadata(response);
     } catch (error) {
-      throw this.handleError(error as AxiosError<APIError>, 'Health Check 실패');
+      throw this.handleError(error, 'Health Check 실패');
     }
   },
 
@@ -219,7 +221,7 @@ export const aiAssistAPI = {
       );
       return response.data;
     } catch (error) {
-      throw this.handleError(error as AxiosError<APIError>, '메트릭 가져오기 실패');
+      throw this.handleError(error, '메트릭 가져오기 실패');
     }
   },
 
@@ -230,7 +232,7 @@ export const aiAssistAPI = {
    * @param defaultMessage 기본 에러 메시지
    * @returns 처리된 에러 객체
    */
-  handleError(error: AxiosError<APIError>, defaultMessage: string): Error {
+  handleError(error: any, defaultMessage: string): Error {
     if (error.response) {
       // 서버 응답 에러 (4xx, 5xx)
       const { status, data } = error.response;
@@ -242,7 +244,7 @@ export const aiAssistAPI = {
         message = data.detail;
       } else if (Array.isArray(data?.detail)) {
         // Pydantic 검증 에러
-        const validationErrors = data.detail.map((err) => {
+        const validationErrors = data.detail.map((err: any) => {
           const field = err.loc.join('.');
           return `${field}: ${err.msg}`;
         }).join(', ');

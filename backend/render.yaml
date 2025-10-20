@@ -1,0 +1,49 @@
+services:
+  # FastAPI Backend
+  - type: web
+    name: esg-compliance-backend
+    env: python
+    region: singapore  # 또는 oregon (무료 티어)
+    plan: free
+    buildCommand: |
+      cd backend
+      pip install --upgrade pip
+      pip install -r requirements/base.txt
+      pip install -r requirements/ai.txt
+    startCommand: cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      # Python
+      - key: PYTHON_VERSION
+        value: 3.12
+      
+      # Database (Supabase)
+      - key: DATABASE_URL
+        sync: false  # Set in Render dashboard
+      
+      # AI Assist
+      - key: AI_ASSIST_GEMINI_API_KEY
+        sync: false  # Set in Render dashboard (secret)
+      
+      - key: AI_ASSIST_GEMINI_MODEL
+        value: gemini-2.5-flash
+      
+      - key: AI_ASSIST_USE_JSON_VECTOR_STORE
+        value: true
+      
+      - key: AI_ASSIST_EMBEDDING_DEVICE
+        value: cpu
+      
+      - key: AI_ASSIST_LOG_LEVEL
+        value: INFO
+      
+      - key: AI_ASSIST_METRICS_ENABLED
+        value: true
+      
+      # CORS
+      - key: CORS_ORIGINS
+        value: http://localhost:3000,https://*.vercel.app
+      
+      - key: ENVIRONMENT
+        value: production
+

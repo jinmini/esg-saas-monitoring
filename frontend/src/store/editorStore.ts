@@ -438,7 +438,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         // 텍스트를 InlineNode로 변환
         const newContent: InlineNode[] = [{
           id: crypto.randomUUID(),
-          type: 'text',
+          type: 'inline',
           text,
         }];
         

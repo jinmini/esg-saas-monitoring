@@ -1,258 +1,145 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Calendar, Filter, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, BookOpen, Calendar } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { EventCalendar } from '@/components/features/analysis/EventCalendar';
-import { EventList } from '@/components/features/analysis/EventList';
-import { CategoryFilter } from '@/components/features/analysis/CategoryFilter';
-import { EventCreateModal } from '@/components/features/analysis/EventCreateModal';
-import type { Event, EventCategory } from '@/types/api';
+import { CustomerProfileForm } from '@/components/features/analysis/CustomerProfileForm';
+import { AnalysisResultCard } from '@/components/features/analysis/AnalysisResultCard';
+import { FrameworkGuide } from '@/components/features/analysis/FrameworkGuide';
+import { RegulatoryTimeline } from '@/components/features/analysis/RegulatoryTimeline';
+import type { CustomerProfile, AnalysisResult } from '@/types/analysis';
+import { analyzeCustomer } from '@/lib/analysis-engine';
 
-export default function ESGAnalysisPage() {
-  // 상태 관리
-  const [selectedCategory, setSelectedCategory] = useState<EventCategory | undefined>();
-  const [selectedDate, setSelectedDate] = useState<string | undefined>();
-  const [selectedDateEvents, setSelectedDateEvents] = useState<Event[]>([]);
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState<'dayGridMonth' | 'dayGridWeek'>('dayGridMonth');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+type Section = 'quick-analysis' | 'framework-guide' | 'timeline';
 
-  // 카테고리 필터 변경 핸들러
-  const handleCategoryChange = (category?: EventCategory) => {
-    setSelectedCategory(category);
-    // 카테고리 변경 시 선택된 날짜 초기화
-    setSelectedDate(undefined);
-    setSelectedDateEvents([]);
-  };
+export default function AnalysisPage() {
+  const [activeSection, setActiveSection] = useState<Section>('quick-analysis');
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
+    null
+  );
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // 날짜 선택 핸들러
-  const handleDateSelect = (date: string, events: Event[]) => {
-    setSelectedDate(date);
-    setSelectedDateEvents(events);
-  };
-
-  // 이벤트 클릭 핸들러 (외부 링크 열기)
-  const handleEventClick = (event: Event) => {
-    if (event.source_url) {
-      window.open(event.source_url, '_blank', 'noopener,noreferrer');
+  const handleAnalyze = async (profile: CustomerProfile) => {
+    setIsAnalyzing(true);
+    try {
+      // 분석 실행
+      const result = await analyzeCustomer(profile);
+      setAnalysisResult(result);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
-  // 네비게이션 핸들러
-  const handlePrevMonth = () => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() - 1);
-    setCurrentDate(newDate);
-  };
-
-  const handleNextMonth = () => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(newDate.getMonth() + 1);
-    setCurrentDate(newDate);
-  };
-
-  const handleTodayClick = () => {
-    const today = new Date();
-    console.log('Today button clicked, setting date to:', today.toISOString());
-    setCurrentDate(today);
-  };
-
-  // 캘린더에서 날짜 변경 시
-  const handleNavigate = (date: Date) => {
-    setCurrentDate(date);
-  };
-
-  // 뷰 변경 핸들러
-  const handleViewChange = (view: 'dayGridMonth' | 'dayGridWeek') => {
-    setCurrentView(view);
-  };
-
-  // 새 이벤트 생성 핸들러
-  const handleNewEventClick = () => {
-    setShowCreateModal(true);
-  };
-
-  // 현재 월 표시
-  const formatCurrentMonth = () => {
-    if (currentView === 'dayGridWeek') {
-      // 주간 뷰일 때는 주차 정보도 포함
-      const weekNumber = Math.ceil(currentDate.getDate() / 7);
-      return `${currentDate.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: 'long'
-      })} ${weekNumber}주차`;
-    }
-    return currentDate.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long'
-    });
+  const handleReset = () => {
+    setAnalysisResult(null);
   };
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col h-full">
-        {/* 상단 Notion 스타일 헤더 */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-6">
-            {/* 메인 헤더 */}
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Calendar className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-900">캘린더</h1>
-                    <p className="text-sm text-gray-600">ESG 관련 중요 일정 관리</p>
-                  </div>
-                </div>
+      <div className="p-6 space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* 헤더 */}
+          <header className="space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900">
+              고객사 분석 도구
+            </h1>
+            <p className="text-gray-600">
+              고객사 프로필 기반 ESG 규제, 프레임워크, 인벤토리 범위를 빠르게
+              분석합니다
+            </p>
+          </header>
 
-                {/* 월 네비게이션 */}
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={handlePrevMonth}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronLeft className="w-5 h-5 text-gray-600" />
-                  </button>
-                  <button
-                    onClick={handleTodayClick}
-                    className="px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                  >
-                    오늘
-                  </button>
-                  <button
-                    onClick={handleNextMonth}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5 text-gray-600" />
-                  </button>
-                  <div className="ml-4 text-lg font-semibold text-gray-900">
-                    {formatCurrentMonth()}
-                  </div>
-                </div>
-              </div>
+          {/* 섹션 네비게이션 */}
+          <nav className="flex gap-3 border-b border-gray-200 pb-2">
+            <button
+              onClick={() => setActiveSection('quick-analysis')}
+              className={`flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+                activeSection === 'quick-analysis'
+                  ? 'bg-white border border-b-0 border-gray-200 text-green-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Search size={16} />
+              Quick Analysis
+            </button>
+            <button
+              onClick={() => setActiveSection('framework-guide')}
+              className={`flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+                activeSection === 'framework-guide'
+                  ? 'bg-white border border-b-0 border-gray-200 text-green-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <BookOpen size={16} />
+              프레임워크 가이드
+            </button>
+            <button
+              onClick={() => setActiveSection('timeline')}
+              className={`flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
+                activeSection === 'timeline'
+                  ? 'bg-white border border-b-0 border-gray-200 text-green-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Calendar size={16} />
+              규제 타임라인
+            </button>
+          </nav>
 
-              {/* 상단 우측 컨트롤 */}
-              <div className="flex items-center space-x-3">
-                {/* 뷰 토글 (주간/월간) */}
-                <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                  <button 
-                    onClick={() => handleViewChange('dayGridWeek')}
-                    className={`px-3 py-1.5 text-sm font-medium transition-all ${
-                      currentView === 'dayGridWeek' 
-                        ? 'bg-white text-gray-900 rounded-md shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    주간
-                  </button>
-                  <button 
-                    onClick={() => handleViewChange('dayGridMonth')}
-                    className={`px-3 py-1.5 text-sm font-medium transition-all ${
-                      currentView === 'dayGridMonth' 
-                        ? 'bg-white text-gray-900 rounded-md shadow-sm' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    월간
-                  </button>
-                </div>
-
-                {/* 필터 토글 버튼 */}
-                <button
-                  onClick={() => setShowCategoryFilter(!showCategoryFilter)}
-                  className={`inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium bg-white hover:bg-gray-50 transition-colors ${
-                    selectedCategory ? 'text-green-700 border-green-300 bg-green-50' : 'text-gray-700'
-                  }`}
-                >
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                  {selectedCategory && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                      {selectedCategory}
-                      <X 
-                        className="ml-1 w-3 h-3 cursor-pointer hover:text-green-600" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCategoryChange(undefined);
-                        }}
+          {/* 섹션 컨텐츠 */}
+          <div className="space-y-8">
+            {/* Quick Analysis */}
+            {activeSection === 'quick-analysis' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* 입력 폼 */}
+                <div className="lg:col-span-1">
+                  <div className="sticky top-6">
+                    <div className="p-6 bg-white border border-gray-200 rounded-lg">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                        고객사 정보 입력
+                      </h2>
+                      <CustomerProfileForm
+                        onAnalyze={handleAnalyze}
+                        isLoading={isAnalyzing}
                       />
-                    </span>
-                  )}
-                </button>
-
-                        {/* 새 이벤트 버튼 */}
-                        <button 
-                          onClick={handleNewEventClick}
-                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
+                      {analysisResult && (
+                        <button
+                          onClick={handleReset}
+                          className="w-full mt-3 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg transition-colors"
                         >
-                          <Plus className="w-4 h-4 mr-2" />
-                          New
+                          초기화
                         </button>
-              </div>
-            </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-            {/* 카테고리 필터 드롭다운 */}
-            {showCategoryFilter && (
-              <div className="pb-4">
-                <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-md">
-                  <CategoryFilter
-                    selectedCategory={selectedCategory}
-                    onCategoryChange={(category) => {
-                      handleCategoryChange(category);
-                      setShowCategoryFilter(false); // 선택 후 자동 닫기
-                    }}
-                  />
+                {/* 분석 결과 */}
+                <div className="lg:col-span-2">
+                  {analysisResult ? (
+                    <AnalysisResultCard result={analysisResult} />
+                  ) : (
+                    <div className="p-12 bg-white border border-gray-200 rounded-lg text-center">
+                      <Search size={48} className="mx-auto text-gray-300 mb-4" />
+                      <p className="text-gray-500">
+                        고객사 정보를 입력하고 분석하기 버튼을 눌러주세요
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
+
+            {/* 프레임워크 가이드 */}
+            {activeSection === 'framework-guide' && <FrameworkGuide />}
+
+            {/* 규제 타임라인 */}
+            {activeSection === 'timeline' && <RegulatoryTimeline />}
           </div>
         </div>
-
-        {/* 중앙 캘린더 영역 */}
-        <div className="flex-1 p-6 overflow-auto">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <EventCalendar
-              selectedCategory={selectedCategory}
-              onEventClick={handleEventClick}
-              onDateSelect={handleDateSelect}
-              onNewEventClick={(date) => {
-                setSelectedDate(date);
-                setShowCreateModal(true);
-              }}
-              className="min-h-[600px]"
-              onNavigate={handleNavigate}
-              navigationDate={currentDate}
-              currentView={currentView}
-            />
-          </div>
-        </div>
-
-        {/* 하단 이벤트 상세 영역 */}
-        <div 
-          className="bg-white border-t border-gray-200"
-          style={{ minHeight: selectedDateEvents.length > 0 ? 'auto' : '200px' }}
-        >
-          <div className="px-6 py-6">
-            <EventList
-              events={selectedDateEvents}
-              selectedDate={selectedDate}
-              onEventClick={handleEventClick}
-              title={selectedDate ? `${selectedDate} 일정` : 'ESG 일정을 선택해주세요'}
-            />
-                  </div>
-                </div>
-              </div>
-
-              {/* 이벤트 생성 모달 */}
-              <EventCreateModal
-                open={showCreateModal}
-                onOpenChange={setShowCreateModal}
-                defaultDate={selectedDate}
-              />
-            </DashboardLayout>
-          );
-        }
+      </div>
+    </DashboardLayout>
+  );
+}

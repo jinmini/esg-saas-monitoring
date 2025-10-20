@@ -144,8 +144,17 @@ next-env.d.ts
 
 .playwright-mcp/
 
-data/
+# Data (backend only - exclude logs, ChromaDB)
+backend/data/
+
+# Important: frontend/public/data should be committed for deployment
+!frontend/public/data/
 
 .fix_chromadb.ps1
 .install_ai_deps.ps1
 
+frontend/public/data/
+
+frontend/env.local.example.txt
+
+public/docs/data

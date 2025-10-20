@@ -1,16 +1,20 @@
 {
+  "buildCommand": "cd frontend && pnpm install && pnpm build",
+  "outputDirectory": "frontend/.next",
   "framework": "nextjs",
-  "buildCommand": "pnpm build",
-  "devCommand": "pnpm dev",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "outputDirectory": ".next",
-  "functions": {
-    "src/app/**/*.{js,ts,jsx,tsx}": {
-      "maxDuration": 30
-    }
-  },
+  "regions": ["icn1"],
   "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "http://localhost:8000/api/v1",
-    "NEXT_PUBLIC_APP_NAME": "ESG News Monitor"
-  }
+    "NEXT_PUBLIC_API_BASE_URL": "https://your-backend.onrender.com/api/v1"
+  },
+  "headers": [
+    {
+      "source": "/data/esg_vectors.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=3600"
+        }
+      ]
+    }
+  ]
 }

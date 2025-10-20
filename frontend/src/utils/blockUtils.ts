@@ -19,10 +19,6 @@ export function extractTextFromInlineNodes(content?: InlineNode[]): string {
       if (inline.type === 'inline' && inline.text) {
         return inline.text;
       }
-      // 하위 호환성을 위해 'text' 타입도 지원
-      if (inline.type === 'text' && 'text' in inline) {
-        return (inline as any).text;
-      }
       return '';
     })
     .join('');

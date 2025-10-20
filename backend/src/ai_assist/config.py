@@ -21,7 +21,9 @@ class AIAssistConfig(BaseSettings):
     EMBEDDING_DEVICE: Optional[str] = None  # None = auto-detect
     EMBEDDING_BATCH_SIZE: int = 32
     
-    # ChromaDB
+    # Vector Store (ChromaDB or JSON)
+    USE_JSON_VECTOR_STORE: bool = True  # True: JSON (무료), False: ChromaDB
+    JSON_VECTOR_PATH: Optional[str] = None  # None = auto-detect
     CHROMA_PERSIST_DIR: str = "./data/chroma"
     CHROMA_COLLECTION_NAME: str = "esg_standards"
     

@@ -70,7 +70,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'esg-calendar',
         label: 'ESG Calendar',
-        href: 'https://notion.site/your-calendar-url', // 실제 Notion Calendar URL로 교체 필요
+        href: 'https://www.notion.so', // 실제 Notion Calendar URL로 교체 필요
         external: true,
       },
     ],

@@ -5,20 +5,21 @@ ESG 보고서 작성을 위한 AI 기능 제공
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, status, Request
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import logging
-import asyncio
 from pathlib import Path
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from .esg_mapping.schemas import ESGMappingRequest, ESGMappingResponse
 from .esg_mapping.service import get_esg_mapping_service
+from .esg_mapping.json_vector_service import get_json_vector_esg_mapping_service
 from .esg_mapping.vectorstore.refresh_task import get_refresh_task
 from .exceptions import AIAssistException
 from .monitoring.health import get_health_checker
 from .middleware.request_id import get_request_id
 from .core.logger import get_logger
 from .core import metrics
+from .config import get_ai_config
 
 # 구조화된 로거 사용
 logger = get_logger(__name__)
@@ -44,7 +45,7 @@ class VectorStoreStatusResponse(BaseModel):
 class RefreshStatusResponse(BaseModel):
     """갱신 태스크 상태 응답"""
     is_running: bool
-    last_check_time: str = None
+    last_check_time: Optional[str] = None
     refresh_count: int
     check_interval: int
     tracked_files: int
@@ -168,7 +169,12 @@ async def map_esg_standards(
         # 메트릭 추적
         async with metrics.track_request_async(frameworks=request.frameworks):
             async with metrics.track_stage_async("vector_search"):
-                service = get_esg_mapping_service()
+                # JSON Vector Store 또는 ChromaDB 사용
+                config = get_ai_config()
+                if config.USE_JSON_VECTOR_STORE:
+                    service = get_json_vector_esg_mapping_service()
+                else:
+                    service = get_esg_mapping_service()
                 response = await service.map_esg(request)
             
         # 응답에 Request ID 헤더 추가
@@ -203,7 +209,11 @@ async def get_vectorstore_status():
     - 임베딩 차원
     """
     try:
-        service = get_esg_mapping_service()
+        config = get_ai_config()
+        if config.USE_JSON_VECTOR_STORE:
+            service = get_json_vector_esg_mapping_service()
+        else:
+            service = get_esg_mapping_service()
         status_info = service.get_vectorstore_status()
         return status_info
     except Exception as e:
@@ -425,35 +435,6 @@ async def force_refresh_all(background_tasks: BackgroundTasks):
         )
 
 
-# ============================================================================
-# 헬스체크
-# ============================================================================
-
-@router.get("/health")
-async def health_check():
-    """AI Assist 서비스 헬스체크"""
-    try:
-        service = get_esg_mapping_service()
-        vectorstore_status = service.get_vectorstore_status()
-        
-        refresh_task = get_refresh_task()
-        refresh_status = refresh_task.get_status()
-        
-        return {
-            "status": "healthy",
-            "vectorstore": {
-                "document_count": vectorstore_status["document_count"],
-                "embedding_dimension": vectorstore_status["embedding_dimension"]
-            },
-            "refresh_task": {
-                "is_running": refresh_status["is_running"],
-                "refresh_count": refresh_status["refresh_count"]
-            }
-        }
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "error": str(e)
-        }
+# NOTE: health_check 엔드포인트는 line 65-94에 이미 정의되어 있음
+# 중복 정의 제거됨
 
