@@ -2,11 +2,9 @@
 
 import React from 'react';
 import { 
-  Plus, 
   GripVertical, 
   Copy, 
   Trash2, 
-  MoreHorizontal,
   ChevronUp,
   ChevronDown,
   Sparkles,
@@ -38,11 +36,13 @@ interface BlockActionsProps {
  * 블록에 호버할 때 왼쪽에 표시되는 액션 메뉴
  * 
  * 기능:
- * - 드래그 핸들 (useDragHandle hook으로 드래그 가능)
- * - 블록 추가 (+)
- * - 위/아래 이동
- * - 복제
- * - 삭제
+ * - 드래그 핸들 (짧은 클릭: 기본 메뉴 / 길게 누르기: 드래그)
+ * - AI 버튼 (Sparkles): 프레임워크 매핑, 내용 확장
+ * 
+ * 변경사항 (2025-10-20):
+ * - Plus 버튼 제거 (/ 키보드 입력으로 대체)
+ * - MoreHorizontal(3점) 제거 (드래그 핸들에 통합)
+ * - 아이콘 개수: 3개 → 2개 (시각적 노이즈 감소)
  */
 export const BlockActions: React.FC<BlockActionsProps> = ({
   blockId,
@@ -56,7 +56,13 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
   onMoveDown,
   blockContent,
 }) => {
-  const [showMoreMenu, setShowMoreMenu] = React.useState(false);
+  const [showBasicMenu, setShowBasicMenu] = React.useState(false);
+  const [showAIMenu, setShowAIMenu] = React.useState(false);
+  const [isDragging, setIsDragging] = React.useState(false);
+  const [menuPosition, setMenuPosition] = React.useState<'top' | 'bottom'>('bottom');
+  const dragTimeoutRef = React.useRef<number | null>(null);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const aiButtonRef = React.useRef<HTMLButtonElement>(null);  // AI 버튼용 ref
   const { listeners, attributes } = useDragHandle();
   
   // ========== Stores ==========
@@ -64,8 +70,66 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
   const { document } = useEditorStore();
   const { setSaveStatus } = useUIStore();
   
-  // documentId 가져오기
-  const documentId = document?.id;
+  // documentId 가져오기 (string -> number 변환)
+  const documentId = document?.id ? parseInt(document.id, 10) : undefined;
+  
+  // ========== 메뉴 위치 계산 ==========
+  
+  const calculateMenuPosition = React.useCallback(() => {
+    if (!buttonRef.current) return;
+    
+    const rect = buttonRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // 메뉴 예상 높이 (기본 메뉴: ~200px, AI 메뉴: ~100px)
+    const menuHeight = 220;
+    
+    // 버튼 아래에 메뉴를 표시할 공간이 충분한지 확인
+    const spaceBelow = viewportHeight - rect.bottom;
+    const shouldShowBelow = spaceBelow >= menuHeight;
+    
+    // 디버깅 로그
+    console.log('🔍 Menu Position Debug:', {
+      buttonBottom: rect.bottom,
+      viewportHeight,
+      spaceBelow,
+      menuHeight,
+      shouldShowBelow,
+      finalPosition: shouldShowBelow ? 'bottom' : 'top'
+    });
+    
+    setMenuPosition(shouldShowBelow ? 'bottom' : 'top');
+  }, []);
+  
+  // ========== 드래그 핸들 (짧은 클릭 vs 길게 누르기) ==========
+  
+  const handleDragHandleMouseDown = (e: React.MouseEvent) => {
+    // 길게 누르기 감지 (200ms 이상 = 드래그 시작)
+    dragTimeoutRef.current = window.setTimeout(() => {
+      setIsDragging(true);
+    }, 200);
+  };
+  
+  const handleDragHandleMouseUp = () => {
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+    }
+    
+    // 짧은 클릭이었다면 (드래그 안 함)
+    if (!isDragging) {
+      calculateMenuPosition(); // 메뉴 위치 계산
+      setShowBasicMenu(!showBasicMenu);
+      setShowAIMenu(false); // AI 메뉴는 닫기
+    }
+    
+    setIsDragging(false);
+  };
+  
+  const handleDragHandleMouseLeave = () => {
+    if (dragTimeoutRef.current) {
+      clearTimeout(dragTimeoutRef.current);
+    }
+  };
   
   // ========== AI Assist Handlers ==========
   
@@ -103,7 +167,7 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
       setPersistedBlockId(blockId);
       
       // ESG 매핑 요청
-      await mapESG(blockContent, documentId, blockId, {
+      await mapESG(blockContent, documentId!, blockId, {
         frameworks: ['GRI', 'SASB', 'TCFD', 'ESRS'],
         maxResults: 5,
         minConfidence: 0.5,
@@ -124,7 +188,7 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
       });
       console.error('❌ ESG 매핑 실패:', error);
     } finally {
-      setShowMoreMenu(false);
+      setShowAIMenu(false);
     }
   };
   
@@ -162,7 +226,7 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
       setPersistedBlockId(blockId);
       
       // 내용 확장 요청
-      await expandContent(blockContent, documentId, blockId, {
+      await expandContent(blockContent, documentId!, blockId, {
         mode: 'expand',
         tone: 'professional',
       });
@@ -182,61 +246,73 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
       });
       console.error('❌ 내용 확장 실패:', error);
     } finally {
-      setShowMoreMenu(false);
+      setShowAIMenu(false);
     }
   };
 
   return (
-    <div className="block-actions absolute left-0 top-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-full pr-2">
-      {/* 드래그 핸들 */}
-      <button
-        {...listeners}
-        {...attributes}
-        className="p-1.5 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing transition-colors"
-        title="드래그하여 이동"
-        type="button"
-      >
-        <GripVertical size={16} className="text-gray-400" />
-      </button>
-
-      {/* 추가 버튼 */}
-      <button
-        onClick={onAddBelow}
-        className="p-1.5 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors"
-        title="아래에 블록 추가"
-      >
-        <Plus size={16} />
-      </button>
-
-      {/* 더보기 메뉴 */}
-      <div className="relative">
+    <>
+      <div className="block-actions absolute left-0 top-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-full pr-2">
+        {/* 드래그 핸들 (짧은 클릭: 기본 메뉴 / 길게 누르기: 드래그) */}
         <button
-          onClick={() => setShowMoreMenu(!showMoreMenu)}
-          className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-          title="더보기"
+          ref={buttonRef}
+          {...listeners}
+          {...attributes}
+          onMouseDown={handleDragHandleMouseDown}
+          onMouseUp={handleDragHandleMouseUp}
+          onMouseLeave={handleDragHandleMouseLeave}
+          className="p-1.5 hover:bg-gray-100 rounded cursor-grab active:cursor-grabbing transition-colors"
+          title="클릭: 메뉴 / 길게 누르기: 드래그"
+          type="button"
         >
-          <MoreHorizontal size={16} />
+          <GripVertical size={16} className="text-gray-400" />
         </button>
 
-        {/* 드롭다운 메뉴 */}
-        {showMoreMenu && (
+        {/* AI 전용 버튼 (Sparkles) */}
+        <button
+          ref={aiButtonRef}
+          onClick={() => {
+            calculateMenuPosition(); // 메뉴 위치 계산
+            setShowAIMenu(!showAIMenu);
+            setShowBasicMenu(false); // 기본 메뉴는 닫기
+          }}
+          className="p-1.5 hover:bg-indigo-50 hover:text-indigo-600 rounded transition-colors relative z-10"
+          title="AI 기능"
+          type="button"
+        >
+          <Sparkles size={16} className="text-indigo-500" />
+        </button>
+      </div>
+
+      {/* 기본 메뉴 드롭다운 (fixed 위치로!) */}
+      {showBasicMenu && buttonRef.current && (
           <>
             {/* Backdrop */}
             <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowMoreMenu(false)}
+              className="fixed inset-0 z-40"
+              onClick={() => setShowBasicMenu(false)}
             />
             
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="absolute left-0 top-full mt-1 z-20 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-40"
+              style={{
+                position: 'fixed',
+                left: `${buttonRef.current.getBoundingClientRect().left}px`,
+                top: menuPosition === 'bottom' 
+                  ? `${buttonRef.current.getBoundingClientRect().bottom + 4}px`
+                  : 'auto',
+                bottom: menuPosition === 'top'
+                  ? `${window.innerHeight - buttonRef.current.getBoundingClientRect().top + 4}px`
+                  : 'auto',
+              }}
+              className="z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-40"
             >
               {/* 위로 이동 */}
               <button
                 onClick={() => {
                   onMoveUp();
-                  setShowMoreMenu(false);
+                  setShowBasicMenu(false);
                 }}
                 disabled={!canMoveUp}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -249,7 +325,7 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
               <button
                 onClick={() => {
                   onMoveDown();
-                  setShowMoreMenu(false);
+                  setShowBasicMenu(false);
                 }}
                 disabled={!canMoveDown}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -264,7 +340,7 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
               <button
                 onClick={() => {
                   onDuplicate();
-                  setShowMoreMenu(false);
+                  setShowBasicMenu(false);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
               >
@@ -274,6 +350,47 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
 
               <div className="my-1 border-t border-gray-200" />
 
+              {/* 삭제 */}
+              <button
+                onClick={() => {
+                  if (confirm('이 블록을 삭제하시겠습니까?')) {
+                    onDelete();
+                    setShowBasicMenu(false);
+                  }
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <Trash2 size={14} />
+                삭제
+              </button>
+            </motion.div>
+          </>
+        )}
+
+      {/* AI 메뉴 드롭다운 (fixed 위치로!) */}
+      {showAIMenu && aiButtonRef.current && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowAIMenu(false)}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{
+                position: 'fixed',
+                left: `${aiButtonRef.current.getBoundingClientRect().left}px`,
+                top: menuPosition === 'bottom' 
+                  ? `${aiButtonRef.current.getBoundingClientRect().bottom + 4}px`
+                  : 'auto',
+                bottom: menuPosition === 'top'
+                  ? `${window.innerHeight - aiButtonRef.current.getBoundingClientRect().top + 4}px`
+                  : 'auto',
+              }}
+              className="z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-44"
+            >
               {/* AI Assist: 프레임워크 매핑 */}
               <button
                 onClick={handleESGMapping}
@@ -315,27 +432,10 @@ export const BlockActions: React.FC<BlockActionsProps> = ({
                 <FileText size={14} />
                 내용 확장하기
               </button>
-
-              <div className="my-1 border-t border-gray-200" />
-
-              {/* 삭제 */}
-              <button
-                onClick={() => {
-                  if (confirm('이 블록을 삭제하시겠습니까?')) {
-                    onDelete();
-                    setShowMoreMenu(false);
-                  }
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 size={14} />
-                삭제
-              </button>
             </motion.div>
           </>
         )}
-      </div>
-    </div>
+    </>
   );
 };
 

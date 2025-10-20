@@ -9,12 +9,6 @@ import type {
   TrendParams,
   CompanyStats,
   CompanyArticlesResponse,
-  Event,
-  EventListResponse,
-  EventListParams,
-  EventCategoriesResponse,
-  EventCreateRequest,
-  EventUpdateRequest,
   Document,
   DocumentListItem,
   DocumentCreateRequest,
@@ -184,82 +178,21 @@ export const trendsApi = {
   },
 };
 
+// ===============================
 // Events API Functions (ESG Calendar)
-export const eventsApi = {
-  // Get events by month (main calendar API)
-  getEventsByMonth: async (params: EventListParams): Promise<EventListResponse> => {
-    const response = await apiClient.get<EventListResponse>('/events/', { params });
-    return response.data;
-  },
-
-  // Get single event by ID
-  getById: async (id: number): Promise<Event> => {
-    const response = await apiClient.get<Event>(`/events/${id}`);
-    return response.data;
-  },
-
-  // Create new event (admin only)
-  create: async (event: EventCreateRequest): Promise<Event> => {
-    const response = await apiClient.post<Event>('/events/', event);
-    return response.data;
-  },
-
-  // Update event (admin only)
-  update: async (id: number, event: EventUpdateRequest): Promise<Event> => {
-    const response = await apiClient.put<Event>(`/events/${id}`, event);
-    return response.data;
-  },
-
-  // Delete event (admin only)
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/events/${id}`);
-  },
-
-  // Get available categories
-  getCategories: async (): Promise<EventCategoriesResponse> => {
-    const response = await apiClient.get<EventCategoriesResponse>('/events/meta/categories');
-    return response.data;
-  },
-
-  // Get events by date range (for calendar rendering optimization)
-  getEventsByDateRange: async (startDate: string, endDate: string, category?: string): Promise<Event[]> => {
-    // This will be a utility function that makes multiple month calls if needed
-    // For now, we'll implement a simple approach using the monthly API
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const events: Event[] = [];
-    
-    // Get events for each month in the range
-    const currentDate = new Date(start.getFullYear(), start.getMonth(), 1);
-    
-    while (currentDate <= end) {
-      try {
-        const params: EventListParams = {
-          year: currentDate.getFullYear(),
-          month: currentDate.getMonth() + 1,
-          category: category as any
-        };
-        
-        const monthEvents = await eventsApi.getEventsByMonth(params);
-        
-        // Filter events to the exact date range
-        const filteredEvents = monthEvents.events.filter(event => {
-          const eventDate = new Date(event.start_date);
-          return eventDate >= start && eventDate <= end;
-        });
-        
-        events.push(...filteredEvents);
-      } catch (error) {
-        console.error(`Failed to fetch events for ${currentDate.getFullYear()}-${currentDate.getMonth() + 1}:`, error);
-      }
-      
-      // Move to next month
-      currentDate.setMonth(currentDate.getMonth() + 1);
-    }
-    
-    return events;
-  },
-};
+// ===============================
+// NOTE: Event 타입이 삭제되어 임시로 주석 처리됨
+// 필요시 Event 타입을 다시 생성하고 활성화할 것
+//
+// export const eventsApi = {
+//   getEventsByMonth: async (params: EventListParams): Promise<EventListResponse> => { ... },
+//   getById: async (id: number): Promise<Event> => { ... },
+//   create: async (event: EventCreateRequest): Promise<Event> => { ... },
+//   update: async (id: number, event: EventUpdateRequest): Promise<Event> => { ... },
+//   delete: async (id: number): Promise<void> => { ... },
+//   getCategories: async (): Promise<EventCategoriesResponse> => { ... },
+//   getEventsByDateRange: async (startDate: string, endDate: string, category?: string): Promise<Event[]> => { ... },
+// };
 
 // Documents API Functions (ESG Report Management - API v2)
 export const documentsApi = {
