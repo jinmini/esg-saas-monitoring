@@ -9,9 +9,16 @@
 from typing import Union
 import logging
 
-from .embeddings import E5Embeddings
 from .gemini_embeddings import GeminiEmbeddingService
 from ..config import get_ai_config
+
+# E5Embeddings는 선택적 (개발 환경에서만)
+try:
+    from .embeddings import E5Embeddings
+    _e5_available = True
+except ImportError:
+    _e5_available = False
+    E5Embeddings = None
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +49,14 @@ def get_embedding_service() -> Union[E5Embeddings, GeminiEmbeddingService]:
         )
         return GeminiEmbeddingService(api_key=config.GEMINI_API_KEY)
     else:
+        # E5Embeddings 사용 가능 여부 확인
+        if not _e5_available:
+            raise ImportError(
+                "sentence_transformers가 설치되지 않았습니다. "
+                "개발 환경: pip install -r requirements/dev.txt, "
+                "배포 환경: USE_GEMINI_EMBEDDING=true로 설정하세요."
+            )
+        
         logger.info(
             "[LOCAL] Using Local SentenceTransformer "
             "(Development mode: intfloat/multilingual-e5-base)"
