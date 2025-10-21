@@ -17,8 +17,18 @@ from .schemas import (
     VectorSearchResult
 )
 from .prompts import build_esg_mapping_prompt
-from .vectorstore.chroma_manager import ChromaManager, E5EmbeddingFunction
-from .vectorstore.embed_pipeline import ESGEmbeddingPipeline
+
+# ChromaDB는 선택적 의존성 (USE_JSON_VECTOR_STORE=false일 때만)
+try:
+    from .vectorstore.chroma_manager import ChromaManager, E5EmbeddingFunction
+    from .vectorstore.embed_pipeline import ESGEmbeddingPipeline
+    _chroma_available = True
+except ImportError:
+    _chroma_available = False
+    ChromaManager = None
+    E5EmbeddingFunction = None
+    ESGEmbeddingPipeline = None
+
 from ..core.embeddings import get_embeddings
 from ..core.gemini_client import get_gemini_client
 
@@ -428,14 +438,28 @@ _esg_mapping_service: Optional[ESGMappingService] = None
 
 
 def get_esg_mapping_service() -> ESGMappingService:
-    """ESG 매핑 서비스 싱글톤 반환"""
+    """ESG 매핑 서비스 싱글톤 반환 (ChromaDB 사용)"""
     global _esg_mapping_service
     
+    # ChromaDB 사용 가능 여부 확인
+    if not _chroma_available:
+        raise ImportError(
+            "ChromaDB가 설치되지 않았습니다. "
+            "개발 환경: pip install -r requirements/dev.txt, "
+            "배포 환경: USE_JSON_VECTOR_STORE=true로 설정하고 get_json_vector_esg_mapping_service()를 사용하세요."
+        )
+    
+    # Config 확인
+    from src.ai_assist.config import get_ai_config
+    config = get_ai_config()
+    
+    if config.USE_JSON_VECTOR_STORE:
+        raise ValueError(
+            "USE_JSON_VECTOR_STORE=true이면 get_json_vector_esg_mapping_service()를 사용하세요. "
+            "ChromaDB는 배포 환경에서 사용할 수 없습니다."
+        )
+    
     if _esg_mapping_service is None:
-        # AI Assist config에서 설정 로드
-        from src.ai_assist.config import get_ai_config
-        config = get_ai_config()
-        
         # Gemini 클라이언트를 config로 초기화
         from src.ai_assist.core.gemini_client import get_gemini_client
         get_gemini_client(
