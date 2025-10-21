@@ -23,7 +23,7 @@ class HealthChecker:
     def __init__(self):
         self.checks = {
             "embedding_model": self.check_embedding_model,
-            "chroma_db": self.check_chroma_db,
+            "vector_store": self.check_vector_store,
             "gemini_api": self.check_gemini_api,
             "gpu": self.check_gpu_availability
         }
@@ -109,9 +109,9 @@ class HealthChecker:
         """
         전체 상태 판단
         
-        - healthy: 모든 체크 통과
-        - degraded: 일부 체크 실패 (Gemini API 제외)
-        - unhealthy: 핵심 체크 실패 (임베딩 모델, ChromaDB)
+        - healthy: 모든 필수 체크 통과
+        - degraded: 일부 체크 실패 (GPU 등 비필수 구성요소)
+        - unhealthy: 핵심 체크 실패 (임베딩 모델, 벡터 스토어)
         """
         statuses = [check["status"] for check in checks.values()]
         
@@ -119,8 +119,8 @@ class HealthChecker:
         if all(s == "healthy" for s in statuses):
             return "healthy"
         
-        # 핵심 구성 요소 체크
-        critical_components = ["embedding_model", "chroma_db"]
+        # 핵심 구성 요소 체크 (배포 환경 대응)
+        critical_components = ["embedding_model", "vector_store"]
         critical_checks = [
             checks[comp]["status"]
             for comp in critical_components
@@ -162,21 +162,28 @@ class HealthChecker:
             logger.error("failed_to_send_unhealthy_alert", error=str(e))
     
     async def check_embedding_model(self) -> Dict[str, Any]:
-        """임베딩 모델 상태 확인"""
+        """임베딩 모델 상태 확인 (배포 최적화: Gemini/E5 자동 감지)"""
         try:
-            from src.ai_assist.core.embeddings import get_embeddings
+            from src.ai_assist.core.embeddings_factory import get_embedding_service
+            from src.ai_assist.config import get_ai_config
             
-            embeddings = get_embeddings()
+            config = get_ai_config()
+            embeddings = get_embedding_service()
             
             # 간단한 텍스트로 테스트
             test_text = "test"
             embedding = embeddings.embed_query(test_text)
             
+            # 모델 타입 감지
+            model_type = "Gemini Embedding API" if config.USE_GEMINI_EMBEDDING else "Local E5"
+            model_name = getattr(embeddings, 'model_name', 'gemini-embedding-001')
+            
             return {
                 "status": "healthy",
-                "model": embeddings.model_name,
-                "device": str(embeddings.device),
-                "dimension": len(embedding)
+                "model_type": model_type,
+                "model_name": model_name,
+                "dimension": len(embedding),
+                "deployment_optimized": config.USE_GEMINI_EMBEDDING
             }
         except Exception as e:
             logger.error("embedding_model_check_failed", error=str(e))
@@ -185,25 +192,44 @@ class HealthChecker:
                 "error": str(e)
             }
     
-    async def check_chroma_db(self) -> Dict[str, Any]:
-        """ChromaDB 상태 확인"""
+    async def check_vector_store(self) -> Dict[str, Any]:
+        """벡터 스토어 상태 확인 (JSON/ChromaDB 자동 감지)"""
         try:
-            # ESGMappingService를 통해 ChromaManager에 접근
-            from src.ai_assist.esg_mapping.service import get_esg_mapping_service
+            from src.ai_assist.config import get_ai_config
             
-            service = get_esg_mapping_service()
-            status_info = service.get_vectorstore_status()
+            config = get_ai_config()
             
-            # 문서 수 확인
-            count = status_info.get("document_count", 0)
-            
-            return {
-                "status": "healthy" if count > 0 else "degraded",
-                "document_count": count,
-                "collection_name": status_info.get("collection_name", "unknown")
-            }
+            if config.USE_JSON_VECTOR_STORE:
+                # JSON Vector Store 체크
+                from src.ai_assist.esg_mapping.json_vector_service import get_json_vector_esg_mapping_service
+                
+                service = get_json_vector_esg_mapping_service()
+                status_info = service.get_vectorstore_status()
+                
+                return {
+                    "status": "healthy" if status_info.get("document_count", 0) > 0 else "degraded",
+                    "store_type": "JSON Vector Store",
+                    "document_count": status_info.get("document_count", 0),
+                    "embedding_model": status_info.get("embedding_model", "unknown"),
+                    "deployment_optimized": True
+                }
+            else:
+                # ChromaDB 체크
+                from src.ai_assist.esg_mapping.service import get_esg_mapping_service
+                
+                service = get_esg_mapping_service()
+                status_info = service.get_vectorstore_status()
+                
+                count = status_info.get("document_count", 0)
+                
+                return {
+                    "status": "healthy" if count > 0 else "degraded",
+                    "store_type": "ChromaDB",
+                    "document_count": count,
+                    "collection_name": status_info.get("collection_name", "unknown")
+                }
         except Exception as e:
-            logger.error("chroma_db_check_failed", error=str(e))
+            logger.error("vector_store_check_failed", error=str(e))
             return {
                 "status": "unhealthy",
                 "error": str(e)
@@ -235,15 +261,15 @@ class HealthChecker:
             }
     
     async def check_gpu_availability(self) -> Dict[str, Any]:
-        """GPU 상태 확인"""
+        """GPU 상태 확인 (선택적, 배포 환경에서는 불필요)"""
         try:
             import torch
             
             if not torch.cuda.is_available():
                 return {
-                    "status": "degraded",
+                    "status": "healthy",  # degraded → healthy (GPU 없어도 정상)
                     "available": False,
-                    "message": "GPU not available, using CPU"
+                    "message": "GPU not available, using CPU or Cloud API (expected in production)"
                 }
             
             # GPU 정보
@@ -271,12 +297,19 @@ class HealthChecker:
                 "memory_reserved_mb": memory_reserved / 1024 / 1024,
                 "utilization": utilization
             }
+        except ModuleNotFoundError:
+            # torch 없으면 healthy 반환 (배포 환경 정상)
+            return {
+                "status": "healthy",
+                "available": False,
+                "message": "PyTorch not installed (deployment optimized: using Gemini API)"
+            }
         except Exception as e:
             logger.error("gpu_check_failed", error=str(e))
             return {
-                "status": "degraded",
+                "status": "healthy",  # degraded → healthy
                 "available": False,
-                "error": str(e)
+                "message": "GPU check skipped (not critical for production)"
             }
 
 
