@@ -91,9 +91,10 @@ pandas>=2.1.0        # 데이터 처리
 tqdm>=4.66.0         # 진행 표시
 
 # ============================================
-# Monitoring (Optional)
+# Monitoring (Required for AI Assist)
 # ============================================
 prometheus-client>=0.19.0
 prometheus-fastapi-instrumentator>=6.1.0
+structlog>=24.1.0  # Structured logging for AI Assist monitoring
 
 
