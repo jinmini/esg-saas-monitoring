@@ -42,6 +42,12 @@ class CrawlResult(BaseModel):
     articles_data: Optional[List[dict]] = []  # 크롤링된 실제 기사 데이터
 
 
+class CrawlStartResponse(BaseModel):
+    """크롤링 시작 응답 스키마 (백그라운드 실행)"""
+    message: str = Field(description="응답 메시지")
+    status: str = Field(description="크롤링 상태 (started, failed 등)")
+
+
 class ArticleCreateRequest(BaseModel):
     """기사 생성 요청 스키마"""
     company_id: int

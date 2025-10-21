@@ -3,14 +3,14 @@ from typing import List
 from loguru import logger
 
 from .service import CrawlerService
-from .schemas import CrawlResult, NewsSearchRequest
+from .schemas import CrawlResult, NewsSearchRequest, CrawlStartResponse
 from .scrapers.scheduler import crawler_scheduler
 
 router = APIRouter(prefix="/crawler", tags=["crawler"])
 crawler_service = CrawlerService()
 
 
-@router.post("/crawl/all", response_model=List[CrawlResult])
+@router.post("/crawl/all", response_model=CrawlStartResponse)
 async def crawl_all_companies(
     background_tasks: BackgroundTasks,
     max_articles_per_company: int = 50
@@ -23,7 +23,10 @@ async def crawl_all_companies(
             max_articles_per_company
         )
         
-        return {"message": "Crawling started in background", "status": "started"}
+        return CrawlStartResponse(
+            message="Crawling started in background",
+            status="started"
+        )
         
     except Exception as e:
         logger.error(f"Failed to start crawling: {str(e)}")
