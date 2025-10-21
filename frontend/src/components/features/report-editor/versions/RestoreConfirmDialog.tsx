@@ -27,8 +27,7 @@ export const RestoreConfirmDialog: React.FC<RestoreConfirmDialogProps> = ({
   version,
   documentId,
 }) => {
-  // 안전 가드: version이 없으면 렌더링하지 않음
-  if (!version) return null;
+  // Hook은 항상 최상단에서 호출 (조건문보다 먼저)
   const { mutate: restoreVersion, isPending } = useRestoreVersion({
     onSuccess: (result) => {
       if (process.env.NODE_ENV === 'development') {
@@ -85,6 +84,9 @@ export const RestoreConfirmDialog: React.FC<RestoreConfirmDialogProps> = ({
       timeStyle: 'short',
     }).format(date);
   };
+
+  // 안전 가드: version이 없으면 렌더링하지 않음
+  if (!version) return null;
 
   return (
     <AnimatePresence>

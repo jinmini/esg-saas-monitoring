@@ -512,6 +512,7 @@ export interface VersionDiffResponse {
   blocks_added: number;
   blocks_removed: number;
   blocks_modified: number;
+  chars_changed: number;
 }
 
 /**

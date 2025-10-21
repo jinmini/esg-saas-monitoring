@@ -1,10 +1,9 @@
 {
   "buildCommand": "pnpm install && pnpm build",
-  "outputDirectory": ".next",
   "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["icn1"],
   "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "@api_base_url"
+    "NEXT_PUBLIC_API_BASE_URL": "https://esg-compliance-backend.onrender.com/api/v1"
   }
 }
