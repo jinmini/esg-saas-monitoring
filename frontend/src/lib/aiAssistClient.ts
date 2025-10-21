@@ -25,7 +25,7 @@ import {
  * 기본 API 설정
  */
 const API_CONFIG = {
-  baseURL: (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') + '/api/v1/ai-assist',
+  baseURL: (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1') + '/ai-assist',
   timeout: 60000, // 60초 (AI 처리 시간 고려)
   headers: {
     'Content-Type': 'application/json',
