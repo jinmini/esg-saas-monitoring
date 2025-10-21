@@ -13,7 +13,15 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from .esg_mapping.schemas import ESGMappingRequest, ESGMappingResponse
 from .esg_mapping.service import get_esg_mapping_service
 from .esg_mapping.json_vector_service import get_json_vector_esg_mapping_service
-from .esg_mapping.vectorstore.refresh_task import get_refresh_task
+
+# refresh_task는 ChromaDB 사용 시에만 필요 (조건부 import)
+try:
+    from .esg_mapping.vectorstore.refresh_task import get_refresh_task
+    _refresh_task_available = True
+except ImportError:
+    _refresh_task_available = False
+    get_refresh_task = None
+
 from .exceptions import AIAssistException
 from .monitoring.health import get_health_checker
 from .middleware.request_id import get_request_id
@@ -302,7 +310,15 @@ async def start_refresh_task():
     벡터스토어 자동 갱신 태스크 시작
     
     주기적으로 JSONL 파일 변경을 감지하고 재임베딩합니다.
+    
+    Note: ChromaDB 사용 시에만 사용 가능. JSON Vector Store는 수동 재생성 필요.
     """
+    if not _refresh_task_available:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Refresh task is not available. USE_JSON_VECTOR_STORE=true 환경에서는 사용할 수 없습니다."
+        )
+    
     try:
         task = get_refresh_task()
         
@@ -332,6 +348,12 @@ async def start_refresh_task():
 @router.post("/refresh/stop")
 async def stop_refresh_task():
     """벡터스토어 자동 갱신 태스크 중지"""
+    if not _refresh_task_available:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Refresh task is not available. USE_JSON_VECTOR_STORE=true 환경에서는 사용할 수 없습니다."
+        )
+    
     try:
         task = get_refresh_task()
         task.stop()
@@ -351,6 +373,12 @@ async def stop_refresh_task():
 @router.get("/refresh/status", response_model=RefreshStatusResponse)
 async def get_refresh_status():
     """갱신 태스크 상태 조회"""
+    if not _refresh_task_available:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Refresh task is not available. USE_JSON_VECTOR_STORE=true 환경에서는 사용할 수 없습니다."
+        )
+    
     try:
         task = get_refresh_task()
         return task.get_status()
@@ -369,6 +397,12 @@ async def check_and_refresh_now():
     
     주기와 관계없이 즉시 JSONL 파일을 체크하고 변경된 파일을 재임베딩합니다.
     """
+    if not _refresh_task_available:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Refresh task is not available. USE_JSON_VECTOR_STORE=true 환경에서는 사용할 수 없습니다."
+        )
+    
     try:
         task = get_refresh_task()
         result = await task.check_and_refresh()
@@ -388,6 +422,12 @@ async def force_refresh_all(background_tasks: BackgroundTasks):
     
     **주의:** 모든 데이터를 삭제하고 처음부터 재구축합니다.
     """
+    if not _refresh_task_available:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Refresh task is not available. USE_JSON_VECTOR_STORE=true 환경에서는 사용할 수 없습니다."
+        )
+    
     try:
         # 백그라운드에서 실행 + 로그 파일 저장 (이벤트 루프 문제 해결)
         async def run_force_refresh():
