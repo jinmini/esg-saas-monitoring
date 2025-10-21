@@ -29,8 +29,15 @@ except ImportError:
     E5EmbeddingFunction = None
     ESGEmbeddingPipeline = None
 
-from ..core.embeddings import get_embeddings
 from ..core.gemini_client import get_gemini_client
+
+# get_embeddings는 ChromaDB 사용 시에만 필요 (조건부 import)
+try:
+    from ..core.embeddings import get_embeddings
+    _get_embeddings_available = True
+except ImportError:
+    _get_embeddings_available = False
+    get_embeddings = None
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +77,13 @@ class ESGMappingService:
         self.chroma_persist_dir = chroma_persist_dir
         self.collection_name = collection_name
         
-        # 임베딩 모델 초기화
+        # 임베딩 모델 초기화 (get_embeddings 사용 가능 확인)
+        if not _get_embeddings_available:
+            raise ImportError(
+                "sentence_transformers가 설치되지 않았습니다. "
+                "개발 환경: pip install -r requirements/dev.txt"
+            )
+        
         logger.info("Initializing embedding model...")
         self.embeddings = get_embeddings()
         
