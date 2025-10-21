@@ -11,12 +11,13 @@ from pathlib import Path
 from typing import List, Dict, Any
 from datetime import datetime
 import sys
+import time
 
 # Add backend src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from ai_assist.esg_mapping.loaders.jsonl_loader import MultiFileJSONLLoader
-from ai_assist.core.embeddings import get_embeddings
+from ai_assist.core.embeddings_factory import get_embedding_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -87,7 +88,16 @@ def generate_vector_json(
     
     # 2. 임베딩 모델 초기화
     logger.info("🤖 Initializing embedding model...")
-    embeddings_model = get_embeddings()
+    embeddings_model = get_embedding_service()
+    
+    # 모델 정보 로깅
+    if hasattr(embeddings_model, 'model_name'):
+        model_name = embeddings_model.model_name
+    elif hasattr(embeddings_model, '_model_name'):
+        model_name = embeddings_model._model_name
+    else:
+        model_name = "unknown"
+    logger.info(f"   Using embedding model: {model_name}")
     
     # 3. 임베딩 생성
     logger.info("🚀 Generating embeddings...")
@@ -95,9 +105,49 @@ def generate_vector_json(
     vector_documents = []
     failed_docs = []
     
-    for i in range(0, len(documents), batch_size):
-        batch = documents[i:i + batch_size]
-        batch_texts = [create_embedding_text(doc.metadata) for doc in batch]
+    # 빈 텍스트 문서 사전 필터링
+    valid_documents = []
+    for idx, doc in enumerate(documents):
+        # DEBUG: 첫 문서 구조 확인
+        if idx == 0:
+            logger.info(f"  [DEBUG] Document type: {type(doc)}")
+            logger.info(f"  [DEBUG] Document attributes: {dir(doc)}")
+            if hasattr(doc, 'metadata'):
+                logger.info(f"  [DEBUG] Metadata keys: {list(doc.metadata.keys())[:5]}")
+                logger.info(f"  [DEBUG] Metadata sample: {dict(list(doc.metadata.items())[:3])}")
+        
+        # Document 객체를 딕셔너리로 변환
+        doc_dict = doc.to_dict() if hasattr(doc, 'to_dict') else {
+            'id': getattr(doc, 'id', None),
+            'title': getattr(doc, 'title', None),
+            'description': getattr(doc, 'description', None),
+            'keywords': getattr(doc, 'keywords', []),
+            'category': getattr(doc, 'category', None),
+            'topic': getattr(doc, 'topic', None),
+        }
+        text = create_embedding_text(doc_dict)
+        if text and text.strip():
+            valid_documents.append(doc)
+        else:
+            logger.warning(f"  ⚠ Skipping empty document: {doc.metadata.get('id', 'unknown')}")
+    
+    logger.info(f"  → Valid documents: {len(valid_documents)}/{len(documents)}")
+    
+    for i in range(0, len(valid_documents), batch_size):
+        batch = valid_documents[i:i + batch_size]
+        batch_texts = [
+            create_embedding_text(
+                doc.to_dict() if hasattr(doc, 'to_dict') else {
+                    'id': getattr(doc, 'id', None),
+                    'title': getattr(doc, 'title', None),
+                    'description': getattr(doc, 'description', None),
+                    'keywords': getattr(doc, 'keywords', []),
+                    'category': getattr(doc, 'category', None),
+                    'topic': getattr(doc, 'topic', None),
+                }
+            ) 
+            for doc in batch
+        ]
         
         try:
             # 배치 임베딩 생성
@@ -106,28 +156,72 @@ def generate_vector_json(
             # 결과 저장
             for doc, embedding in zip(batch, batch_embeddings):
                 vector_doc = {
-                    "id": doc.metadata.get("id", f"doc-{i}"),
-                    "framework": doc.metadata.get("framework", ""),
-                    "category": doc.metadata.get("category", ""),
-                    "topic": doc.metadata.get("topic", ""),
-                    "title": doc.metadata.get("title", ""),
-                    "title_ko": doc.metadata.get("title_ko", ""),
-                    "description": doc.metadata.get("description", ""),
-                    "description_ko": doc.metadata.get("description_ko", ""),
-                    "keywords": doc.metadata.get("keywords", []),
+                    "id": getattr(doc, 'id', f"doc-{i}"),
+                    "framework": getattr(doc, 'framework', ""),
+                    "category": getattr(doc, 'category', ""),
+                    "topic": getattr(doc, 'topic', ""),
+                    "title": getattr(doc, 'title', ""),
+                    "title_ko": getattr(doc, 'title_ko', ""),
+                    "description": getattr(doc, 'description', ""),
+                    "description_ko": getattr(doc, 'description_ko', ""),
+                    "keywords": getattr(doc, 'keywords', []),
                     "embedding": embedding,  # Already a list
                     "metadata": {
-                        "standard_type": doc.metadata.get("standard_type", ""),
-                        "document_version": doc.metadata.get("document_version", ""),
+                        "standard_type": getattr(doc, 'standard_type', ""),
+                        "document_version": getattr(doc, 'document_version', ""),
                     }
                 }
                 vector_documents.append(vector_doc)
             
-            logger.info(f"  ✓ Batch {i // batch_size + 1}/{(len(documents) + batch_size - 1) // batch_size} completed ({len(batch_embeddings)} embeddings)")
+            logger.info(f"  ✓ Batch {i // batch_size + 1}/{(len(valid_documents) + batch_size - 1) // batch_size} completed ({len(batch_embeddings)} embeddings)")
+            
+            # Gemini API Rate Limit 방지 (Free Tier: 분당 최대 60 RPM)
+            # 32 embeddings/batch × 6 batches = 192 embeddings
+            # 안전하게 분산: 배치당 15초 대기 (60초 / 4배치 = 15초)
+            if model_name == "gemini-embedding-001" and i + batch_size < len(valid_documents):
+                logger.info(f"  ⏳ Waiting 15 seconds before next batch to respect rate limits...")
+                time.sleep(15)  # 배치당 15초 대기 (1분당 4배치 = 안전)
             
         except Exception as e:
             logger.error(f"  ✗ Batch {i // batch_size + 1} failed: {e}")
-            failed_docs.extend(batch)
+            
+            # Rate Limit 에러 시 재시도
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                logger.warning("  ⏳ Rate limit detected, waiting 60 seconds and retrying...")
+                time.sleep(60)
+                
+                try:
+                    # 재시도
+                    logger.info(f"  🔄 Retrying batch {i // batch_size + 1}...")
+                    batch_embeddings = embeddings_model.embed_documents(batch_texts, batch_size=batch_size)
+                    
+                    # 결과 저장
+                    for doc, embedding in zip(batch, batch_embeddings):
+                        vector_doc = {
+                            "id": getattr(doc, 'id', f"doc-{i}"),
+                            "framework": getattr(doc, 'framework', ""),
+                            "category": getattr(doc, 'category', ""),
+                            "topic": getattr(doc, 'topic', ""),
+                            "title": getattr(doc, 'title', ""),
+                            "title_ko": getattr(doc, 'title_ko', ""),
+                            "description": getattr(doc, 'description', ""),
+                            "description_ko": getattr(doc, 'description_ko', ""),
+                            "keywords": getattr(doc, 'keywords', []),
+                            "embedding": embedding,
+                            "metadata": {
+                                "standard_type": getattr(doc, 'standard_type', ""),
+                                "document_version": getattr(doc, 'document_version', ""),
+                            }
+                        }
+                        vector_documents.append(vector_doc)
+                    
+                    logger.info(f"  ✓ Batch {i // batch_size + 1} completed after retry ({len(batch_embeddings)} embeddings)")
+                    
+                except Exception as retry_error:
+                    logger.error(f"  ✗ Batch {i // batch_size + 1} failed again after retry: {retry_error}")
+                    failed_docs.extend(batch)
+            else:
+                failed_docs.extend(batch)
     
     # 4. JSON 파일 생성
     logger.info(f"💾 Saving to: {output_path}")
@@ -135,7 +229,7 @@ def generate_vector_json(
     output_data = {
         "metadata": {
             "total_documents": len(vector_documents),
-            "embedding_model": "intfloat/multilingual-e5-large",
+            "embedding_model": model_name,  # 실제 사용된 모델 이름
             "embedding_dim": len(vector_documents[0]["embedding"]) if vector_documents else 0,
             "generated_at": datetime.now().isoformat(),
             "source_files": [f.name for f in data_dir.glob("*.jsonl")],

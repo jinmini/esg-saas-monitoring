@@ -13,12 +13,11 @@ from .schemas import (
     ESGMappingRequest,
     ESGMappingResponse,
     ESGStandardMatch,
-    ESGMappingMetadata,
-    VectorSearchResult
+    ESGMappingMetadata
 )
 from .prompts import build_esg_mapping_prompt
 from .vectorstore.json_vector_store import get_json_vector_store, SearchResult
-from ..core.embeddings import get_embeddings
+from ..core.embeddings_factory import get_embedding_service
 from ..core.gemini_client import get_gemini_client
 
 logger = logging.getLogger(__name__)
@@ -59,9 +58,9 @@ class JSONVectorESGMappingService:
             json_vector_path: esg_vectors.json 파일 경로
             gemini_api_key: Gemini API 키 (None이면 환경변수)
         """
-        # 임베딩 모델 초기화
-        logger.info("Initializing embedding model...")
-        self.embeddings = get_embeddings()
+        # 임베딩 서비스 초기화 (Factory 패턴)
+        logger.info("Initializing embedding service...")
+        self.embeddings = get_embedding_service()
         
         # JSON Vector Store 초기화
         logger.info("Initializing JSON Vector Store...")
@@ -113,13 +112,21 @@ class JSONVectorESGMappingService:
         # 3. 응답 생성
         total_time = time.time() - start_time
         
+        # 현재 사용 중인 임베딩 모델 이름 가져오기
+        if hasattr(self.embeddings, 'model_name'):
+            current_embedding_model = self.embeddings.model_name  # Gemini: "gemini-embedding-001"
+        elif hasattr(self.embeddings, '_model_name'):
+            current_embedding_model = self.embeddings._model_name  # E5: "intfloat/multilingual-e5-base"
+        else:
+            current_embedding_model = "unknown"
+        
         response = ESGMappingResponse(
             type="esg_mapping",
             suggestions=final_matches,
             summary=summary,
             metadata=ESGMappingMetadata(
                 model_used=self.gemini.model_name,
-                embedding_model=self.vector_store._data['metadata']['embedding_model'],
+                embedding_model=current_embedding_model,
                 candidate_count=len(candidates),
                 selected_count=len(final_matches),
                 processing_time=round(total_time, 3),
@@ -138,7 +145,7 @@ class JSONVectorESGMappingService:
         frameworks: List[str],
         top_k: int = 10,
         language: str = "ko"
-    ) -> List[VectorSearchResult]:
+    ) -> List[Dict[str, Any]]:
         """
         벡터 검색 (코사인 유사도)
         
@@ -162,20 +169,21 @@ class JSONVectorESGMappingService:
             frameworks=frameworks if frameworks else None
         )
         
-        # 3. 결과 변환
+        # 3. 결과 변환 (VectorSearchResult는 schemas.py와 다른 내부 딕셔너리 사용)
         candidates = []
         for result in search_results:
-            candidate = VectorSearchResult(
-                standard_id=result.id,
-                framework=result.framework,
-                category=result.category,
-                category_display=CATEGORY_DISPLAY_MAP.get(result.category, result.category),
-                topic=result.topic,
-                title=result.title,
-                description=result.description,
-                keywords=result.keywords,
-                similarity_score=round(result.similarity, 4)
-            )
+            # LLM에 전달할 형식 (딕셔너리)
+            candidate = {
+                "standard_id": result.id,
+                "framework": result.framework,
+                "category": result.category,
+                "category_display": CATEGORY_DISPLAY_MAP.get(result.category, result.category),
+                "topic": result.topic,
+                "title": result.title,
+                "description": result.description,
+                "keywords": result.keywords,
+                "similarity_score": round(result.similarity, 4)
+            }
             candidates.append(candidate)
         
         return candidates
@@ -183,7 +191,7 @@ class JSONVectorESGMappingService:
     async def _llm_analysis(
         self,
         text: str,
-        candidates: List[VectorSearchResult],
+        candidates: List[Dict[str, Any]],  # 딕셔너리 리스트로 변경
         min_confidence: float = 0.5
     ) -> tuple[List[ESGStandardMatch], str]:
         """
@@ -203,19 +211,25 @@ class JSONVectorESGMappingService:
             candidates=candidates
         )
         
-        # Gemini 호출
+        # Gemini JSON 호출
         response = await asyncio.to_thread(
-            self.gemini.generate_structured,
-            prompt=prompt,
-            temperature=0.1,
-            max_tokens=2048
+            self.gemini.generate_json,
+            prompt=prompt
         )
+        
+        # DEBUG: LLM 응답 로깅
+        logger.info(f"[DEBUG] LLM Response keys: {list(response.keys())}")
+        matches_key = 'matches' if 'matches' in response else 'suggestions'
+        logger.info(f"[DEBUG] Using key: '{matches_key}', count: {len(response.get(matches_key, []))}")
+        if response.get(matches_key):
+            logger.info(f"[DEBUG] First match: {response[matches_key][0]}")
         
         # 응답 파싱
         matches = []
         summary = response.get("summary", "ESG 표준 매핑이 완료되었습니다.")
         
-        for match_data in response.get("matches", []):
+        # LLM이 'matches' 또는 'suggestions' 중 하나로 반환
+        for match_data in response.get(matches_key, []):
             # 신뢰도 필터
             confidence = match_data.get("confidence", 0.0)
             if confidence < min_confidence:
@@ -226,15 +240,16 @@ class JSONVectorESGMappingService:
             category_display = CATEGORY_DISPLAY_MAP.get(category, category)
             
             match = ESGStandardMatch(
-                standard_id=match_data["standard_id"],
-                framework=match_data["framework"],
+                standard_id=match_data.get("standard_id", ""),
+                framework=match_data.get("framework", ""),
                 category=category,
                 category_display=category_display,
-                topic=match_data["topic"],
-                title=match_data["title"],
-                description=match_data["description"],
-                rationale=match_data.get("rationale", ""),
+                topic=match_data.get("topic", ""),
+                title=match_data.get("title", ""),
+                description=match_data.get("description", ""),
                 confidence=round(confidence, 2),
+                similarity_score=match_data.get("similarity_score", 0.0),
+                reasoning=match_data.get("reasoning", "LLM 분석 결과 매칭되었습니다."),
                 keywords=match_data.get("keywords", [])
             )
             matches.append(match)

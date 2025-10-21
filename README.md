@@ -128,13 +128,14 @@ python -m venv venv
 .\venv\Scripts\activate  # Windows
 # source venv/bin/activate  # macOS/Linux
 
-# 의존성 설치
+# 의존성 설치 (로컬 개발용)
 pip install -r requirements/base.txt
 pip install -r requirements/ai.txt
 
 # 환경 변수 설정
 cp env.example.txt .env
 # .env 파일 수정:
+# - AI_ASSIST_USE_GEMINI_EMBEDDING=false  # 로컬 개발
 # - AI_ASSIST_GEMINI_API_KEY=your_api_key
 # - DATABASE_URL=postgresql://...
 ```
@@ -191,12 +192,20 @@ pnpm dev
 | **Supabase** | PostgreSQL | $0 | 2GB 용량 |
 | **Google AI Studio** | Gemini API | $0 | 10 RPM, 250 RPD |
 
+### 배포 최적화
+
+**Render Free Tier 호환**:
+- ✅ Gemini Embedding API 사용 (PyTorch 제거)
+- ✅ 메모리: 1.2GB → 150MB (88% ↓)
+- ✅ 빌드 시간: 10분 → 1분 (90% ↓)
+- 📄 상세: [DEPLOYMENT_OPTIMIZATION.md](backend/DEPLOYMENT_OPTIMIZATION.md)
+
 ### 배포 단계
 
-1. **Supabase 설정**: [SUPABASE_SETUP.md](public/docs/SUPABASE_SETUP.md)
-2. **Render 배포**: `render.yaml` 사용
+1. **Supabase 설정**: [SUPABASE_SETUP.md](public/docs/deployment/SUPABASE_SETUP.md)
+2. **Render 배포**: `render.yaml` 사용 (`requirements/deploy.txt`)
 3. **Vercel 배포**: `vercel.json` 사용
-4. **전체 가이드**: [DEPLOYMENT_GUIDE.md](public/docs/DEPLOYMENT_GUIDE.md)
+4. **전체 가이드**: [DEPLOYMENT_CHECKLIST.md](public/docs/deployment/DEPLOYMENT_CHECKLIST.md)
 
 ---
 
@@ -220,9 +229,11 @@ esg-gen-v1/
 │   ├── scripts/
 │   │   ├── generate_vector_json.py # Vector Store 생성
 │   │   └── test_vector_performance.py
-│   └── requirements/
-│       ├── base.txt
-│       └── ai.txt
+│   ├── requirements/
+│   │   ├── base.txt       # FastAPI, DB, 공통
+│   │   ├── ai.txt         # 로컬 개발 (torch 포함)
+│   │   └── deploy.txt     # Render 배포 (Gemini API)
+│   └── DEPLOYMENT_OPTIMIZATION.md
 ├── frontend/
 │   ├── src/
 │   │   ├── components/

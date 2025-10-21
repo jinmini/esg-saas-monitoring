@@ -1,0 +1,10 @@
+{
+  "text": "임직원 1인당 평균 연 40시간의 교육을 제공하며, 리더십 개발 프로그램, 기술 역량 강화 워크숍 등 다양한 교육 기회를 마련하고 있습니다.",
+  "document_id": 1,
+  "block_id": "test-block-001",
+  "frameworks": ["GRI"],
+  "top_k": 3,
+  "min_confidence": 0.7,
+  "language": "ko"
+}
+

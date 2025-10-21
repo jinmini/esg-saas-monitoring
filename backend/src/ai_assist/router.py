@@ -39,7 +39,9 @@ class VectorStoreStatusResponse(BaseModel):
     collection_name: str
     document_count: int
     embedding_dimension: int
-    chroma_metadata: Dict[str, Any]
+    embedding_model: str
+    memory_size_mb: float
+    file_size_mb: float
 
 
 class RefreshStatusResponse(BaseModel):

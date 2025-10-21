@@ -49,14 +49,14 @@ app.include_router(ai_assist_router, prefix="/api/v1")  # ✅ AI Assist 라우�
 async def startup_event():
     """애플리케이션 시작 시 실행되는 이벤트"""
     # 로깅 초기화 전에는 print 사용
-    print("🚀 ESG SaaS Monitoring Platform Starting...")
+    print("[STARTUP] ESG SaaS Monitoring Platform Starting...")
     
     # 데이터베이스 연결 테스트
     db_connected = await test_db_connection()
     if db_connected:
-        print("✅ Database connection successful")
+        print("[OK] Database connection successful")
     else:
-        print("❌ Database connection failed")
+        print("[ERROR] Database connection failed")
     
     # AI Assist 초기화
     try:
@@ -69,7 +69,7 @@ async def startup_event():
             log_format=ai_config.LOG_FORMAT,
             log_file=log_file
         )
-        print(f"✅ Logging initialized: {ai_config.LOG_FORMAT} format")
+        print(f"[OK] Logging initialized: {ai_config.LOG_FORMAT} format")
         
         # 이제부터는 structlog 사용
         from src.ai_assist.core.logger import get_logger
@@ -116,7 +116,7 @@ async def startup_event():
             logger = get_logger(__name__)
             logger.error("ai_assist_initialization_failed", error=str(e), exc_info=True)
         except:
-            print(f"⚠️  AI Assist initialization warning: {e}")
+            print(f"[WARN] AI Assist initialization warning: {e}")
 
 
 @app.on_event("shutdown")

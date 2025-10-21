@@ -1,20 +1,10 @@
 {
-  "buildCommand": "cd frontend && pnpm install && pnpm build",
-  "outputDirectory": "frontend/.next",
+  "buildCommand": "pnpm install && pnpm build",
+  "outputDirectory": ".next",
+  "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["icn1"],
   "env": {
-    "NEXT_PUBLIC_API_BASE_URL": "https://your-backend.onrender.com/api/v1"
-  },
-  "headers": [
-    {
-      "source": "/data/esg_vectors.json",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, s-maxage=3600"
-        }
-      ]
-    }
-  ]
+    "NEXT_PUBLIC_API_BASE_URL": "@api_base_url"
+  }
 }

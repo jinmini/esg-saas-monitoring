@@ -181,9 +181,9 @@ def get_json_vector_store(json_path: Optional[str] = None) -> JSONVectorStore:
     
     if _vector_store_instance is None:
         if json_path is None:
-            # 기본 경로 (프로덕션)
-            json_path = str(Path(__file__).parent.parent.parent.parent.parent.parent / 
-                           "frontend" / "public" / "data" / "esg_vectors.json")
+            # 기본 경로 (backend/data/esg_vectors.json)
+            backend_root = Path(__file__).parent.parent.parent.parent.parent
+            json_path = str(backend_root / "data" / "esg_vectors.json")
         
         _vector_store_instance = JSONVectorStore(json_path)
     

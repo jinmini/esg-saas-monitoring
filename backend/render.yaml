@@ -1,49 +1,51 @@
 services:
-  # FastAPI Backend
+  # FastAPI Backend (Render Free Tier Optimized)
   - type: web
     name: esg-compliance-backend
     env: python
     region: singapore  # 또는 oregon (무료 티어)
     plan: free
-    buildCommand: |
-      cd backend
-      pip install --upgrade pip
-      pip install -r requirements/base.txt
-      pip install -r requirements/ai.txt
-    startCommand: cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    rootDirectory: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements/deploy.txt
+    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health
     envVars:
       # Python
       - key: PYTHON_VERSION
-        value: 3.12
+        value: "3.12"
       
       # Database (Supabase)
       - key: DATABASE_URL
-        sync: false  # Set in Render dashboard
+        sync: false  # Render Dashboard에서 설정
       
-      # AI Assist
+      # AI Assist - Gemini API
       - key: AI_ASSIST_GEMINI_API_KEY
-        sync: false  # Set in Render dashboard (secret)
+        sync: false  # Render Dashboard에서 설정 (Secret)
       
       - key: AI_ASSIST_GEMINI_MODEL
         value: gemini-2.5-flash
       
+      # Embedding - Gemini API 사용 (Render Free Tier 호환)
+      - key: AI_ASSIST_USE_GEMINI_EMBEDDING
+        value: "true"
+      
+      # Vector Store - JSON 사용 (완전 무료)
       - key: AI_ASSIST_USE_JSON_VECTOR_STORE
-        value: true
+        value: "true"
       
-      - key: AI_ASSIST_EMBEDDING_DEVICE
-        value: cpu
-      
+      # Logging
       - key: AI_ASSIST_LOG_LEVEL
         value: INFO
       
+      # Monitoring
       - key: AI_ASSIST_METRICS_ENABLED
-        value: true
+        value: "true"
       
-      # CORS
+      # CORS (Vercel 도메인 허용)
       - key: CORS_ORIGINS
-        value: http://localhost:3000,https://*.vercel.app, https://jinmini.com
+        value: http://localhost:3000,https://*.vercel.app
       
+      # Environment
       - key: ENVIRONMENT
         value: production
 

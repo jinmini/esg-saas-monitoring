@@ -16,7 +16,10 @@ class AIAssistConfig(BaseSettings):
     GEMINI_TEMPERATURE: float = 0.3
     GEMINI_MAX_TOKENS: int = 4096  # ESG 매핑 JSON 응답에 충분한 공간 확보
     
-    # 임베딩
+    # 임베딩 선택 (Render Free Tier 최적화)
+    USE_GEMINI_EMBEDDING: bool = True  # True: Gemini API (배포), False: Local (개발)
+    
+    # Local Embedding (개발 환경 전용, USE_GEMINI_EMBEDDING=false일 때만 사용)
     EMBEDDING_MODEL: str = "intfloat/multilingual-e5-base"
     EMBEDDING_DEVICE: Optional[str] = None  # None = auto-detect
     EMBEDDING_BATCH_SIZE: int = 32
