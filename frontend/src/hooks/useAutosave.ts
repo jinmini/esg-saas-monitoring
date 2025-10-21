@@ -50,7 +50,9 @@ export function useAutosave(documentId: number | null, delay = 3000) {
 
         // Backend 연결 확인 (간단한 fetch로 테스트)
         try {
-          const testResponse = await fetch('http://localhost:8000/health', {
+          const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+          const healthUrl = API_BASE_URL.replace('/api/v1', '/health');
+          const testResponse = await fetch(healthUrl, {
             method: 'GET',
             mode: 'cors',
           });
@@ -83,7 +85,8 @@ export function useAutosave(documentId: number | null, delay = 3000) {
               
               // Network Error 체크
               if (error.message === 'Network Error' || !error.response) {
-                console.error('💡 Hint: Backend 서버가 실행 중인지 확인하세요 (http://localhost:8000)');
+                const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+                console.error(`💡 Hint: Backend 서버가 실행 중인지 확인하세요 (${API_BASE_URL})`);
                 setSaveStatus('offline');
               } else {
                 setSaveStatus('error');
