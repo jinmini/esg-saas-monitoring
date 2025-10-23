@@ -8,7 +8,6 @@ import {
   BarChart3, 
   TrendingUp, 
   FileText,
-  PanelLeftClose,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -89,7 +88,6 @@ export function Sidebar({ className }: SidebarProps) {
   const { 
     isGlobalSidebarOpen, 
     isGlobalSidebarCollapsed, 
-    toggleGlobalSidebar,
     toggleGlobalSidebarCollapse 
   } = useUIStore();
   
@@ -115,9 +113,9 @@ export function Sidebar({ className }: SidebarProps) {
           )}
         >
           {/* 상단 버튼 영역 */}
-          <div className="absolute top-4 right-2 flex gap-1 z-10">
-            {/* 축소/확장 버튼 */}
-            {!isGlobalSidebarCollapsed && (
+          {!isGlobalSidebarCollapsed && (
+            <div className="absolute top-4 right-2 z-10">
+              {/* 축소 버튼 */}
               <button
                 onClick={toggleGlobalSidebarCollapse}
                 className="p-1.5 hover:bg-gray-100 rounded transition-colors"
@@ -125,18 +123,8 @@ export function Sidebar({ className }: SidebarProps) {
               >
                 <ChevronLeft size={18} className="text-gray-500" />
               </button>
-            )}
-            {/* 닫기 버튼 */}
-            {!isGlobalSidebarCollapsed && (
-              <button
-                onClick={toggleGlobalSidebar}
-                className="p-1.5 hover:bg-gray-100 rounded transition-colors"
-                title="사이드바 닫기"
-              >
-                <PanelLeftClose size={18} className="text-gray-500" />
-              </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ESG SIP 브랜딩 영역 */}
           <div className={cn(

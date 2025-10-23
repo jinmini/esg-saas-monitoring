@@ -34,8 +34,6 @@ interface UIActions {
   toggleSidebarRight: () => void;
   setSidebarLeft: (open: boolean) => void;
   setSidebarRight: (open: boolean) => void;
-  toggleGlobalSidebar: () => void;
-  setGlobalSidebar: (open: boolean) => void;
   toggleGlobalSidebarCollapse: () => void;
   setGlobalSidebarCollapsed: (collapsed: boolean) => void;
   
@@ -83,8 +81,6 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSidebarRight: () => set((state) => ({ isSidebarRightOpen: !state.isSidebarRightOpen })),
   setSidebarLeft: (open) => set({ isSidebarLeftOpen: open }),
   setSidebarRight: (open) => set({ isSidebarRightOpen: open }),
-  toggleGlobalSidebar: () => set((state) => ({ isGlobalSidebarOpen: !state.isGlobalSidebarOpen })),
-  setGlobalSidebar: (open) => set({ isGlobalSidebarOpen: open }),
   toggleGlobalSidebarCollapse: () => set((state) => ({ isGlobalSidebarCollapsed: !state.isGlobalSidebarCollapsed })),
   setGlobalSidebarCollapsed: (collapsed) => set({ isGlobalSidebarCollapsed: collapsed }),
 
