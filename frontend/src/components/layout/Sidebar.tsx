@@ -51,14 +51,13 @@ const menuItems: MenuItem[] = [
         label: 'KR SaaS',
         href: 'https://petalite-tuna-6c9.notion.site/Carbon-SaaS-253394aaa2f48027980efdc021952484',
         external: true,
+      }, 
+      {
+        id: 'global-saas',
+        label: 'Global SaaS',
+        href: 'https://petalite-tuna-6c9.notion.site/World_ESG_SaaS-294394aaa2f4803f83c8dc9f8cb481b6',
+        external: true,
       },
-      // Global은 준비 중이므로 주석 처리
-      // {
-      //   id: 'global-saas',
-      //   label: 'Global SaaS',
-      //   href: 'https://notion.site/your-global-url',
-      //   external: true,
-      // },
     ],
   },
   {
