@@ -17,9 +17,11 @@ export interface Article {
 
 export interface Company {
   id: number;
-  name: string;
-  name_en?: string;
+  company_name: string;
+  company_name_en?: string;
   description?: string;
+  website_url?: string;
+  is_active?: boolean;
 }
 
 export interface ArticleListResponse {
@@ -34,7 +36,7 @@ export interface ArticleListResponse {
 
 export interface CompanyListResponse {
   companies: Company[];
-  total: number;
+  count: number;
 }
 
 // API Request Types

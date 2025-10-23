@@ -64,7 +64,7 @@ export function CompanyFilter({ selectedCompanyId, onCompanyChange, className }:
             {isLoading ? (
               <LoadingSpinner size="sm" />
             ) : selectedCompany ? (
-              selectedCompany.name
+              selectedCompany.company_name
             ) : (
               '전체 회사'
             )}
@@ -114,14 +114,17 @@ export function CompanyFilter({ selectedCompanyId, onCompanyChange, className }:
               onClick={() => handleCompanySelect(company.id)}
               className={cn(
                 'w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors',
-                selectedCompanyId === company.id && 'bg-blue-50 text-blue-700'
+                selectedCompanyId === company.id && 'bg-blue-50'
               )}
             >
               <div className="flex items-center space-x-2">
                 <Building2 className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">{company.name}</span>
-                {company.name_en && (
-                  <span className="text-xs text-gray-500">({company.name_en})</span>
+                <span className={cn(
+                  'font-medium',
+                  selectedCompanyId === company.id ? 'text-blue-700' : 'text-gray-900'
+                )}>{company.company_name}</span>
+                {company.company_name_en && (
+                  <span className="text-xs text-gray-500">({company.company_name_en})</span>
                 )}
               </div>
               {company.description && (
