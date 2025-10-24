@@ -214,10 +214,12 @@ function FrameworkCard({ suggestion, rank }: FrameworkCardProps) {
           {suggestion.title}
         </p>
         
-        {/* Topic */}
-        <p className="text-xs text-gray-500 mb-3">
-          주제: {suggestion.topic}
-        </p>
+        {/* Topic - 값이 있을 때만 표시 */}
+        {suggestion.topic && (
+          <p className="text-xs text-gray-500 mb-3">
+            <span className="font-medium">주제:</span> {suggestion.topic}
+          </p>
+        )}
         
         {/* Keywords */}
         {suggestion.keywords.length > 0 && (
@@ -300,13 +302,15 @@ function FrameworkCard({ suggestion, rank }: FrameworkCardProps) {
             </p>
           </div>
           
-          {/* Similarity Score */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-            <span className="text-xs text-gray-500">벡터 유사도</span>
-            <span className="text-xs font-medium text-gray-900">
-              {(suggestion.similarity_score * 100).toFixed(1)}%
-            </span>
-          </div>
+          {/* Similarity Score - 백엔드 내부용이므로 사용자에게 표시하지 않음 */}
+          {/* {suggestion.similarity_score > 0 && (
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+              <span className="text-xs text-gray-500">벡터 유사도</span>
+              <span className="text-xs font-medium text-gray-900">
+                {(suggestion.similarity_score * 100).toFixed(1)}%
+              </span>
+            </div>
+          )} */}
           
           {/* External Link (placeholder) */}
           <a

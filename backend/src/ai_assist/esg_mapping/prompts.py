@@ -36,22 +36,23 @@ def build_esg_mapping_prompt(
     # 후보 수 제한
     candidates = candidates[:max_candidates]
     
-    # 후보 표준 포맷팅 (간결하게)
+    # 후보 표준 포맷팅 (keyword 기반으로 간결하게)
     candidates_text = ""
     for i, candidate in enumerate(candidates, 1):
-        meta = candidate.get("metadata", {})
-        description = meta.get('description', 'N/A')
-        # description을 150자로 제한
-        if len(description) > 150:
-            description = description[:150] + "..."
+        # description 대신 keywords 우선 사용 (토큰 절약)
+        keywords = candidate.get('keywords', [])
+        if keywords:
+            description = ", ".join(keywords[:5])  # 상위 5개 키워드
+        else:
+            description = candidate.get('description', 'N/A')[:80]  # fallback
         
         candidates_text += f"""
 [후보 {i}]
-ID: {meta.get('id', 'N/A')}
-프레임워크: {meta.get('framework', 'N/A')}
-제목: {meta.get('title', 'N/A')}
-설명: {description}
-유사도: {candidate.get('similarity', 0):.3f}
+ID: {candidate.get('standard_id', 'N/A')}
+프레임워크: {candidate.get('framework', 'N/A')}
+제목: {candidate.get('title', 'N/A')}
+핵심 키워드: {description}
+유사도: {candidate.get('similarity_score', 0):.3f}
 ---
 """
     
@@ -94,6 +95,7 @@ ID: {meta.get('id', 'N/A')}
   "summary": "이 텍스트는 주로 환경(E) 영역의 온실가스 배출 공시와 관련이 있으며, GRI 305 시리즈 표준이 가장 적합합니다."
 }}
 
+**중요: 반드시 "matches" 키를 사용하세요. "suggestions"가 아닙니다.**
 **JSON만 반환하세요. 추가 설명은 포함하지 마세요.**
 """
     else:  # English
@@ -134,6 +136,7 @@ From the candidate standards above, select the most relevant ones and provide:
   "summary": "This text primarily relates to environmental (E) greenhouse gas emissions disclosure, with GRI 305 series being most appropriate."
 }}
 
+**Important: Use "matches" key only. Do NOT use "suggestions".**
 **Return ONLY JSON. No additional explanation.**
 """
     

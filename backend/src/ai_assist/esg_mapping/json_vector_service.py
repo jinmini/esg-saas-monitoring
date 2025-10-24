@@ -158,15 +158,19 @@ class JSONVectorESGMappingService:
         Returns:
             검색 결과 리스트
         """
-        # 1. 텍스트 임베딩
-        query_embedding = self.embeddings.embed_query(text)
+        # 1. 텍스트 임베딩 (async offload로 event loop block 방지)
+        query_embedding = await asyncio.to_thread(
+            self.embeddings.embed_query,
+            text
+        )
         
-        # 2. 벡터 검색
-        search_results = self.vector_store.search(
-            query_embedding=query_embedding,
-            top_k=top_k,
-            min_similarity=0.0,
-            frameworks=frameworks if frameworks else None
+        # 2. 벡터 검색 (async offload)
+        search_results = await asyncio.to_thread(
+            self.vector_store.search,
+            query_embedding,
+            top_k,
+            0.0,
+            frameworks if frameworks else None
         )
         
         # 3. 결과 변환 (VectorSearchResult는 schemas.py와 다른 내부 딕셔너리 사용)
@@ -199,23 +203,35 @@ class JSONVectorESGMappingService:
         
         Args:
             text: 원본 텍스트
-            candidates: 벡터 검색 후보
+            candidates: 벡터 검색 후보 (메타데이터 포함)
             min_confidence: 최소 신뢰도
         
         Returns:
             (매칭 결과 리스트, 요약)
         """
+        # 후보를 standard_id로 빠른 검색을 위한 딕셔너리 생성
+        candidates_map = {c["standard_id"]: c for c in candidates}
+        
         # 프롬프트 생성
         prompt = build_esg_mapping_prompt(
             user_text=text,
             candidates=candidates
         )
         
-        # Gemini JSON 호출
-        response = await asyncio.to_thread(
-            self.gemini.generate_json,
-            prompt=prompt
-        )
+        # Gemini JSON 호출 (retry 로직 포함)
+        response = None
+        for attempt in range(2):
+            try:
+                response = await asyncio.to_thread(
+                    self.gemini.generate_json,
+                    prompt=prompt
+                )
+                break
+            except Exception as e:
+                logger.warning(f"Gemini API attempt {attempt + 1} failed: {str(e)}")
+                if attempt == 1:
+                    raise
+                await asyncio.sleep(2)  # 2초 backoff
         
         # DEBUG: LLM 응답 로깅
         logger.info(f"[DEBUG] LLM Response keys: {list(response.keys())}")
@@ -235,22 +251,28 @@ class JSONVectorESGMappingService:
             if confidence < min_confidence:
                 continue
             
-            # 카테고리 정규화
-            category = match_data.get("category", "").upper()
+            # ✅ Vector Search 결과에서 메타데이터 가져오기
+            standard_id = match_data.get("standard_id", "")
+            vector_candidate = candidates_map.get(standard_id, {})
+            
+            # LLM 응답과 Vector 결과 병합 (Vector 결과 우선)
+            category = vector_candidate.get("category", match_data.get("category", "")).upper()
             category_display = CATEGORY_DISPLAY_MAP.get(category, category)
             
             match = ESGStandardMatch(
-                standard_id=match_data.get("standard_id", ""),
-                framework=match_data.get("framework", ""),
+                standard_id=standard_id,
+                # ✅ Vector Search 결과 우선 사용
+                framework=vector_candidate.get("framework", match_data.get("framework", "")),
                 category=category,
                 category_display=category_display,
-                topic=match_data.get("topic", ""),
-                title=match_data.get("title", ""),
-                description=match_data.get("description", ""),
+                topic=vector_candidate.get("topic", match_data.get("topic", "")),
+                title=vector_candidate.get("title", match_data.get("title", "")),
+                description=vector_candidate.get("description", match_data.get("description", "")),
+                keywords=vector_candidate.get("keywords", match_data.get("keywords", [])),
+                similarity_score=vector_candidate.get("similarity_score", 0.0),
+                # ✅ LLM 분석 결과 (confidence, reasoning)
                 confidence=round(confidence, 2),
-                similarity_score=match_data.get("similarity_score", 0.0),
-                reasoning=match_data.get("reasoning", "LLM 분석 결과 매칭되었습니다."),
-                keywords=match_data.get("keywords", [])
+                reasoning=match_data.get("reasoning", "LLM 분석 결과 매칭되었습니다.")
             )
             matches.append(match)
         
