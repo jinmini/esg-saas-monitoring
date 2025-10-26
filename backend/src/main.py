@@ -168,7 +168,7 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     """헬스체크 엔드포인트"""
     db_status = await test_db_connection()
