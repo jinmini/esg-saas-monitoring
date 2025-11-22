@@ -35,6 +35,53 @@ const nextConfig: NextConfig = {
     formats: ['image/webp', 'image/avif'],
   },
 
+  // SVG as React Component (SVGR)
+  webpack(config) {
+    // SVG를 React 컴포넌트로 import 가능하게 설정
+    config.module.rules.push({
+      test: /\.svg$/i,
+      issuer: /\.[jt]sx?$/,
+      use: [
+        {
+          loader: '@svgr/webpack',
+          options: {
+            // SVG 최적화 옵션
+            svgo: true,
+            svgoConfig: {
+              plugins: [
+                {
+                  name: 'preset-default',
+                  params: {
+                    overrides: {
+                      // viewBox 제거 방지 (뷰포트 제어에 필수)
+                      removeViewBox: false,
+                      // ID 중복 방지
+                      cleanupIds: {
+                        remove: true,
+                        minify: true,
+                        prefix: {
+                          toString() {
+                            return `svg-${Math.random().toString(36).substr(2, 9)}`;
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            // TypeScript 지원
+            typescript: true,
+            // Props를 SVG element에 전달
+            dimensions: false,
+          },
+        },
+      ],
+    });
+
+    return config;
+  },
+
   // PWA settings (for future implementation)
   // pwa: {
   //   dest: 'public',
