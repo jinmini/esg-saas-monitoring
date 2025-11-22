@@ -55,9 +55,34 @@ export interface CompanyTypeInfo {
 // ============================================
 
 /**
- * 지역 분류
+ * 지역 분류 (대륙 레벨)
  */
 export type Region = 'Europe' | 'North America' | 'APAC' | 'South America' | 'Middle East' | 'Africa';
+
+/**
+ * 국가 코드 (ISO 3166-1 alpha-2)
+ * 
+ * 🌍 현재 데이터 보유 국가 (유럽 14개국):
+ * - UK: 영국 (14개 기업)
+ * - DE: 독일 (10개 기업)
+ * - FR: 프랑스 (7개 기업)
+ * - 기타 11개국
+ */
+export type CountryCode = 
+  | 'GB' // 🇬🇧 영국 (United Kingdom)
+  | 'DE' // 🇩🇪 독일 (Germany)
+  | 'FR' // 🇫🇷 프랑스 (France)
+  | 'NL' // 🇳🇱 네덜란드 (Netherlands)
+  | 'SE' // 🇸🇪 스웨덴 (Sweden)
+  | 'FI' // 🇫🇮 핀란드 (Finland)
+  | 'NO' // 🇳🇴 노르웨이 (Norway)
+  | 'CH' // 🇨🇭 스위스 (Switzerland)
+  | 'BE' // 🇧🇪 벨기에 (Belgium)
+  | 'ES' // 🇪🇸 스페인 (Spain)
+  | 'IE' // 🇮🇪 아일랜드 (Ireland)
+  | 'EE' // 🇪🇪 에스토니아 (Estonia)
+  | 'PL' // 🇵🇱 폴란드 (Poland)
+  | 'DK'; // 🇩🇰 덴마크 (Denmark)
 
 /**
  * 지역 정보 (지도 상 표시용)
@@ -67,6 +92,19 @@ export interface RegionInfo {
   nameLocal: string;
   count: number;
   isActive: boolean; // 데이터 존재 여부
+}
+
+/**
+ * 국가 정보 (지도 상 표시용)
+ */
+export interface CountryInfo {
+  code: CountryCode;
+  name: string;
+  nameLocal: string;
+  region: Region;
+  count: number;
+  emoji: string;
+  isActive: boolean;
 }
 
 /**
@@ -110,6 +148,7 @@ export interface FilterCategoryInfo {
  */
 export interface FilterState {
   regions: Region[];
+  countries: CountryCode[]; // 국가별 필터 (유럽 확대 시 활용)
   companyTypes: CompanyType[];
   categories: FilterCategory[]; // 목적 기반 필터
   features: string[];
@@ -122,14 +161,29 @@ export interface FilterState {
 // ============================================
 
 /**
+ * 지도 뷰 모드
+ * - world: 전체 세계 지도 (대륙별 마커 표시)
+ * - europe_detail: 유럽 확대 뷰 (국가별 마커 표시)
+ * - region: 기타 대륙 확대 뷰 (향후 확장용)
+ */
+export type MapViewMode = 'world' | 'europe_detail' | 'region';
+
+/**
  * 지도 상태
  */
 export interface MapState {
+  // 호버 상태
   hoveredRegion: Region | null;
+  hoveredCountry: CountryCode | null;
+  
+  // 선택 상태
   selectedRegion: Region | null;
+  selectedCountry: CountryCode | null;
   selectedCompany: Company | null;
-  viewMode: 'world' | 'region'; // 전체 지도 vs 지역 확대
-  focusedRegion: Region | null; // 확대된 지역
+  
+  // 뷰 모드
+  viewMode: MapViewMode;
+  focusedRegion: Region | null; // 확대된 지역 (Europe, North America 등)
 }
 
 /**
@@ -232,9 +286,15 @@ export interface ParsedAnalysisNotes {
  * 지도 이벤트 핸들러 타입
  */
 export interface MapEventHandlers {
+  // 대륙 레벨 이벤트
   onRegionHover: (region: Region | null) => void;
   onRegionClick: (region: Region) => void;
+  
+  // 국가 레벨 이벤트 (유럽 확대 뷰)
+  onCountryHover: (country: CountryCode | null) => void;
+  onCountryClick: (country: CountryCode) => void;
+  
+  // 기업 선택
   onCompanySelect: (company: Company) => void;
-  onMarkerClick: (region: Region) => void;
 }
 
