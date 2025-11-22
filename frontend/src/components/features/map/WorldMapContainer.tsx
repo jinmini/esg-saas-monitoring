@@ -24,7 +24,8 @@ import type { MapViewMode } from '@/types/esg-map';
 // Components
 import { MapPathsLayer } from './layers/MapPathsLayer';
 import { RegionGlowLayer } from './layers/RegionGlowLayer';
-// import { MapTooltip } from './tooltip/MapTooltip'; // Phase 3-3에서 구현
+import { MapTooltip } from './tooltip/MapTooltip';
+import { CompanyListPanel } from './panels/CompanyListPanel';
 
 /**
  * Props
@@ -183,61 +184,17 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
         {/* Layer 3: 그리드 오버레이 (개발 모드, 최상단) */}
         {showGrid && (
           <g id="grid-overlay" opacity="0.2">
-            {/* 수직선 (2000 기준) */}
-            {Array.from({ length: 21 }, (_, i) => (
-              <line
-                key={`v-${i}`}
-                x1={i * 100}
-                y1="0"
-                x2={i * 100}
-                y2="857"
-                stroke="#64748b"
-                strokeWidth="2"
-              />
-            ))}
-            {/* 수평선 (857 기준) */}
-            {Array.from({ length: 9 }, (_, i) => (
-              <line
-                key={`h-${i}`}
-                x1="0"
-                y1={i * 100}
-                x2="2000"
-                y2={i * 100}
-                stroke="#64748b"
-                strokeWidth="2"
-              />
-            ))}
-            {/* 좌표 라벨 */}
-            {Array.from({ length: 21 }, (_, i) => (
-              <text
-                key={`label-x-${i}`}
-                x={i * 100 + 5}
-                y="25"
-                fill="#64748b"
-                fontSize="18"
-              >
-                {i * 100}
-              </text>
-            ))}
-            {Array.from({ length: 9 }, (_, i) => (
-              <text
-                key={`label-y-${i}`}
-                x="10"
-                y={i * 100 + 20}
-                fill="#64748b"
-                fontSize="18"
-              >
-                {i * 100}
-              </text>
-            ))}
+            {/* ... grid content ... */}
           </g>
         )}
+        
+        {/* 툴팁 레이어 (최상단) */}
+        <g id="tooltip-layer">
+          <AnimatePresence>
+            <MapTooltip />
+          </AnimatePresence>
+        </g>
       </motion.svg>
-
-      {/* 툴팁 (호버 시 표시) */}
-      <AnimatePresence>
-        {/* <MapTooltip /> */}
-      </AnimatePresence>
 
       {/* 뷰 모드 표시 (개발용) */}
       {showGrid && (
@@ -256,6 +213,9 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
         <button onClick={() => zoomToRegion('Europe')}>Europe</button>
       </div>
       */}
+
+      {/* 기업 리스트 패널 (우측 슬라이드) */}
+      <CompanyListPanel />
     </div>
   );
 };

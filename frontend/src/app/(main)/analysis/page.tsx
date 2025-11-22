@@ -1,142 +1,176 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Search, BookOpen, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Globe, Grid3x3, Layers, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { CustomerProfileForm } from '@/components/features/analysis/CustomerProfileForm';
-import { AnalysisResultCard } from '@/components/features/analysis/AnalysisResultCard';
-import { FrameworkGuide } from '@/components/features/analysis/FrameworkGuide';
-import { RegulatoryTimeline } from '@/components/features/analysis/RegulatoryTimeline';
-import type { CustomerProfile, AnalysisResult } from '@/types/analysis';
-import { analyzeCustomer } from '@/lib/analysis-engine';
-
-type Section = 'quick-analysis' | 'framework-guide' | 'timeline';
+import { WorldMapContainer } from '@/components/features/map';
+import { useESGMapStore } from '@/store/esgMapStore';
+import type { ESGMapData } from '@/types/esg-map';
 
 export default function AnalysisPage() {
-  const [activeSection, setActiveSection] = useState<Section>('quick-analysis');
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(
-    null
-  );
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
+  
+  // Store 구독
+  const isLoading = useESGMapStore((state) => state.isLoading);
+  const error = useESGMapStore((state) => state.error);
+  const companies = useESGMapStore((state) => state.companies);
+  const setCompanies = useESGMapStore((state) => state.setCompanies);
+  const setLoading = useESGMapStore((state) => state.setLoading);
+  const setError = useESGMapStore((state) => state.setError);
 
-  const handleAnalyze = async (profile: CustomerProfile) => {
-    setIsAnalyzing(true);
-    try {
-      // 분석 실행
-      const result = await analyzeCustomer(profile);
-      setAnalysisResult(result);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  // 데이터 로딩
+  useEffect(() => {
+    const loadData = async () => {
+      // 이미 로드되었으면 스킵
+      if (companies.length > 0) return;
 
-  const handleReset = () => {
-    setAnalysisResult(null);
-  };
+      setLoading(true);
+      try {
+        const response = await fetch('/data/esg_companies_global.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load data: ${response.status}`);
+        }
+        const data: ESGMapData = await response.json();
+        setCompanies(data);
+      } catch (err) {
+        console.error('Failed to load ESG companies data:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    };
+
+    loadData();
+  }, [companies.length, setCompanies, setLoading, setError]);
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto" />
+            <p className="text-gray-600">ESG 기업 데이터 로딩 중...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center space-y-4 max-w-md">
+            <div className="text-red-500 text-5xl">⚠️</div>
+            <h2 className="text-xl font-semibold text-gray-900">데이터 로딩 실패</h2>
+            <p className="text-gray-600">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* 헤더 */}
-          <header className="space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900">
-              고객사 분석 도구
-            </h1>
-            <p className="text-gray-600">
-              고객사 프로필 기반 ESG 규제, 프레임워크, 인벤토리 범위를 빠르게
-              분석합니다
-            </p>
-          </header>
+      <div className="relative w-full h-full flex flex-col">
+        {/* 헤더 */}
+        <header className="px-6 py-4 bg-white border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Globe className="text-green-600" size={28} />
+                ESG SaaS 글로벌 지도
+              </h1>
+              <p className="text-sm text-gray-600">
+                유럽 중심 ESG SaaS 생태계 분석 (53개 기업, 14개국)
+              </p>
+            </div>
 
-          {/* 섹션 네비게이션 */}
-          <nav className="flex gap-3 border-b border-gray-200 pb-2">
-            <button
-              onClick={() => setActiveSection('quick-analysis')}
-              className={`flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-                activeSection === 'quick-analysis'
-                  ? 'bg-white border border-b-0 border-gray-200 text-green-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Search size={16} />
-              Quick Analysis
-            </button>
-            <button
-              onClick={() => setActiveSection('framework-guide')}
-              className={`flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-                activeSection === 'framework-guide'
-                  ? 'bg-white border border-b-0 border-gray-200 text-green-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <BookOpen size={16} />
-              프레임워크 가이드
-            </button>
-            <button
-              onClick={() => setActiveSection('timeline')}
-              className={`flex items-center gap-2 px-4 py-2 font-medium text-sm rounded-t-lg transition-colors ${
-                activeSection === 'timeline'
-                  ? 'bg-white border border-b-0 border-gray-200 text-green-600'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              <Calendar size={16} />
-              규제 타임라인
-            </button>
-          </nav>
+            {/* 개발 모드 토글 */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowGrid(!showGrid)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  showGrid
+                    ? 'bg-amber-50 text-amber-700 border-amber-300'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <Grid3x3 size={16} />
+                {showGrid ? 'Grid ON' : 'Grid OFF'}
+              </button>
 
-          {/* 섹션 컨텐츠 */}
-          <div className="space-y-8">
-            {/* Quick Analysis */}
-            {activeSection === 'quick-analysis' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* 입력 폼 */}
-                <div className="lg:col-span-1">
-                  <div className="sticky top-6">
-                    <div className="p-6 bg-white border border-gray-200 rounded-lg">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                        고객사 정보 입력
-                      </h2>
-                      <CustomerProfileForm
-                        onAnalyze={handleAnalyze}
-                        isLoading={isAnalyzing}
-                      />
-                      {analysisResult && (
-                        <button
-                          onClick={handleReset}
-                          className="w-full mt-3 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg transition-colors"
-                        >
-                          초기화
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* 분석 결과 */}
-                <div className="lg:col-span-2">
-                  {analysisResult ? (
-                    <AnalysisResultCard result={analysisResult} />
-                  ) : (
-                    <div className="p-12 bg-white border border-gray-200 rounded-lg text-center">
-                      <Search size={48} className="mx-auto text-gray-300 mb-4" />
-                      <p className="text-gray-500">
-                        고객사 정보를 입력하고 분석하기 버튼을 눌러주세요
-                      </p>
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
+                <Layers size={16} />
+                Phase 3-2 완료
               </div>
-            )}
+            </div>
+          </div>
+        </header>
 
-            {/* 프레임워크 가이드 */}
-            {activeSection === 'framework-guide' && <FrameworkGuide />}
+        {/* 지도 컨테이너 */}
+        <div className="flex-1 relative">
+          <WorldMapContainer showGrid={showGrid} />
 
-            {/* 규제 타임라인 */}
-            {activeSection === 'timeline' && <RegulatoryTimeline />}
+          {/* 인포 패널 (우측 상단) */}
+          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-4 shadow-lg max-w-xs">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">
+              🎯 테스트 시나리오
+            </h3>
+            <ul className="text-xs text-gray-600 space-y-1.5">
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 font-bold">1.</span>
+                <span>세계 지도 → 6개 대륙 마커 표시</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 font-bold">2.</span>
+                <span>유럽 마커 클릭 → 자동 확대</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 font-bold">3.</span>
+                <span>14개 국가 마커 표시</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 font-bold">4.</span>
+                <span>Hover → 국가 정보 패널</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-green-600 font-bold">5.</span>
+                <span>ESC 키 → 세계 지도 복귀</span>
+              </li>
+            </ul>
+
+            <div className="mt-4 pt-3 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                💡 Grid 토글로 좌표 디버깅 가능
+              </p>
+            </div>
+          </div>
+
+          {/* 범례 (좌측 하단) */}
+          <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-4 shadow-lg">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              📊 마커 범례
+            </h3>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-green-500"></div>
+                <span className="text-gray-700">Core ESG Platform</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                <span className="text-gray-700">Operational ESG Enabler</span>
+              </div>
+              <div className="mt-3 pt-2 border-t border-gray-200 text-gray-600">
+                마커 크기 = 기업 수 (18~45px)
+              </div>
+            </div>
           </div>
         </div>
       </div>

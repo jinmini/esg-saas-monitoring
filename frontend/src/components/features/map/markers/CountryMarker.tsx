@@ -2,11 +2,9 @@
  * Country Marker Component
  * 국가(Country) 레벨 마커 컴포넌트
  * 
- * 기능:
- * - Circle + 동적 radius (기업 수에 비례)
- * - companyType 비율에 따른 색상
- * - 클릭 → setSelectedCountry()
- * - 키보드 접근성
+ * 변경사항 (2025-11-22):
+ * - 마커 크기 축소 대응 (폰트 크기, 레이아웃)
+ * - 겹침 시 가독성 확보를 위한 투명도 조정
  */
 
 'use client';
@@ -24,14 +22,10 @@ interface CountryMarkerProps {
   companies: Company[];
 }
 
-/**
- * 국가 마커 컴포넌트
- */
 export const CountryMarker = React.memo(({ country, coords, companies }: CountryMarkerProps) => {
   const { x, y } = coords;
   const count = companies.length;
 
-  // Store 액션
   const setHoveredCountry = useESGMapStore((state) => state.setHoveredCountry);
   const setSelectedCountry = useESGMapStore((state) => state.setSelectedCountry);
   const hoveredCountry = useESGMapStore((state) => state.mapState.hoveredCountry);
@@ -40,37 +34,24 @@ export const CountryMarker = React.memo(({ country, coords, companies }: Country
   const isHovered = hoveredCountry === country;
   const isSelected = selectedCountry === country;
 
-  // 동적 반경 계산 (기업 수에 비례)
-  const radius = calculateRadius(count, 18, 45);
+  // radius 계산 (markerUtils의 변경된 로직 사용: 12~35px)
+  const radius = calculateRadius(count, 12, 35);
 
-  // 색상 계산 (companyType 비율)
+  // 색상 계산
   const { core, operational } = getCompanyTypeCounts(companies);
   const markerColor = getMarkerColor(core, operational);
 
-  // 이벤트 핸들러
-  const handleMouseEnter = useCallback(() => {
-    setHoveredCountry(country);
-  }, [country, setHoveredCountry]);
+  const handleMouseEnter = useCallback(() => setHoveredCountry(country), [country, setHoveredCountry]);
+  const handleMouseLeave = useCallback(() => setHoveredCountry(null), [setHoveredCountry]);
+  const handleClick = useCallback(() => setSelectedCountry(country), [country, setSelectedCountry]);
 
-  const handleMouseLeave = useCallback(() => {
-    setHoveredCountry(null);
-  }, [setHoveredCountry]);
-
-  const handleClick = useCallback(() => {
-    setSelectedCountry(country);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setSelectedCountry(country);
+    }
   }, [country, setSelectedCountry]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setSelectedCountry(country);
-      }
-    },
-    [country, setSelectedCountry]
-  );
-
-  // 카운트가 0이면 렌더링하지 않음
   if (count === 0) return null;
 
   const countryInfo = COUNTRY_INFO[country];
@@ -87,18 +68,17 @@ export const CountryMarker = React.memo(({ country, coords, companies }: Country
       onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
     >
-      {/* Glow 효과 (hover 시만 표시) */}
+      {/* Glow (Hover 시) */}
       {isHovered && (
         <motion.circle
           cx={x}
           cy={y}
-          r={radius + 8}
+          r={radius + 6}
           fill={markerColor}
-          opacity={0.6}
+          opacity={0.4}
           filter="url(#marker-glow)"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.6, scale: 1 }}
-          transition={{ duration: 0.2 }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 0.4 }}
         />
       )}
 
@@ -108,88 +88,30 @@ export const CountryMarker = React.memo(({ country, coords, companies }: Country
         cy={y}
         r={radius}
         fill={markerColor}
-        opacity={isHovered ? 0.9 : 0.75}
+        opacity={isHovered ? 0.9 : 0.75} // 평소엔 약간 투명하게 (겹침 대비)
         stroke={isSelected ? COLORS.ACCENT : COLORS.MAP_BORDER}
-        strokeWidth={isSelected ? 3 : 1}
-        animate={{
-          scale: isHovered ? 1.15 : 1,
-          opacity: isHovered ? 0.9 : 0.75,
-        }}
-        transition={{
-          duration: 0.2,
-        }}
+        strokeWidth={isSelected ? 2 : 1}
+        animate={{ scale: isHovered ? 1.1 : 1 }}
+        transition={{ duration: 0.2 }}
       />
 
-      {/* 카운트 라벨 */}
+      {/* 숫자 */}
       <motion.text
         x={x}
-        y={y}
+        y={y} // 중앙 정렬
         textAnchor="middle"
-        dominantBaseline="middle"
+        dominantBaseline="central" // 세로 중앙 정렬
         fill={COLORS.TEXT_PRIMARY}
-        fontSize={Math.max(radius * 0.5, 10)}
+        fontSize={Math.max(radius * 0.8, 10)} // 크기에 비례하되 최소 10px
         fontWeight="bold"
         pointerEvents="none"
-        animate={{
-          scale: isHovered ? 1.1 : 1,
-        }}
-        transition={{
-          duration: 0.2,
-        }}
+        style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }} // 가독성 확보
+        animate={{ scale: isHovered ? 1.1 : 1 }}
       >
         {count}
       </motion.text>
-
-      {/* 국가 정보 라벨 (hover 시 표시) */}
-      {isHovered && (
-        <motion.g
-          initial={{ opacity: 0, y: y + radius + 5 }}
-          animate={{ opacity: 1, y: y + radius + 12 }}
-          transition={{ duration: 0.2 }}
-        >
-          {/* 배경 */}
-          <rect
-            x={x - 60}
-            y={y + radius + 8}
-            width={120}
-            height={32}
-            rx={6}
-            fill={COLORS.BACKGROUND_CARD}
-            opacity={0.95}
-            stroke={COLORS.MAP_BORDER}
-            strokeWidth={1}
-            pointerEvents="none"
-          />
-          
-          {/* 국가명 + 이모지 */}
-          <text
-            x={x}
-            y={y + radius + 19}
-            textAnchor="middle"
-            fill={COLORS.TEXT_PRIMARY}
-            fontSize={11}
-            fontWeight="600"
-            pointerEvents="none"
-          >
-            {countryInfo.emoji} {countryInfo.nameLocal}
-          </text>
-          
-          {/* Core/Operational 비율 */}
-          <text
-            x={x}
-            y={y + radius + 32}
-            textAnchor="middle"
-            fill={COLORS.TEXT_SECONDARY}
-            fontSize={9}
-            pointerEvents="none"
-          >
-            Core {core} · Operational {operational}
-          </text>
-        </motion.g>
-      )}
     </g>
   );
 });
 
 CountryMarker.displayName = 'CountryMarker';
-

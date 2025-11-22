@@ -2,12 +2,9 @@
  * Region Marker Component
  * 대륙(Region) 레벨 마커 컴포넌트
  * 
- * 기능:
- * - Circle + Glow 효과
- * - Pulse 애니메이션 (2초 주기)
- * - 카운트 라벨
- * - 클릭 → zoomToRegion()
- * - 키보드 접근성 (Enter/Space)
+ * 변경사항 (2025-11-22):
+ * - 가독성 개선: "Companies" 라벨 추가
+ * - 시각적 간섭 최소화: 투명도 및 크기 최적화
  */
 
 'use client';
@@ -24,13 +21,9 @@ interface RegionMarkerProps {
   count: number;
 }
 
-/**
- * 대륙 마커 컴포넌트
- */
 export const RegionMarker = React.memo(({ region, coords, count }: RegionMarkerProps) => {
   const { x, y, radius } = coords;
   
-  // Store 액션
   const setHoveredRegion = useESGMapStore((state) => state.setHoveredRegion);
   const zoomToRegion = useESGMapStore((state) => state.zoomToRegion);
   const hoveredRegion = useESGMapStore((state) => state.mapState.hoveredRegion);
@@ -39,30 +32,17 @@ export const RegionMarker = React.memo(({ region, coords, count }: RegionMarkerP
   const isHovered = hoveredRegion === region;
   const isSelected = selectedRegion === region;
 
-  // 이벤트 핸들러
-  const handleMouseEnter = useCallback(() => {
-    setHoveredRegion(region);
-  }, [region, setHoveredRegion]);
+  const handleMouseEnter = useCallback(() => setHoveredRegion(region), [region, setHoveredRegion]);
+  const handleMouseLeave = useCallback(() => setHoveredRegion(null), [setHoveredRegion]);
+  const handleClick = useCallback(() => zoomToRegion(region), [region, zoomToRegion]);
 
-  const handleMouseLeave = useCallback(() => {
-    setHoveredRegion(null);
-  }, [setHoveredRegion]);
-
-  const handleClick = useCallback(() => {
-    zoomToRegion(region);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      zoomToRegion(region);
+    }
   }, [region, zoomToRegion]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        zoomToRegion(region);
-      }
-    },
-    [region, zoomToRegion]
-  );
-
-  // 카운트가 0이면 렌더링하지 않음
   if (count === 0) return null;
 
   const regionInfo = REGION_INFO[region];
@@ -79,27 +59,23 @@ export const RegionMarker = React.memo(({ region, coords, count }: RegionMarkerP
       onKeyDown={handleKeyDown}
       style={{ cursor: 'pointer' }}
     >
-      {/* Glow 효과 (외부 원) */}
+      {/* Glow 효과 */}
       <motion.circle
         cx={x}
         cy={y}
         r={radius}
         fill={isHovered ? COLORS.GLOW_CORE_HOVER : COLORS.GLOW_CORE}
-        opacity={isHovered ? 0.9 : 0.6}
+        opacity={isHovered ? 0.8 : 0.4} // 투명도 낮춤
         filter="url(#marker-glow)"
         animate={{
-          scale: isHovered ? 1.1 : 1,
-          opacity: isHovered ? 0.9 : [0.5, 0.7, 0.5],
+          scale: isHovered ? 1.05 : 1,
+          opacity: isHovered ? 0.8 : [0.3, 0.5, 0.3],
         }}
         transition={{
           scale: { duration: 0.2 },
           opacity: isHovered
             ? { duration: 0.2 }
-            : {
-                duration: ANIMATION.GLOW_PULSE / 1000,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              },
+            : { duration: ANIMATION.GLOW_PULSE / 1000, repeat: Infinity, ease: 'easeInOut' },
         }}
       />
 
@@ -107,52 +83,54 @@ export const RegionMarker = React.memo(({ region, coords, count }: RegionMarkerP
       <motion.circle
         cx={x}
         cy={y}
-        r={radius * 0.7}
+        r={radius * 0.8} // 크기 약간 축소
         fill={COLORS.CORE_PLATFORM}
-        opacity={0.8}
+        opacity={0.9}
         stroke={isSelected ? COLORS.ACCENT : 'transparent'}
         strokeWidth={isSelected ? 3 : 0}
-        animate={{
-          scale: isHovered ? 1.05 : 1,
-        }}
-        transition={{
-          duration: 0.2,
-        }}
+        animate={{ scale: isHovered ? 1.02 : 1 }}
+        transition={{ duration: 0.2 }}
       />
 
-      {/* 카운트 라벨 */}
+      {/* 카운트 (숫자) */}
       <motion.text
         x={x}
-        y={y}
+        y={y - 5}
         textAnchor="middle"
         dominantBaseline="middle"
         fill={COLORS.TEXT_PRIMARY}
-        fontSize={radius * 0.4}
+        fontSize={24}
         fontWeight="bold"
         pointerEvents="none"
-        animate={{
-          scale: isHovered ? 1.1 : 1,
-        }}
-        transition={{
-          duration: 0.2,
-        }}
       >
         {count}
       </motion.text>
 
-      {/* 지역명 라벨 (hover 시 표시) */}
+      {/* 라벨 (Companies) */}
+      <text
+        x={x}
+        y={y + 15}
+        textAnchor="middle"
+        fill={COLORS.TEXT_SECONDARY}
+        fontSize={12}
+        fontWeight="500"
+        pointerEvents="none"
+      >
+        Companies
+      </text>
+
+      {/* 지역명 (Hover 시) */}
       {isHovered && (
         <motion.text
           x={x}
-          y={y + radius + 20}
+          y={y + radius + 25}
           textAnchor="middle"
-          fill={COLORS.TEXT_PRIMARY}
-          fontSize={14}
-          fontWeight="500"
+          fill={COLORS.ACCENT} // 강조색
+          fontSize={16}
+          fontWeight="bold"
           pointerEvents="none"
-          initial={{ opacity: 0, y: y + radius + 10 }}
-          animate={{ opacity: 1, y: y + radius + 20 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, y: y + radius + 15 }}
+          animate={{ opacity: 1, y: y + radius + 25 }}
         >
           {regionInfo.emoji} {regionInfo.nameLocal}
         </motion.text>
@@ -162,4 +140,3 @@ export const RegionMarker = React.memo(({ region, coords, count }: RegionMarkerP
 });
 
 RegionMarker.displayName = 'RegionMarker';
-

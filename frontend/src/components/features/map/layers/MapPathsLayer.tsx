@@ -78,48 +78,27 @@ const TARGET_COUNTRY_PATHS: Record<CountryCode, string> = {
  * MapPathsLayer Component
  */
 export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
-  opacity = 0.3,
+  opacity = 0.3, // 기본 opacity
   showOtherCountries = true,
 }) => {
-  // ========================================
   // Store 구독
-  // ========================================
-  
   const { selectedCountry, hoveredCountry } = useESGMapStore((state) => state.mapState);
   const setHoveredCountry = useESGMapStore((state) => state.setHoveredCountry);
   const setSelectedCountry = useESGMapStore((state) => state.setSelectedCountry);
 
-  // ========================================
   // 이벤트 핸들러
-  // ========================================
-  
-  /**
-   * 국가 호버 시
-   */
   const handleMouseEnter = useCallback((countryCode: CountryCode) => {
     setHoveredCountry(countryCode);
   }, [setHoveredCountry]);
 
-  /**
-   * 국가 호버 종료 시
-   */
   const handleMouseLeave = useCallback(() => {
     setHoveredCountry(null);
   }, [setHoveredCountry]);
 
-  /**
-   * 국가 클릭 시
-   * 향후: 지도가 해당 국가로 Zoom-in
-   */
   const handleClick = useCallback((countryCode: CountryCode) => {
     setSelectedCountry(countryCode);
-    // TODO: 우측 패널에 해당 국가의 기업 리스트 표시
   }, [setSelectedCountry]);
 
-  /**
-   * 키보드 이벤트 핸들러 (접근성)
-   * Enter 또는 Space 키로 국가 선택
-   */
   const handleKeyDown = useCallback((
     event: React.KeyboardEvent,
     countryCode: CountryCode
@@ -130,13 +109,7 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
     }
   }, [handleClick]);
 
-  // ========================================
   // 스타일 계산
-  // ========================================
-  
-  /**
-   * 국가별 fill 색상 결정
-   */
   const getCountryFill = (countryCode: CountryCode): string => {
     if (selectedCountry === countryCode) {
       return COLORS.ACCENT; // 선택됨: 강조 색상
@@ -147,23 +120,29 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
     return COLORS.MAP_LAND; // 기본: 어두운 색상
   };
 
-  /**
-   * 국가별 opacity 계산
-   */
   const getCountryOpacity = (countryCode: CountryCode): number => {
     if (selectedCountry && selectedCountry !== countryCode) {
-      return opacity * 0.5; // 다른 국가 선택 시 Dimmed
+      return 0.5; // 다른 국가 선택 시 Dimmed
     }
-    return opacity;
+    return 1.0; // 타겟 국가는 항상 불투명하게 잘 보이도록 설정
   };
 
-  // ========================================
-  // Render
-  // ========================================
-  
   return (
     <g id="map-paths-layer">
-      {/* 타겟 국가 (Interactive) */}
+      {/* 1. 전체 세계 지도 배경 (이미지) */}
+      {showOtherCountries && (
+        <image
+          href="/world.svg"
+          x="0"
+          y="0"
+          width="2000"
+          height="857"
+          opacity="0.15" // 배경으로 은은하게 깔기
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+
+      {/* 2. 타겟 국가 (Interactive) - 이미지 위에 덧그리기 */}
       {(Object.entries(TARGET_COUNTRY_PATHS) as Array<[CountryCode, string]>).map(
         ([countryCode, pathData]) => (
           <path
@@ -172,10 +151,10 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
             fill={getCountryFill(countryCode)}
             opacity={getCountryOpacity(countryCode)}
             stroke={COLORS.MAP_BORDER}
-            strokeWidth="0.5"
+            strokeWidth={hoveredCountry === countryCode ? "1.5" : "1.0"} // 호버 시 두껍게
             strokeLinejoin="round"
             strokeLinecap="round"
-            // 🎯 Interactive 이벤트
+            // Interactive 이벤트
             onMouseEnter={() => handleMouseEnter(countryCode)}
             onMouseLeave={handleMouseLeave}
             onClick={() => handleClick(countryCode)}
@@ -192,38 +171,8 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
           />
         )
       )}
-
-      {/* 
-        TODO: 나머지 국가 (Non-interactive 배경)
-        showOtherCountries === true일 때 world.svg 전체 로드
-        현재는 생략 (타겟 국가만 표시)
-      */}
-      {showOtherCountries && (
-        <g id="other-countries" opacity={opacity * 0.2} pointerEvents="none">
-          {/* 
-            향후 구현:
-            - world.svg에서 TARGET_COUNTRY_PATHS 외 모든 path 추출
-            - 또는 간단한 대륙 윤곽선만 표시
-          */}
-          <rect
-            x="0"
-            y="0"
-            width="2000"
-            height="857"
-            fill="none"
-            stroke={COLORS.MAP_BORDER}
-            strokeWidth="0.5"
-            strokeDasharray="5,5"
-            opacity="0.1"
-          />
-        </g>
-      )}
     </g>
   );
 };
 
-/**
- * Display Name (for React DevTools)
- */
 MapPathsLayer.displayName = 'MapPathsLayer';
-
