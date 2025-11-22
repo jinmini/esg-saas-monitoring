@@ -116,6 +116,20 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
     // TODO: 우측 패널에 해당 국가의 기업 리스트 표시
   }, [setSelectedCountry]);
 
+  /**
+   * 키보드 이벤트 핸들러 (접근성)
+   * Enter 또는 Space 키로 국가 선택
+   */
+  const handleKeyDown = useCallback((
+    event: React.KeyboardEvent,
+    countryCode: CountryCode
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick(countryCode);
+    }
+  }, [handleClick]);
+
   // ========================================
   // 스타일 계산
   // ========================================
@@ -165,6 +179,7 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
             onMouseEnter={() => handleMouseEnter(countryCode)}
             onMouseLeave={handleMouseLeave}
             onClick={() => handleClick(countryCode)}
+            onKeyDown={(e) => handleKeyDown(e, countryCode)}
             // 스타일
             className="transition-all duration-200 cursor-pointer"
             style={{
