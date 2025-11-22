@@ -17,14 +17,13 @@ import { useESGMapStore } from '@/store/esgMapStore';
 import { 
   WORLD_VIEWPORT, 
   EUROPE_VIEWPORT, 
-  ANIMATION,
-  Z_INDEX 
+  ANIMATION 
 } from '@/constants/esg-map';
 import type { MapViewMode } from '@/types/esg-map';
 
 // Components
 import { MapPathsLayer } from './layers/MapPathsLayer';
-// import { RegionGlowLayer } from './layers/RegionGlowLayer'; // Phase 3-2에서 구현
+import { RegionGlowLayer } from './layers/RegionGlowLayer';
 // import { MapTooltip } from './tooltip/MapTooltip'; // Phase 3-3에서 구현
 
 /**
@@ -96,7 +95,6 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
   return (
     <div
       className={`relative w-full h-full overflow-hidden bg-slate-900 ${className}`}
-      style={{ zIndex: Z_INDEX.MAP_BASE }}
     >
       {/* SVG 지도 컨테이너 */}
       <motion.svg
@@ -120,107 +118,114 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
             showOtherCountries={true}
           />
           
-          {/* 개발 모드: 유럽 영역 표시 */}
-          {showGrid && (
-            <rect
-              x="420"
-              y="160"
-              width="160"
-              height="150"
-              fill="none"
-              stroke="#f59e0b"
-              strokeWidth="2"
-              strokeDasharray="5,5"
-              opacity="0.5"
-            />
-          )}
         </g>
 
         {/* 마커 레이어 */}
-        <g id="markers-layer" style={{ zIndex: Z_INDEX.MAP_MARKERS }}>
-          {/* 
-            TODO: RegionGlowLayer 컴포넌트
-            viewMode에 따라 조건부 렌더링
-          */}
-          {/* <RegionGlowLayer /> */}
+        <g id="markers-layer">
+          {/* RegionGlowLayer: viewMode에 따라 조건부 렌더링 */}
+          <RegionGlowLayer />
           
-          {/* 임시: 중심점 표시 (개발용) */}
+          {/* 개발 모드: 중심점 및 유럽 영역 표시 */}
           {showGrid && (
             <>
-              {/* World 중심 */}
+              {/* World 중심 (viewBox 2000x857 기준) */}
               <circle
-                cx="500"
-                cy="300"
-                r="5"
+                cx="1000"
+                cy="428"
+                r="8"
                 fill="#f59e0b"
                 opacity="0.8"
               />
               <text
-                x="500"
-                y="320"
+                x="1000"
+                y="450"
                 textAnchor="middle"
                 fill="#f59e0b"
-                fontSize="12"
+                fontSize="16"
               >
-                World Center (500, 300)
+                World Center (1000, 428)
               </text>
 
               {/* Europe 중심 */}
               <circle
-                cx="500"
-                cy="235"
-                r="5"
+                cx="1035"
+                cy="170"
+                r="8"
                 fill="#10b981"
                 opacity="0.8"
               />
               <text
-                x="500"
-                y="255"
+                x="1035"
+                y="195"
                 textAnchor="middle"
                 fill="#10b981"
-                fontSize="12"
+                fontSize="16"
               >
-                Europe Center (500, 235)
+                Europe Center (1035, 170)
               </text>
+
+              {/* 유럽 확대 영역 */}
+              <rect
+                x="920"
+                y="70"
+                width="230"
+                height="200"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="3"
+                strokeDasharray="10,5"
+                opacity="0.6"
+              />
             </>
           )}
         </g>
 
-        {/* 그리드 오버레이 (개발 모드) */}
+        {/* Layer 3: 그리드 오버레이 (개발 모드, 최상단) */}
         {showGrid && (
           <g id="grid-overlay" opacity="0.2">
-            {/* 수직선 */}
-            {Array.from({ length: 11 }, (_, i) => (
+            {/* 수직선 (2000 기준) */}
+            {Array.from({ length: 21 }, (_, i) => (
               <line
                 key={`v-${i}`}
                 x1={i * 100}
                 y1="0"
                 x2={i * 100}
-                y2="600"
+                y2="857"
                 stroke="#64748b"
-                strokeWidth="1"
+                strokeWidth="2"
               />
             ))}
-            {/* 수평선 */}
-            {Array.from({ length: 7 }, (_, i) => (
+            {/* 수평선 (857 기준) */}
+            {Array.from({ length: 9 }, (_, i) => (
               <line
                 key={`h-${i}`}
                 x1="0"
                 y1={i * 100}
-                x2="1000"
+                x2="2000"
                 y2={i * 100}
                 stroke="#64748b"
-                strokeWidth="1"
+                strokeWidth="2"
               />
             ))}
             {/* 좌표 라벨 */}
-            {Array.from({ length: 11 }, (_, i) => (
+            {Array.from({ length: 21 }, (_, i) => (
               <text
-                key={`label-${i}`}
+                key={`label-x-${i}`}
                 x={i * 100 + 5}
-                y="15"
+                y="25"
                 fill="#64748b"
-                fontSize="10"
+                fontSize="18"
+              >
+                {i * 100}
+              </text>
+            ))}
+            {Array.from({ length: 9 }, (_, i) => (
+              <text
+                key={`label-y-${i}`}
+                x="10"
+                y={i * 100 + 20}
+                fill="#64748b"
+                fontSize="18"
               >
                 {i * 100}
               </text>
