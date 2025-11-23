@@ -57,18 +57,19 @@ export interface CompanyTypeInfo {
 /**
  * 지역 분류 (대륙 레벨)
  */
-export type Region = 'Europe' | 'North America' | 'APAC' | 'South America' | 'Middle East' | 'Africa';
+export type Region = 'Europe' | 'North America' | 'Asia' | 'Oceania' | 'South America' | 'Middle East' | 'Africa';
 
 /**
  * 국가 코드 (ISO 3166-1 alpha-2)
  * 
- * 🌍 현재 데이터 보유 국가 (유럽 14개국):
- * - UK: 영국 (14개 기업)
- * - DE: 독일 (10개 기업)
- * - FR: 프랑스 (7개 기업)
- * - 기타 11개국
+ * 🌍 현재 데이터 보유 국가:
+ * - 유럽 14개국 (GB, DE, FR, NL, SE, FI, NO, CH, BE, ES, IE, EE, PL, DK)
+ * - 아시아 2개국 (SG, JP)
+ * - 오세아니아 1개국 (AU)
+ * - 북미 1개국 (CA)
  */
 export type CountryCode = 
+  // 유럽 (Europe)
   | 'GB' // 🇬🇧 영국 (United Kingdom)
   | 'DE' // 🇩🇪 독일 (Germany)
   | 'FR' // 🇫🇷 프랑스 (France)
@@ -82,7 +83,14 @@ export type CountryCode =
   | 'IE' // 🇮🇪 아일랜드 (Ireland)
   | 'EE' // 🇪🇪 에스토니아 (Estonia)
   | 'PL' // 🇵🇱 폴란드 (Poland)
-  | 'DK'; // 🇩🇰 덴마크 (Denmark)
+  | 'DK' // 🇩🇰 덴마크 (Denmark)
+  // 아시아 (Asia)
+  | 'SG' // 🇸🇬 싱가포르 (Singapore)
+  | 'JP' // 🇯🇵 일본 (Japan)
+  // 오세아니아 (Oceania)
+  | 'AU' // 🇦🇺 호주 (Australia)
+  // 북미 (North America)
+  | 'CA'; // 🇨🇦 캐나다 (Canada)
 
 /**
  * 지역 정보 (지도 상 표시용)
@@ -132,6 +140,54 @@ export type FilterCategory =
   | 'finance';        // 지속가능금융
 
 /**
+ * Feature Group (10~15개 그룹)
+ */
+export type FeatureGroup = 
+  | 'carbon-net-zero'
+  | 'esg-reporting'
+  | 'regulatory-compliance'
+  | 'supply-chain-due-diligence'
+  | 'portfolio-finance-investors'
+  | 'energy-utilities-operations'
+  | 'real-assets-built-environment'
+  | 'nature-biodiversity-land'
+  | 'social-human-rights'
+  | 'ai-data-automation'
+  | 'product-lca-circularity'
+  | 'sector-specific'
+  | 'advisory-services-education'
+  | 'green-finance-instruments';
+
+/**
+ * Framework Group (7~8개 그룹)
+ */
+export type FrameworkGroup =
+  | 'global-esg-reporting'
+  | 'climate-carbon-ghg'
+  | 'sustainable-finance'
+  | 'supply-chain-hr-dd'
+  | 'product-lca-circular'
+  | 'real-estate-building'
+  | 'sector-theme-specific'
+  | 'regional-regulations';
+
+/**
+ * User Persona (6~8개)
+ */
+export type UserPersona =
+  | 'sustainability-team'
+  | 'cfo-finance-team'
+  | 'procurement-supply-chain'
+  | 'investors-pe-vc-am'
+  | 'real-estate-plant-operations'
+  | 'sme-midmarket-startup';
+
+/**
+ * AI Maturity Level
+ */
+export type AIMaturityLevel = 'none' | 'ai-assisted' | 'ai-first-agentic';
+
+/**
  * 필터 카테고리 정보
  */
 export interface FilterCategoryInfo {
@@ -150,7 +206,15 @@ export interface FilterState {
   regions: Region[];
   countries: CountryCode[]; // 국가별 필터 (유럽 확대 시 활용)
   companyTypes: CompanyType[];
-  categories: FilterCategory[]; // 목적 기반 필터
+  categories: FilterCategory[]; // 목적 기반 필터 (Quick Filters)
+  
+  // 새로운 필터 축
+  featureGroups: FeatureGroup[]; // Feature 그룹 (10~15개)
+  frameworkGroups: FrameworkGroup[]; // Framework 그룹 (7~8개)
+  personas: UserPersona[]; // 사용자 페르소나
+  aiMaturity: AIMaturityLevel | null; // AI 성숙도
+  
+  // 기존 디테일 필터 (고급 필터에서 사용)
   features: string[];
   frameworks: string[];
   searchQuery: string;
@@ -164,9 +228,12 @@ export interface FilterState {
  * 지도 뷰 모드
  * - world: 전체 세계 지도 (대륙별 마커 표시)
  * - europe_detail: 유럽 확대 뷰 (국가별 마커 표시)
+ * - asia_detail: 아시아 확대 뷰 (국가별 마커 표시)
+ * - oceania_detail: 오세아니아 확대 뷰 (국가별 마커 표시)
+ * - north_america_detail: 북미 확대 뷰 (국가별 마커 표시)
  * - region: 기타 대륙 확대 뷰 (향후 확장용)
  */
-export type MapViewMode = 'world' | 'europe_detail' | 'region';
+export type MapViewMode = 'world' | 'europe_detail' | 'asia_detail' | 'oceania_detail' | 'north_america_detail' | 'region';
 
 /**
  * 지도 상태
@@ -237,10 +304,6 @@ export interface PanelState {
   leftPanel: {
     isOpen: boolean;
     activeTab: 'filters' | 'stats';
-  };
-  rightPanel: {
-    isOpen: boolean;
-    mode: 'region-list' | 'company-detail' | 'comparison';
   };
 }
 

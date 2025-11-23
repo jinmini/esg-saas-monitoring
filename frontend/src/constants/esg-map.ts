@@ -26,7 +26,8 @@ export const REGION_COORDS: Record<Region, RegionCoordinates> = {
     radius: 80 // 지형 가림 방지
   },
   'North America': { x: 400, y: 300, radius: 60 },
-  'APAC': { x: 1600, y: 400, radius: 80 },
+  'Asia': { x: 1550, y: 350, radius: 70 },
+  'Oceania': { x: 1680, y: 650, radius: 60 },
   'South America': { x: 650, y: 700, radius: 60 },
   'Middle East': { x: 1300, y: 380, radius: 50 },
   'Africa': { x: 1100, y: 550, radius: 70 },
@@ -39,7 +40,7 @@ export const REGION_COORDS: Record<Region, RegionCoordinates> = {
  * - 마커 겹침 방지를 위해 인위적으로 분산 (Offset 적용)
  * - 지리적 정확성보다는 "시각적 명확성" 우선
  */
-export const EUROPE_HUBS: Record<CountryCode, RegionCoordinates> = {
+export const EUROPE_HUBS: Record<string, RegionCoordinates> = {
   // 🇬🇧 영국: 좌측 상단으로 이동 (본토와 분리)
   'GB': { x: 940, y: 140, radius: 35 },
   
@@ -83,6 +84,45 @@ export const EUROPE_HUBS: Record<CountryCode, RegionCoordinates> = {
   'EE': { x: 1140, y: 130, radius: 18 },
 };
 
+/**
+ * 아시아 국가별 좌표 (Asia Region View용)
+ * 
+ * 📍 좌표 기준 (2025-11-23):
+ * - viewBox 2000x857 기준
+ * - 싱가포르, 일본
+ */
+export const ASIA_HUBS: Record<string, RegionCoordinates> = {
+  // 🇸🇬 싱가포르: 동남아시아
+  'SG': { x: 1520, y: 480, radius: 25 },
+  
+  // 🇯🇵 일본: 극동아시아
+  'JP': { x: 1730, y: 320, radius: 30 },
+};
+
+/**
+ * 오세아니아 국가별 좌표 (Oceania Region View용)
+ * 
+ * 📍 좌표 기준 (2025-11-23):
+ * - viewBox 2000x857 기준
+ * - 호주
+ */
+export const OCEANIA_HUBS: Record<string, RegionCoordinates> = {
+  // 🇦🇺 호주: 오세아니아 대륙
+  'AU': { x: 1650, y: 650, radius: 30 },
+};
+
+/**
+ * 북미 국가별 좌표 (North America Region View용)
+ * 
+ * 📍 좌표 기준 (2025-11-23):
+ * - viewBox 2000x857 기준
+ * - 캐나다
+ */
+export const NORTH_AMERICA_HUBS: Record<string, RegionCoordinates> = {
+  // 🇨🇦 캐나다: 북미 북부
+  'CA': { x: 300, y: 250, radius: 25 },
+};
+
 // ============================================
 // 지도 뷰포트 설정
 // ============================================
@@ -105,6 +145,46 @@ export const EUROPE_VIEWPORT: MapViewport = {
   viewBox: '880 50 300 260', // 더 넓게 잡음
   centerX: 1030,
   centerY: 180,
+  scale: 2.5,
+};
+
+/**
+ * 아시아 확대 뷰포트
+ * 
+ * 커버 범위:
+ * - 싱가포르 (1520, 480)
+ * - 일본 (1730, 320)
+ */
+export const ASIA_VIEWPORT: MapViewport = {
+  viewBox: '1450 250 350 280', // x: 1450~1800, y: 250~530
+  centerX: 1625,
+  centerY: 400,
+  scale: 2.0,
+};
+
+/**
+ * 오세아니아 확대 뷰포트
+ * 
+ * 커버 범위:
+ * - 호주 (1650, 650)
+ */
+export const OCEANIA_VIEWPORT: MapViewport = {
+  viewBox: '1520 550 260 200', // x: 1520~1780, y: 550~750
+  centerX: 1650,
+  centerY: 650,
+  scale: 2.5,
+};
+
+/**
+ * 북미 확대 뷰포트
+ * 
+ * 커버 범위:
+ * - 캐나다 (300, 250)
+ */
+export const NORTH_AMERICA_VIEWPORT: MapViewport = {
+  viewBox: '170 150 260 200', // x: 170~430, y: 150~350
+  centerX: 300,
+  centerY: 250,
   scale: 2.5,
 };
 
@@ -294,13 +374,486 @@ export const QUICK_FILTERS = {
 };
 
 // ============================================
+// Feature Groups (10~15개 그룹)
+// ============================================
+
+export interface FeatureGroupInfo {
+  id: string;
+  name: string;
+  nameLocal: string;
+  icon: string;
+  description: string;
+  relatedFeatures: string[]; // 매핑된 Feature 태그들
+}
+
+export const FEATURE_GROUPS: FeatureGroupInfo[] = [
+  {
+    id: 'carbon-net-zero',
+    name: 'Carbon & Net Zero',
+    nameLocal: '탄소 & Net Zero',
+    icon: '🌱',
+    description: 'Carbon accounting, Scope 3, Net Zero strategy, Decarbonisation planning',
+    relatedFeatures: [
+      'CARBON_ACCOUNTING',
+      'CARBON_ACCOUNTING_SCOPE3',
+      'CORPORATE_CARBON_FOOTPRINT',
+      'PRODUCT_CARBON_FOOTPRINT',
+      'SCOPE3_QUANTIFICATION',
+      'TARGET_SETTING',
+      'NET_ZERO_TARGET_SETTING',
+      'DECARBONISATION',
+      'DECARBONISATION_PLANNING',
+      'EMISSIONS_FORECASTING',
+      'CARBON_REDUCTION',
+    ],
+  },
+  {
+    id: 'esg-reporting',
+    name: 'ESG Reporting & Disclosure',
+    nameLocal: 'ESG 보고 & 공시',
+    icon: '📊',
+    description: 'Automated ESG reporting, CSRD/ISSB disclosure, Report automation',
+    relatedFeatures: [
+      'ESG_REPORTING',
+      'SUSTAINABILITY_REPORTING',
+      'SUSTAINABILITY_REPORTING_CSRD',
+      'ISSB_REPORTING',
+      'CLIMATE_DISCLOSURE',
+      'REPORT_AUTOMATION',
+      'DISCLOSURE_MANAGEMENT',
+      'XBRL_CONVERSION',
+      'XBRL_TAGGING',
+      'DISCLOSURE_GRADE_DATA',
+    ],
+  },
+  {
+    id: 'regulatory-compliance',
+    name: 'Regulatory & Compliance',
+    nameLocal: '규제 & 컴플라이언스',
+    icon: '📋',
+    description: 'Compliance automation, Regulatory monitoring, Gap analysis',
+    relatedFeatures: [
+      'COMPLIANCE_AUTOMATION',
+      'REGULATORY_COMPLIANCE',
+      'COMPLIANCE_MAPPING',
+      'REGULATORY_MONITORING',
+      'REGULATORY_GAP_ANALYSIS',
+      'GAP_ASSESSMENT',
+    ],
+  },
+  {
+    id: 'supply-chain-due-diligence',
+    name: 'Supply Chain & Due Diligence',
+    nameLocal: '공급망 & 실사',
+    icon: '🔗',
+    description: 'Supply chain ESG, Supplier engagement, HRDD, Traceability',
+    relatedFeatures: [
+      'SUPPLY_CHAIN',
+      'SUPPLY_CHAIN_TRACEABILITY',
+      'SUPPLY_CHAIN_DUE_DILIGENCE',
+      'SUPPLY_CHAIN_DECARBONISATION',
+      'SUPPLIER_ENGAGEMENT',
+      'SUPPLIER_DATA_AGGREGATION',
+      'SUPPLIER_LIFECYCLE_MANAGEMENT',
+      'SUPPLIER_RISK_MONITORING',
+      'SUPPLIER_ESG_ASSESSMENT',
+      'MODERN_SLAVERY_RISK',
+    ],
+  },
+  {
+    id: 'portfolio-finance-investors',
+    name: 'Portfolio, Finance & Investors',
+    nameLocal: '포트폴리오 & 금융',
+    icon: '💰',
+    description: 'Private markets ESG, LP reporting, Financed emissions, SFDR/Taxonomy',
+    relatedFeatures: [
+      'PRIVATE_MARKETS_ESG',
+      'PORTFOLIO_ESG_MANAGEMENT',
+      'FINANCED_EMISSIONS',
+      'SUSTAINABLE_FINANCE',
+      'GREEN_BONDS',
+      'INVESTMENT_PORTFOLIO_ANALYSIS',
+      'LP_REPORTING',
+      'FINANCIAL_ESG_INTEGRATION',
+      'FINANCIAL_IMPACT_MODELING',
+    ],
+  },
+  {
+    id: 'energy-utilities-operations',
+    name: 'Energy, Utilities & Operations',
+    nameLocal: '에너지 & 유틸리티',
+    icon: '⚡',
+    description: 'Energy management, Utility monitoring, Building energy, Real-time IoT',
+    relatedFeatures: [
+      'ENERGY_MANAGEMENT',
+      'UTILITY_DATA_MANAGEMENT',
+      'REAL_TIME_UTILITY_MONITORING',
+      'BUILDING_ENERGY_MANAGEMENT',
+      'YARD_MANAGEMENT',
+      'LOGISTICS_OPTIMIZATION',
+      'VIRTUAL_ENERGY_MANAGER',
+      'ISO_50001_ENMS',
+    ],
+  },
+  {
+    id: 'real-assets-built-environment',
+    name: 'Real Assets & Built Environment',
+    nameLocal: '부동산 & 건축 환경',
+    icon: '🏢',
+    description: 'Building LCA, Construction EPD, Building certification, GRESB',
+    relatedFeatures: [
+      'BUILDING_LCA',
+      'CONSTRUCTION_EPD',
+      'BUILDING_CERTIFICATION',
+    ],
+  },
+  {
+    id: 'nature-biodiversity-land',
+    name: 'Nature, Biodiversity & Land',
+    nameLocal: '자연 & 생물다양성',
+    icon: '🌳',
+    description: 'TNFD, Biodiversity monitoring, Deforestation, Land use',
+    relatedFeatures: [
+      'NATURE_ASSESSMENT',
+      'BIODIVERSITY_MONITORING',
+      'LAND_USE',
+      'DEFORESTATION_MONITORING',
+      'DEFORESTATION_FREE_SUPPLY_CHAIN',
+    ],
+  },
+  {
+    id: 'social-human-rights',
+    name: 'Social & Human Rights',
+    nameLocal: '사회 & 인권',
+    icon: '🤝',
+    description: 'Worker engagement, Social impact, HRDD, Diversity',
+    relatedFeatures: [
+      'DIRECT_WORKER_ENGAGEMENT',
+      'PEOPLE_HEALTH_DIVERSITY',
+      'SOCIAL_IMPACT_MANAGEMENT',
+      'SOCIAL_VALUE_REPORTING',
+      'MODERN_SLAVERY_RISK',
+      'COMMUNITY_ENGAGEMENT',
+    ],
+  },
+  {
+    id: 'ai-data-automation',
+    name: 'AI, Data Infrastructure & Automation',
+    nameLocal: 'AI & 데이터 자동화',
+    icon: '🤖',
+    description: 'AI copilot, AI agents, Data extraction, API integration, Automation',
+    relatedFeatures: [
+      'AI_COPILOT',
+      'AI_AGENTS',
+      'AI_ANALYTICS',
+      'AI_DATA_EXTRACTION',
+      'AUTOMATION_WORKFLOWS',
+      'DATA_HUB',
+      'API_INTEGRATION',
+      'CARBON_MANAGEMENT_API',
+      'UTILITY_DATA_API',
+      'MCP_INTEGRATION',
+    ],
+  },
+  {
+    id: 'product-lca-circularity',
+    name: 'Product LCA & Circularity',
+    nameLocal: '제품 LCA & 순환경제',
+    icon: '♻️',
+    description: 'Product LCA, EPD generation, Circular economy, Digital Product Passport',
+    relatedFeatures: [
+      'PRODUCT_LCA',
+      'LCA',
+      'CIRCULAR_ECONOMY',
+      'DIGITAL_PRODUCT_PASSPORT',
+      'EPD_GENERATION',
+      'TEXTILE_FASHION_ECODESIGN',
+      'ECODESIGN',
+    ],
+  },
+  {
+    id: 'sector-specific',
+    name: 'Sector-Specific Solutions',
+    nameLocal: '섹터 특화 솔루션',
+    icon: '🏭',
+    description: 'Fashion, Food, Hospitality, Events, Oil & Gas, Real Estate',
+    relatedFeatures: [
+      'FOOD_TRACEABILITY',
+      'TEXTILE_SUSTAINABILITY',
+      'HOSPITALITY_ESG',
+      'EVENT_SUSTAINABILITY',
+      'OIL_GAS_ESG',
+    ],
+  },
+  {
+    id: 'advisory-services-education',
+    name: 'Advisory, Services & Education',
+    nameLocal: '자문 & 교육 서비스',
+    icon: '🎓',
+    description: 'ESG consulting, Advisory services, BPO, E-learning, Stewardship',
+    relatedFeatures: [
+      'ESG_CONSULTING',
+      'EXPERT_ADVISORY_SERVICES',
+      'BPO_SERVICES',
+      'SUSTAINABILITY_ELEARNING',
+      'ENGAGEMENT_SERVICES',
+      'STEWARDSHIP_SERVICES',
+    ],
+  },
+];
+
+// ============================================
+// Framework Groups (7~8개 그룹)
+// ============================================
+
+export interface FrameworkGroupInfo {
+  id: string;
+  name: string;
+  nameLocal: string;
+  icon: string;
+  description: string;
+  relatedFrameworks: string[];
+}
+
+export const FRAMEWORK_GROUPS: FrameworkGroupInfo[] = [
+  {
+    id: 'global-esg-reporting',
+    name: 'Global ESG Reporting Standards',
+    nameLocal: '글로벌 ESG 보고 표준',
+    icon: '🌐',
+    description: 'GRI, SASB, ESRS, CSRD, ISSB, IFRS S1/S2, SDG, HKEX',
+    relatedFrameworks: [
+      'GRI',
+      'SASB',
+      'ESRS',
+      'CSRD',
+      'ISSB',
+      'IFRS_S1',
+      'IFRS_S2',
+      'SDG',
+      'HKEX',
+    ],
+  },
+  {
+    id: 'climate-carbon-ghg',
+    name: 'Climate, Carbon & GHG',
+    nameLocal: '기후 & 탄소 & GHG',
+    icon: '🌡️',
+    description: 'GHG Protocol, TCFD, SBTi, PCAF, ISO 14064/67, EU ETS, SEC Climate',
+    relatedFrameworks: [
+      'GHG_PROTOCOL',
+      'TCFD',
+      'SBTi',
+      'SBTi_FLAG',
+      'PCAF',
+      'PAS_2060',
+      'ISO_14064',
+      'ISO_14067',
+      'EU_ETS',
+      'SECR',
+      'ASRS',
+      'SEC_CLIMATE_RULE',
+      'OSFI_B15',
+    ],
+  },
+  {
+    id: 'sustainable-finance',
+    name: 'Sustainable Finance & Investment',
+    nameLocal: '지속가능 금융 & 투자',
+    icon: '💸',
+    description: 'SFDR, EU Taxonomy, NZIF, Green Bonds, ILPA, EDCI',
+    relatedFrameworks: [
+      'SFDR',
+      'EU_TAXONOMY',
+      'NZIF',
+      'GREEN_BONDS',
+      'ILPA',
+      'EDCI',
+    ],
+  },
+  {
+    id: 'supply-chain-hr-dd',
+    name: 'Supply Chain & Human Rights DD',
+    nameLocal: '공급망 & 인권 실사',
+    icon: '⚖️',
+    description: 'CSDDD, LkSG, HRDD, Modern Slavery Act, UFLPA',
+    relatedFrameworks: [
+      'CSDDD',
+      'LkSG',
+      'HRDD',
+      'MODERN_SLAVERY_ACT',
+      'UFLPA',
+    ],
+  },
+  {
+    id: 'product-lca-circular',
+    name: 'Product LCA & Circular Economy',
+    nameLocal: '제품 LCA & 순환경제',
+    icon: '🔄',
+    description: 'ISO 14040, PEF/PEFCR, EPD, ESPR/DPP, AGEC, EN 15804',
+    relatedFrameworks: [
+      'ISO_14040',
+      'PEF',
+      'PEFCR',
+      'EPD',
+      'ESPR',
+      'DPP',
+      'AGEC',
+      'BILAN_CARBONE',
+      'EN_15804',
+      'EN_15978',
+    ],
+  },
+  {
+    id: 'real-estate-building',
+    name: 'Real Estate & Building Certification',
+    nameLocal: '부동산 & 건물 인증',
+    icon: '🏗️',
+    description: 'LEED, BREEAM, DGNB, WELL, GRESB',
+    relatedFrameworks: [
+      'LEED',
+      'BREEAM',
+      'DGNB',
+      'WELL',
+      'GRESB',
+    ],
+  },
+  {
+    id: 'sector-theme-specific',
+    name: 'Sector & Theme Specific',
+    nameLocal: '섹터 & 테마 특화',
+    icon: '🎯',
+    description: 'Higg Index, GBTA, ESBN Green Deal, HCMI/HWMI, OSPAR',
+    relatedFrameworks: [
+      'HIGG_INDEX',
+      'GBTA',
+      'ESBN_GREEN_DEAL',
+      'HCMI',
+      'HWMI',
+      'OSPAR_HOCNF',
+    ],
+  },
+  {
+    id: 'regional-regulations',
+    name: 'Regional Regulations',
+    nameLocal: '지역별 규제',
+    icon: '🗺️',
+    description: 'ASRS, SB 253/261, Climate Active, HKEX, MITECO, OSFI, VSME',
+    relatedFrameworks: [
+      'ASRS',
+      'SB_253',
+      'SB_261',
+      'CLIMATE_ACTIVE',
+      'HKEX',
+      'MITECO',
+      'OSFI_B15',
+      'VSME',
+    ],
+  },
+];
+
+// ============================================
+// User Personas (6~8개)
+// ============================================
+
+export interface UserPersonaInfo {
+  id: string;
+  name: string;
+  nameLocal: string;
+  icon: string;
+  description: string;
+}
+
+export const USER_PERSONAS: UserPersonaInfo[] = [
+  {
+    id: 'sustainability-team',
+    name: 'Sustainability Team',
+    nameLocal: '지속가능성 팀',
+    icon: '🌱',
+    description: 'ESG managers, Sustainability directors, Climate officers',
+  },
+  {
+    id: 'cfo-finance-team',
+    name: 'CFO / Finance Team',
+    nameLocal: 'CFO / 재무팀',
+    icon: '💼',
+    description: 'CFOs, Finance teams, Accounting teams',
+  },
+  {
+    id: 'procurement-supply-chain',
+    name: 'Procurement / Supply Chain',
+    nameLocal: '구매 / 공급망팀',
+    icon: '📦',
+    description: 'Procurement officers, Supply chain managers',
+  },
+  {
+    id: 'investors-pe-vc-am',
+    name: 'Investors / PE / VC / Asset Managers',
+    nameLocal: '투자자 / PE / VC / 자산운용사',
+    icon: '💰',
+    description: 'LPs, GPs, Asset managers, Pension funds',
+  },
+  {
+    id: 'real-estate-plant-operations',
+    name: 'Real Estate / Plant / Operations',
+    nameLocal: '부동산 / 플랜트 / 운영팀',
+    icon: '🏢',
+    description: 'Facility managers, Plant operators, Real estate teams',
+  },
+  {
+    id: 'sme-midmarket-startup',
+    name: 'SME / Mid-market / Startup',
+    nameLocal: 'SME / 중견기업 / 스타트업',
+    icon: '🚀',
+    description: 'Small and medium enterprises, Startups, Scale-ups',
+  },
+];
+
+// ============================================
+// AI Maturity Levels (3개)
+// ============================================
+
+export interface AIMaturityLevelInfo {
+  id: string;
+  name: string;
+  nameLocal: string;
+  icon: string;
+  description: string;
+}
+
+export const AI_MATURITY_LEVELS: AIMaturityLevelInfo[] = [
+  {
+    id: 'none',
+    name: 'No AI',
+    nameLocal: 'AI 없음',
+    icon: '📝',
+    description: 'Traditional software without AI capabilities',
+  },
+  {
+    id: 'ai-assisted',
+    name: 'AI-Assisted (Copilot)',
+    nameLocal: 'AI 보조 (코파일럿)',
+    icon: '🤝',
+    description: 'AI copilot, Auto-classification, Suggestions',
+  },
+  {
+    id: 'ai-first-agentic',
+    name: 'AI-First / Agentic',
+    nameLocal: 'AI 우선 / Agentic',
+    icon: '🤖',
+    description: 'AI agents, Autonomous workflows, AI-native platform',
+  },
+];
+
+// ============================================
 // 지역별 메타 정보
 // ============================================
 
 export const REGION_INFO: Record<Region, { nameLocal: string; emoji: string }> = {
   'Europe': { nameLocal: '유럽', emoji: '🇪🇺' },
-  'North America': { nameLocal: '북미', emoji: '🇺🇸' },
-  'APAC': { nameLocal: '아시아-태평양', emoji: '🌏' },
+  'North America': { nameLocal: '북미', emoji: '🌎' },
+  'Asia': { nameLocal: '아시아', emoji: '🌏' },
+  'Oceania': { nameLocal: '오세아니아', emoji: '🇦🇺' },
   'South America': { nameLocal: '남미', emoji: '🇧🇷' },
   'Middle East': { nameLocal: '중동', emoji: '🇦🇪' },
   'Africa': { nameLocal: '아프리카', emoji: '🌍' },
@@ -426,6 +979,41 @@ export const COUNTRY_INFO: Record<CountryCode, {
     capital: 'Copenhagen',
     cluster: 'Sustainable Tech'
   },
+  // 아시아 (Asia)
+  'SG': {
+    name: 'Singapore',
+    nameLocal: '싱가포르',
+    emoji: '🇸🇬',
+    region: 'Asia',
+    capital: 'Singapore',
+    cluster: 'ESG Data Infrastructure'
+  },
+  'JP': {
+    name: 'Japan',
+    nameLocal: '일본',
+    emoji: '🇯🇵',
+    region: 'Asia',
+    capital: 'Tokyo',
+    cluster: 'Industrial ESG & LCA'
+  },
+  // 오세아니아 (Oceania)
+  'AU': {
+    name: 'Australia',
+    nameLocal: '호주',
+    emoji: '🇦🇺',
+    region: 'Oceania',
+    capital: 'Sydney',
+    cluster: 'ASRS Compliance & Climate Risk'
+  },
+  // 북미 (North America)
+  'CA': {
+    name: 'Canada',
+    nameLocal: '캐나다',
+    emoji: '🇨🇦',
+    region: 'North America',
+    capital: 'Toronto',
+    cluster: 'Disclosure & Reporting'
+  },
 };
 
 // ============================================
@@ -452,8 +1040,9 @@ export const Z_INDEX = {
   MAP_BASE: 1,
   MAP_MARKERS: 10,
   TOOLTIP: 50,
-  PANEL: 100,
-  MODAL: 1000,
+  PANEL: 1000,
+  DROPDOWN: 1100,
+  MODAL: 2000,
 } as const;
 
 // ============================================

@@ -18,6 +18,10 @@ import type {
   CountryCode,
   CompanyType,
   FilterCategory,
+  FeatureGroup,
+  FrameworkGroup,
+  UserPersona,
+  AIMaturityLevel,
 } from '@/types/esg-map';
 
 // ============================================
@@ -68,21 +72,59 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
     });
   }
 
-  // 5. Feature 필터 (직접 선택)
+  // 5. Feature Groups 필터
+  if (filters.featureGroups.length > 0) {
+    const { FEATURE_GROUPS } = require('@/constants/esg-map');
+    const relatedFeatures = filters.featureGroups.flatMap((groupId) => {
+      const group = FEATURE_GROUPS.find((g: any) => g.id === groupId);
+      return group?.relatedFeatures || [];
+    });
+
+    filtered = filtered.filter((c) =>
+      relatedFeatures.some((f) => c.features.includes(f))
+    );
+  }
+
+  // 6. Framework Groups 필터
+  if (filters.frameworkGroups.length > 0) {
+    const { FRAMEWORK_GROUPS } = require('@/constants/esg-map');
+    const relatedFrameworks = filters.frameworkGroups.flatMap((groupId) => {
+      const group = FRAMEWORK_GROUPS.find((g: any) => g.id === groupId);
+      return group?.relatedFrameworks || [];
+    });
+
+    filtered = filtered.filter((c) =>
+      relatedFrameworks.some((fw) => c.frameworks.includes(fw))
+    );
+  }
+
+  // 7. User Persona 필터 (향후 Company 데이터에 persona 필드 추가 시 활성화)
+  // if (filters.personas.length > 0) {
+  //   filtered = filtered.filter((c) =>
+  //     filters.personas.includes(c.primaryPersona)
+  //   );
+  // }
+
+  // 8. AI Maturity 필터 (향후 Company 데이터에 aiMaturity 필드 추가 시 활성화)
+  // if (filters.aiMaturity) {
+  //   filtered = filtered.filter((c) => c.aiMaturity === filters.aiMaturity);
+  // }
+
+  // 9. Feature 필터 (직접 선택 - 고급 필터)
   if (filters.features.length > 0) {
     filtered = filtered.filter((c) =>
       filters.features.some((f) => c.features.includes(f))
     );
   }
 
-  // 6. Framework 필터 (직접 선택)
+  // 10. Framework 필터 (직접 선택 - 고급 필터)
   if (filters.frameworks.length > 0) {
     filtered = filtered.filter((c) =>
       filters.frameworks.some((fw) => c.frameworks.includes(fw))
     );
   }
 
-  // 7. 검색 쿼리
+  // 11. 검색 쿼리
   if (filters.searchQuery.trim()) {
     const query = filters.searchQuery.toLowerCase();
     filtered = filtered.filter(
@@ -215,6 +257,10 @@ interface ESGMapActions {
   setCountryFilter: (countries: CountryCode[]) => void;
   setCompanyTypeFilter: (types: CompanyType[]) => void;
   setCategoryFilter: (categories: FilterCategory[]) => void;
+  setFeatureGroupFilter: (featureGroups: FeatureGroup[]) => void;
+  setFrameworkGroupFilter: (frameworkGroups: FrameworkGroup[]) => void;
+  setPersonaFilter: (personas: UserPersona[]) => void;
+  setAIMaturityFilter: (aiMaturity: AIMaturityLevel | null) => void;
   setFeatureFilter: (features: string[]) => void;
   setFrameworkFilter: (frameworks: string[]) => void;
   setSearchQuery: (query: string) => void;
@@ -234,9 +280,7 @@ interface ESGMapActions {
 
   // 패널 액션
   toggleLeftPanel: () => void;
-  toggleRightPanel: () => void;
   setLeftPanelTab: (tab: 'filters' | 'stats') => void;
-  setRightPanelMode: (mode: PanelState['rightPanel']['mode']) => void;
 
   // 초기화
   reset: () => void;
@@ -263,6 +307,10 @@ const initialState: ESGMapState = {
     countries: [],
     companyTypes: [],
     categories: [],
+    featureGroups: [],
+    frameworkGroups: [],
+    personas: [],
+    aiMaturity: null,
     features: [],
     frameworks: [],
     searchQuery: '',
@@ -280,10 +328,6 @@ const initialState: ESGMapState = {
     leftPanel: {
       isOpen: true,
       activeTab: 'filters',
-    },
-    rightPanel: {
-      isOpen: false,
-      mode: 'region-list',
     },
   },
 };
@@ -317,6 +361,14 @@ export const useESGMapStore = create<ESGMapStore>()(
         set((state) => ({ filters: { ...state.filters, companyTypes: types } })),
       setCategoryFilter: (categories: FilterCategory[]) =>
         set((state) => ({ filters: { ...state.filters, categories } })),
+      setFeatureGroupFilter: (featureGroups: FeatureGroup[]) =>
+        set((state) => ({ filters: { ...state.filters, featureGroups } })),
+      setFrameworkGroupFilter: (frameworkGroups: FrameworkGroup[]) =>
+        set((state) => ({ filters: { ...state.filters, frameworkGroups } })),
+      setPersonaFilter: (personas: UserPersona[]) =>
+        set((state) => ({ filters: { ...state.filters, personas } })),
+      setAIMaturityFilter: (aiMaturity: AIMaturityLevel | null) =>
+        set((state) => ({ filters: { ...state.filters, aiMaturity } })),
       setFeatureFilter: (features: string[]) =>
         set((state) => ({ filters: { ...state.filters, features } })),
       setFrameworkFilter: (frameworks: string[]) =>
@@ -335,38 +387,40 @@ export const useESGMapStore = create<ESGMapStore>()(
       setSelectedCountry: (country: CountryCode | null) =>
         set((state) => ({
           mapState: { ...state.mapState, selectedCountry: country },
-          panelState: {
-            ...state.panelState,
-            rightPanel: { isOpen: true, mode: 'region-list' },
-          },
         })),
       setSelectedCompany: (company: Company | null) =>
         set((state) => ({
           mapState: { ...state.mapState, selectedCompany: company },
-          panelState: {
-            ...state.panelState,
-            rightPanel: { isOpen: true, mode: company ? 'company-detail' : 'region-list' },
-          },
         })),
 
       // 뷰 모드
       setViewMode: (mode: MapState['viewMode']) =>
         set((state) => ({ mapState: { ...state.mapState, viewMode: mode } })),
-      zoomToRegion: (region: Region) =>
+      zoomToRegion: (region: Region) => {
+        let viewMode: MapState['viewMode'] = 'region';
+        
+        // 지역별 상세 뷰 모드 결정
+        if (region === 'Europe') {
+          viewMode = 'europe_detail';
+        } else if (region === 'Asia') {
+          viewMode = 'asia_detail';
+        } else if (region === 'Oceania') {
+          viewMode = 'oceania_detail';
+        } else if (region === 'North America') {
+          viewMode = 'north_america_detail';
+        }
+
         set((state) => ({
           mapState: {
             ...state.mapState,
             selectedRegion: region,
             focusedRegion: region,
-            viewMode: region === 'Europe' ? 'europe_detail' : 'region',
+            viewMode,
             selectedCountry: null,
             selectedCompany: null,
           },
-          panelState: {
-            ...state.panelState,
-            rightPanel: { isOpen: true, mode: 'region-list' },
-          },
-        })),
+        }));
+      },
       zoomToWorld: () =>
         set((state) => ({
           mapState: {
@@ -391,28 +445,11 @@ export const useESGMapStore = create<ESGMapStore>()(
             },
           },
         })),
-      toggleRightPanel: () =>
-        set((state) => ({
-          panelState: {
-            ...state.panelState,
-            rightPanel: {
-              ...state.panelState.rightPanel,
-              isOpen: !state.panelState.rightPanel.isOpen,
-            },
-          },
-        })),
       setLeftPanelTab: (tab: 'filters' | 'stats') =>
         set((state) => ({
           panelState: {
             ...state.panelState,
             leftPanel: { ...state.panelState.leftPanel, activeTab: tab },
-          },
-        })),
-      setRightPanelMode: (mode: PanelState['rightPanel']['mode']) =>
-        set((state) => ({
-          panelState: {
-            ...state.panelState,
-            rightPanel: { ...state.panelState.rightPanel, mode },
           },
         })),
 

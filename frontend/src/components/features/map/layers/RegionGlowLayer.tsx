@@ -13,7 +13,13 @@
 import React from 'react';
 import { RegionMarker } from '../markers/RegionMarker';
 import { CountryMarker } from '../markers/CountryMarker';
-import { REGION_COORDS, EUROPE_HUBS } from '@/constants/esg-map';
+import { 
+  REGION_COORDS, 
+  EUROPE_HUBS,
+  ASIA_HUBS,
+  OCEANIA_HUBS,
+  NORTH_AMERICA_HUBS
+} from '@/constants/esg-map';
 import { useESGMapStore, useCompanyCountByRegion } from '@/store/esgMapStore';
 import type { CountryCode, Region } from '@/types/esg-map';
 
@@ -62,13 +68,64 @@ export const RegionGlowLayer: React.FC = () => {
       ) : viewMode === 'europe_detail' ? (
         // ===== 유럽 확대 뷰: 국가 마커 =====
         <>
-          {(Object.entries(EUROPE_HUBS) as [CountryCode, typeof EUROPE_HUBS[CountryCode]][]).map(
+          {(Object.entries(EUROPE_HUBS) as [string, typeof EUROPE_HUBS[string]][]).map(
             ([country, coords]) => {
-              const companies = getCompaniesByCountry(country);
+              const companies = getCompaniesByCountry(country as CountryCode);
               return (
                 <CountryMarker
                   key={country}
-                  country={country}
+                  country={country as CountryCode}
+                  coords={coords}
+                  companies={companies}
+                />
+              );
+            }
+          )}
+        </>
+      ) : viewMode === 'asia_detail' ? (
+        // ===== 아시아 확대 뷰: 국가 마커 =====
+        <>
+          {(Object.entries(ASIA_HUBS) as [string, typeof ASIA_HUBS[string]][]).map(
+            ([country, coords]) => {
+              const companies = getCompaniesByCountry(country as CountryCode);
+              return (
+                <CountryMarker
+                  key={country}
+                  country={country as CountryCode}
+                  coords={coords}
+                  companies={companies}
+                />
+              );
+            }
+          )}
+        </>
+      ) : viewMode === 'oceania_detail' ? (
+        // ===== 오세아니아 확대 뷰: 국가 마커 =====
+        <>
+          {(Object.entries(OCEANIA_HUBS) as [string, typeof OCEANIA_HUBS[string]][]).map(
+            ([country, coords]) => {
+              const companies = getCompaniesByCountry(country as CountryCode);
+              return (
+                <CountryMarker
+                  key={country}
+                  country={country as CountryCode}
+                  coords={coords}
+                  companies={companies}
+                />
+              );
+            }
+          )}
+        </>
+      ) : viewMode === 'north_america_detail' ? (
+        // ===== 북미 확대 뷰: 국가 마커 =====
+        <>
+          {(Object.entries(NORTH_AMERICA_HUBS) as [string, typeof NORTH_AMERICA_HUBS[string]][]).map(
+            ([country, coords]) => {
+              const companies = getCompaniesByCountry(country as CountryCode);
+              return (
+                <CountryMarker
+                  key={country}
+                  country={country as CountryCode}
                   coords={coords}
                   companies={companies}
                 />

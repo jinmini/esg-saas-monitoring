@@ -16,7 +16,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useESGMapStore } from '@/store/esgMapStore';
 import { 
   WORLD_VIEWPORT, 
-  EUROPE_VIEWPORT, 
+  EUROPE_VIEWPORT,
+  ASIA_VIEWPORT,
+  OCEANIA_VIEWPORT,
+  NORTH_AMERICA_VIEWPORT,
   ANIMATION 
 } from '@/constants/esg-map';
 import type { MapViewMode } from '@/types/esg-map';
@@ -25,7 +28,7 @@ import type { MapViewMode } from '@/types/esg-map';
 import { MapPathsLayer } from './layers/MapPathsLayer';
 import { RegionGlowLayer } from './layers/RegionGlowLayer';
 import { MapTooltip } from './tooltip/MapTooltip';
-import { CompanyListPanel } from './panels/CompanyListPanel';
+import { TopFilterBar } from './controls/TopFilterBar';
 
 /**
  * Props
@@ -64,6 +67,12 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
         return WORLD_VIEWPORT;
       case 'europe_detail':
         return EUROPE_VIEWPORT;
+      case 'asia_detail':
+        return ASIA_VIEWPORT;
+      case 'oceania_detail':
+        return OCEANIA_VIEWPORT;
+      case 'north_america_detail':
+        return NORTH_AMERICA_VIEWPORT;
       case 'region':
         // 향후 확장: 다른 대륙 확대 뷰
         return WORLD_VIEWPORT;
@@ -97,6 +106,8 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
     <div
       className={`relative w-full h-full overflow-hidden bg-slate-900 ${className}`}
     >
+      {/* 상단 필터 바 (Phase 4-3: Top Floating Bar) */}
+      <TopFilterBar />
       {/* SVG 지도 컨테이너 */}
       <motion.svg
         className="w-full h-full"
@@ -213,9 +224,6 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
         <button onClick={() => zoomToRegion('Europe')}>Europe</button>
       </div>
       */}
-
-      {/* 기업 리스트 패널 (우측 슬라이드) */}
-      <CompanyListPanel />
     </div>
   );
 };
