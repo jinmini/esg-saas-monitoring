@@ -1,140 +1,193 @@
 /**
- * Region Glow Layer Component
- * 마커 레이어 (조건부 렌더링)
- * 
- * 기능:
- * - viewMode === 'world' → RegionMarker (대륙)
- * - viewMode === 'europe_detail' → CountryMarker (국가)
- * - SVG filter 정의 (glow 효과)
+ * RegionGlowLayer Component
+ * viewMode에 따라 Region 또는 Country 마커를 조건부 렌더링
  */
 
 'use client';
 
-import React from 'react';
-import { RegionMarker } from '../markers/RegionMarker';
-import { CountryMarker } from '../markers/CountryMarker';
+import { useMemo } from 'react';
+import { useESGMapStore, useFilteredCompanies } from '@/store/esgMapStore';
 import { 
   REGION_COORDS, 
-  EUROPE_HUBS,
-  ASIA_HUBS,
-  OCEANIA_HUBS,
-  NORTH_AMERICA_HUBS
+  EUROPE_HUBS, 
+  ASIA_HUBS, 
+  OCEANIA_HUBS, 
+  NORTH_AMERICA_HUBS 
 } from '@/constants/esg-map';
-import { useESGMapStore, useCompanyCountByRegion } from '@/store/esgMapStore';
-import type { CountryCode, Region } from '@/types/esg-map';
+import { RegionMarker } from '../markers/RegionMarker';
+import { CountryMarker } from '../markers/CountryMarker';
+import type { Region, CountryCode } from '@/types/esg-map';
 
-/**
- * 마커 레이어 컴포넌트
- */
-export const RegionGlowLayer: React.FC = () => {
+export const RegionGlowLayer = () => {
+  // Store 구독 (상태 변경 감지)
+  const filteredCompanies = useFilteredCompanies();
+  
   const viewMode = useESGMapStore((state) => state.mapState.viewMode);
-  const regionCounts = useCompanyCountByRegion();
-  const getCompaniesByCountry = useESGMapStore((state) => state.getCompaniesByCountry);
+  const selectedRegion = useESGMapStore((state) => state.mapState.selectedRegion);
+  const selectedCountry = useESGMapStore((state) => state.mapState.selectedCountry);
+  const hoveredRegion = useESGMapStore((state) => state.mapState.hoveredRegion);
+  const hoveredCountry = useESGMapStore((state) => state.mapState.hoveredCountry);
+  
+  const zoomToRegion = useESGMapStore((state) => state.zoomToRegion);
+  const setSelectedCountry = useESGMapStore((state) => state.setSelectedCountry);
+  const setHoveredRegion = useESGMapStore((state) => state.setHoveredRegion);
+  const setHoveredCountry = useESGMapStore((state) => state.setHoveredCountry);
 
-  return (
-    <g id="region-glow-layer">
-      {/* SVG Filter 정의 */}
-      <defs>
-        <filter id="marker-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
-          <feComponentTransfer>
-            <feFuncA type="linear" slope="1.5" />
-          </feComponentTransfer>
-          <feMerge>
-            <feMergeNode />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
+  // 필터링된 기업들을 지역별/국가별로 그룹화 (Memoization)
+  const companiesByRegion = useMemo(() => {
+    const groups: Record<string, typeof filteredCompanies> = {};
+    filteredCompanies.forEach(company => {
+      if (!groups[company.region]) groups[company.region] = [];
+      groups[company.region].push(company);
+    });
+    return groups;
+  }, [filteredCompanies]);
 
-      {/* 조건부 렌더링: viewMode에 따라 마커 타입 결정 */}
-      {viewMode === 'world' ? (
-        // ===== 세계 지도 뷰: 대륙 마커 =====
-        <>
-          {(Object.entries(REGION_COORDS) as [Region, typeof REGION_COORDS[Region]][]).map(
-            ([region, coords]) => {
-              const count = regionCounts[region] || 0;
-              return (
-                <RegionMarker
-                  key={region}
-                  region={region}
-                  coords={coords}
-                  count={count}
-                />
-              );
-            }
-          )}
-        </>
-      ) : viewMode === 'europe_detail' ? (
-        // ===== 유럽 확대 뷰: 국가 마커 =====
-        <>
-          {(Object.entries(EUROPE_HUBS) as [string, typeof EUROPE_HUBS[string]][]).map(
-            ([country, coords]) => {
-              const companies = getCompaniesByCountry(country as CountryCode);
-              return (
-                <CountryMarker
-                  key={country}
-                  country={country as CountryCode}
-                  coords={coords}
-                  companies={companies}
-                />
-              );
-            }
-          )}
-        </>
-      ) : viewMode === 'asia_detail' ? (
-        // ===== 아시아 확대 뷰: 국가 마커 =====
-        <>
-          {(Object.entries(ASIA_HUBS) as [string, typeof ASIA_HUBS[string]][]).map(
-            ([country, coords]) => {
-              const companies = getCompaniesByCountry(country as CountryCode);
-              return (
-                <CountryMarker
-                  key={country}
-                  country={country as CountryCode}
-                  coords={coords}
-                  companies={companies}
-                />
-              );
-            }
-          )}
-        </>
-      ) : viewMode === 'oceania_detail' ? (
-        // ===== 오세아니아 확대 뷰: 국가 마커 =====
-        <>
-          {(Object.entries(OCEANIA_HUBS) as [string, typeof OCEANIA_HUBS[string]][]).map(
-            ([country, coords]) => {
-              const companies = getCompaniesByCountry(country as CountryCode);
-              return (
-                <CountryMarker
-                  key={country}
-                  country={country as CountryCode}
-                  coords={coords}
-                  companies={companies}
-                />
-              );
-            }
-          )}
-        </>
-      ) : viewMode === 'north_america_detail' ? (
-        // ===== 북미 확대 뷰: 국가 마커 =====
-        <>
-          {(Object.entries(NORTH_AMERICA_HUBS) as [string, typeof NORTH_AMERICA_HUBS[string]][]).map(
-            ([country, coords]) => {
-              const companies = getCompaniesByCountry(country as CountryCode);
-              return (
-                <CountryMarker
-                  key={country}
-                  country={country as CountryCode}
-                  coords={coords}
-                  companies={companies}
-                />
-              );
-            }
-          )}
-        </>
-      ) : null}
-    </g>
-  );
+  const companiesByCountry = useMemo(() => {
+    const groups: Record<string, typeof filteredCompanies> = {};
+    filteredCompanies.forEach(company => {
+      if (!groups[company.countryCode]) groups[company.countryCode] = [];
+      groups[company.countryCode].push(company);
+    });
+    return groups;
+  }, [filteredCompanies]);
+
+  // viewMode별 렌더링 분기
+  if (viewMode === 'world') {
+    // ========================================
+    // World View: Region Markers (대륙 마커)
+    // ========================================
+    return (
+      <g id="region-markers">
+        {(Object.entries(REGION_COORDS) as [Region, typeof REGION_COORDS[Region]][]).map(([region, coords]) => {
+          const companies = companiesByRegion[region] || [];
+          
+          return (
+            <RegionMarker
+              key={region}
+              region={region}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedRegion === region}
+              isHovered={hoveredRegion === region}
+              onClick={() => zoomToRegion(region)}
+              onMouseEnter={() => setHoveredRegion(region)}
+              onMouseLeave={() => setHoveredRegion(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (viewMode === 'europe_detail') {
+    // ========================================
+    // Europe Detail View: Country Markers (유럽 국가 마커)
+    // ========================================
+    return (
+      <g id="country-markers-europe">
+        {(Object.entries(EUROPE_HUBS) as [CountryCode, typeof EUROPE_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+          const companies = companiesByCountry[countryCode] || [];
+          
+          return (
+            <CountryMarker
+              key={countryCode}
+              countryCode={countryCode}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedCountry === countryCode}
+              isHovered={hoveredCountry === countryCode}
+              onClick={() => setSelectedCountry(countryCode)}
+              onMouseEnter={() => setHoveredCountry(countryCode)}
+              onMouseLeave={() => setHoveredCountry(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (viewMode === 'asia_detail') {
+    // ========================================
+    // Asia Detail View: Country Markers (아시아 국가 마커)
+    // ========================================
+    return (
+      <g id="country-markers-asia">
+        {(Object.entries(ASIA_HUBS) as [CountryCode, typeof ASIA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+          const companies = companiesByCountry[countryCode] || [];
+          
+          return (
+            <CountryMarker
+              key={countryCode}
+              countryCode={countryCode}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedCountry === countryCode}
+              isHovered={hoveredCountry === countryCode}
+              onClick={() => setSelectedCountry(countryCode)}
+              onMouseEnter={() => setHoveredCountry(countryCode)}
+              onMouseLeave={() => setHoveredCountry(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (viewMode === 'oceania_detail') {
+    // ========================================
+    // Oceania Detail View: Country Markers (오세아니아 국가 마커)
+    // ========================================
+    return (
+      <g id="country-markers-oceania">
+        {(Object.entries(OCEANIA_HUBS) as [CountryCode, typeof OCEANIA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+          const companies = companiesByCountry[countryCode] || [];
+          
+          return (
+            <CountryMarker
+              key={countryCode}
+              countryCode={countryCode}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedCountry === countryCode}
+              isHovered={hoveredCountry === countryCode}
+              onClick={() => setSelectedCountry(countryCode)}
+              onMouseEnter={() => setHoveredCountry(countryCode)}
+              onMouseLeave={() => setHoveredCountry(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (viewMode === 'north_america_detail') {
+    // ========================================
+    // North America Detail View: Country Markers (북미 국가 마커)
+    // ========================================
+    return (
+      <g id="country-markers-north-america">
+        {(Object.entries(NORTH_AMERICA_HUBS) as [CountryCode, typeof NORTH_AMERICA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+          const companies = companiesByCountry[countryCode] || [];
+          
+          return (
+            <CountryMarker
+              key={countryCode}
+              countryCode={countryCode}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedCountry === countryCode}
+              isHovered={hoveredCountry === countryCode}
+              onClick={() => setSelectedCountry(countryCode)}
+              onMouseEnter={() => setHoveredCountry(countryCode)}
+              onMouseLeave={() => setHoveredCountry(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  // 기본값: 아무것도 렌더링하지 않음
+  return null;
 };
-

@@ -87,9 +87,6 @@ export default function AnalysisPage() {
                 <Globe className="text-green-600" size={28} />
                 ESG SaaS 글로벌 지도
               </h1>
-              <p className="text-sm text-gray-600">
-                유럽 중심 ESG SaaS 생태계 분석 (53개 기업, 14개국)
-              </p>
             </div>
 
             {/* 개발 모드 토글 */}
@@ -106,10 +103,6 @@ export default function AnalysisPage() {
                 {showGrid ? 'Grid ON' : 'Grid OFF'}
               </button>
 
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium">
-                <Layers size={16} />
-                Phase 3-2 완료
-              </div>
             </div>
           </div>
         </header>
@@ -117,61 +110,6 @@ export default function AnalysisPage() {
         {/* 지도 컨테이너 */}
         <div className="flex-1 relative">
           <WorldMapContainer showGrid={showGrid} />
-
-          {/* 인포 패널 (우측 상단) */}
-          <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-4 shadow-lg max-w-xs">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">
-              🎯 테스트 시나리오
-            </h3>
-            <ul className="text-xs text-gray-600 space-y-1.5">
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">1.</span>
-                <span>세계 지도 → 6개 대륙 마커 표시</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">2.</span>
-                <span>유럽 마커 클릭 → 자동 확대</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">3.</span>
-                <span>14개 국가 마커 표시</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">4.</span>
-                <span>Hover → 국가 정보 패널</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-600 font-bold">5.</span>
-                <span>ESC 키 → 세계 지도 복귀</span>
-              </li>
-            </ul>
-
-            <div className="mt-4 pt-3 border-t border-gray-200">
-              <p className="text-xs text-gray-500">
-                💡 Grid 토글로 좌표 디버깅 가능
-              </p>
-            </div>
-          </div>
-
-          {/* 범례 (좌측 하단) */}
-          <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-4 shadow-lg">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              📊 마커 범례
-            </h3>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-500"></div>
-                <span className="text-gray-700">Core ESG Platform</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-blue-500"></div>
-                <span className="text-gray-700">Operational ESG Enabler</span>
-              </div>
-              <div className="mt-3 pt-2 border-t border-gray-200 text-gray-600">
-                마커 크기 = 기업 수 (18~45px)
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </DashboardLayout>

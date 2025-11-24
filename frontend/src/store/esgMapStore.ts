@@ -6,6 +6,11 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { 
+  FILTER_CATEGORIES, 
+  FEATURE_GROUPS, 
+  FRAMEWORK_GROUPS 
+} from '@/constants/esg-map';
 import type {
   Company,
   ESGMapData,
@@ -57,9 +62,8 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
 
   // 4. Category 필터 (Features + Frameworks 매핑)
   if (filters.categories.length > 0) {
-    const { FILTER_CATEGORIES } = require('@/constants/esg-map');
     const relatedTags = filters.categories.flatMap((catId) => {
-      const cat = FILTER_CATEGORIES.find((c: any) => c.id === catId);
+      const cat = FILTER_CATEGORIES.find((c) => c.id === catId);
       return [
         ...(cat?.relatedFeatures || []),
         ...(cat?.relatedFrameworks || []),
@@ -74,9 +78,8 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
 
   // 5. Feature Groups 필터
   if (filters.featureGroups.length > 0) {
-    const { FEATURE_GROUPS } = require('@/constants/esg-map');
     const relatedFeatures = filters.featureGroups.flatMap((groupId) => {
-      const group = FEATURE_GROUPS.find((g: any) => g.id === groupId);
+      const group = FEATURE_GROUPS.find((g) => g.id === groupId);
       return group?.relatedFeatures || [];
     });
 
@@ -87,9 +90,8 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
 
   // 6. Framework Groups 필터
   if (filters.frameworkGroups.length > 0) {
-    const { FRAMEWORK_GROUPS } = require('@/constants/esg-map');
     const relatedFrameworks = filters.frameworkGroups.flatMap((groupId) => {
-      const group = FRAMEWORK_GROUPS.find((g: any) => g.id === groupId);
+      const group = FRAMEWORK_GROUPS.find((g) => g.id === groupId);
       return group?.relatedFrameworks || [];
     });
 

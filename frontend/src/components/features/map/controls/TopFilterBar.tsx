@@ -49,6 +49,28 @@ export const TopFilterBar: React.FC = () => {
     setActiveDropdown(activeDropdown === id ? null : id);
   };
 
+  // 기타/통합 플랫폼 타입 목록
+  const OTHER_TYPES = [
+    'INTEGRATED_GRC_ESG_PLATFORM',
+    'INTEGRATED_EHS_ESG_PLATFORM',
+    'INTEGRATED_REPORTING_PLATFORM',
+    'INTEGRATED_CLOUD_ESG_PLATFORM',
+    'INTEGRATED_ENTERPRISE_PLATFORM',
+    'INTEGRATED_GRC_PLATFORM',
+    'INTEGRATED_TRUST_PLATFORM',
+    'VERTICAL_ESG_PLATFORM',
+    'SCIENCE_ADVISORY_PLATFORM',
+    'SUPPLY_CHAIN_COMPLIANCE_PLATFORM',
+    'CARBON_OFFSET_API_PLATFORM',
+    'CARBON_MARKET_PLATFORM',
+    'SUPPLY_CHAIN_ESG_PLATFORM',
+    'ENVIRONMENTAL_LIABILITY_MANAGEMENT_PLATFORM',
+    'BLOCKCHAIN_SUPPLY_CHAIN_PLATFORM',
+    'ENVIRONMENTAL_COMPLIANCE_PLATFORM',
+    'CARBON_CREDIT_PLATFORM',
+    'ASSET_MANAGEMENT_ESG_INTEGRATION',
+  ] as CompanyType[];
+
   // --- Handlers ---
 
   const toggleCompanyType = (type: CompanyType) => {
@@ -58,6 +80,20 @@ export const TopFilterBar: React.FC = () => {
       setCompanyTypeFilter([...filters.companyTypes, type]);
     }
   };
+
+  const toggleOtherTypes = () => {
+    // 하나라도 포함되어 있으면 -> 전체 제거 (Uncheck)
+    const hasAnyOther = OTHER_TYPES.some(t => filters.companyTypes.includes(t));
+    
+    if (hasAnyOther) {
+      setCompanyTypeFilter(filters.companyTypes.filter(t => !OTHER_TYPES.includes(t)));
+    } else {
+      // 하나도 없으면 -> 전체 추가 (Check)
+      setCompanyTypeFilter([...filters.companyTypes, ...OTHER_TYPES]);
+    }
+  };
+
+  const isOtherTypesChecked = OTHER_TYPES.some(t => filters.companyTypes.includes(t));
 
   const toggleFeatureGroup = (id: FeatureGroup) => {
     if (filters.featureGroups.includes(id)) {
@@ -159,6 +195,18 @@ export const TopFilterBar: React.FC = () => {
                 <div>
                   <span className="text-sm text-white font-medium">Operational ESG Enabler</span>
                   <p className="text-xs text-slate-400">운영 효율화 중심</p>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700/50 cursor-pointer transition-colors">
+                <input
+                  type="checkbox"
+                  checked={isOtherTypesChecked}
+                  onChange={toggleOtherTypes}
+                  className="w-4 h-4 text-purple-500 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                />
+                <div>
+                  <span className="text-sm text-white font-medium">Integrated / Others</span>
+                  <p className="text-xs text-slate-400">통합 플랫폼 및 기타</p>
                 </div>
               </label>
             </div>

@@ -114,11 +114,14 @@ export const OCEANIA_HUBS: Record<string, RegionCoordinates> = {
 /**
  * 북미 국가별 좌표 (North America Region View용)
  * 
- * 📍 좌표 기준 (2025-11-23):
+ * 📍 좌표 기준 (2025-11-24):
  * - viewBox 2000x857 기준
- * - 캐나다
+ * - 미국, 캐나다
  */
 export const NORTH_AMERICA_HUBS: Record<string, RegionCoordinates> = {
+  // 🇺🇸 미국: 북미 중남부 (더 큰 마커)
+  'US': { x: 350, y: 350, radius: 35 },
+  
   // 🇨🇦 캐나다: 북미 북부
   'CA': { x: 300, y: 250, radius: 25 },
 };
@@ -1006,6 +1009,14 @@ export const COUNTRY_INFO: Record<CountryCode, {
     cluster: 'ASRS Compliance & Climate Risk'
   },
   // 북미 (North America)
+  'US': {
+    name: 'United States',
+    nameLocal: '미국',
+    emoji: '🇺🇸',
+    region: 'North America',
+    capital: 'New York',
+    cluster: 'Enterprise ESG & AI Analytics'
+  },
   'CA': {
     name: 'Canada',
     nameLocal: '캐나다',

@@ -11,8 +11,18 @@
  * 기업 타입 분류
  * - CORE_ESG_PLATFORM: ESG 관리가 핵심 비즈니스인 전용 플랫폼
  * - OPERATIONAL_ESG_ENABLER: 운영 효율화가 주목적이며, 그 결과로 ESG 효과를 창출
+ * - INTEGRATED_*: 기존 엔터프라이즈 플랫폼에 ESG 기능을 통합한 플랫폼
  */
-export type CompanyType = 'CORE_ESG_PLATFORM' | 'OPERATIONAL_ESG_ENABLER';
+export type CompanyType = 
+  | 'CORE_ESG_PLATFORM' 
+  | 'OPERATIONAL_ESG_ENABLER'
+  | 'INTEGRATED_GRC_ESG_PLATFORM'       // GRC + ESG 통합
+  | 'INTEGRATED_EHS_ESG_PLATFORM'       // EHS + ESG 통합
+  | 'INTEGRATED_REPORTING_PLATFORM'     // 재무 보고 + ESG 통합
+  | 'INTEGRATED_CLOUD_ESG_PLATFORM'     // 클라우드 ERP + ESG 통합
+  | 'INTEGRATED_ENTERPRISE_PLATFORM'    // 엔터프라이즈 소프트웨어 + ESG 통합
+  | 'INTEGRATED_GRC_PLATFORM'           // GRC 플랫폼 + ESG
+  | 'INTEGRATED_TRUST_PLATFORM';        // 신뢰/보안 플랫폼 + ESG
 
 /**
  * 기업 정보 인터페이스
@@ -66,7 +76,7 @@ export type Region = 'Europe' | 'North America' | 'Asia' | 'Oceania' | 'South Am
  * - 유럽 14개국 (GB, DE, FR, NL, SE, FI, NO, CH, BE, ES, IE, EE, PL, DK)
  * - 아시아 2개국 (SG, JP)
  * - 오세아니아 1개국 (AU)
- * - 북미 1개국 (CA)
+ * - 북미 2개국 (US, CA)
  */
 export type CountryCode = 
   // 유럽 (Europe)
@@ -90,6 +100,7 @@ export type CountryCode =
   // 오세아니아 (Oceania)
   | 'AU' // 🇦🇺 호주 (Australia)
   // 북미 (North America)
+  | 'US' // 🇺🇸 미국 (United States)
   | 'CA'; // 🇨🇦 캐나다 (Canada)
 
 /**

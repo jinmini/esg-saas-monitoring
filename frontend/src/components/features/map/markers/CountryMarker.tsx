@@ -1,117 +1,145 @@
 /**
- * Country Marker Component
- * 국가(Country) 레벨 마커 컴포넌트
- * 
- * 변경사항 (2025-11-22):
- * - 마커 크기 축소 대응 (폰트 크기, 레이아웃)
- * - 겹침 시 가독성 확보를 위한 투명도 조정
+ * CountryMarker Component
+ * 국가(Country) 단위 마커 - Europe Detail View 등에서 표시
  */
 
 'use client';
 
-import React, { useCallback } from 'react';
 import { motion } from 'framer-motion';
-import type { CountryCode, RegionCoordinates, Company } from '@/types/esg-map';
-import { COLORS, COUNTRY_INFO } from '@/constants/esg-map';
-import { useESGMapStore } from '@/store/esgMapStore';
+import { COLORS } from '@/constants/esg-map';
 import { calculateRadius, getMarkerColor, getCompanyTypeCounts } from '../utils/markerUtils';
+import type { CountryCode, Company, RegionCoordinates } from '@/types/esg-map';
 
 interface CountryMarkerProps {
-  country: CountryCode;
+  countryCode: CountryCode;
   coords: RegionCoordinates;
   companies: Company[];
+  isSelected: boolean;
+  isHovered: boolean;
+  onClick: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }
 
-export const CountryMarker = React.memo(({ country, coords, companies }: CountryMarkerProps) => {
-  const { x, y } = coords;
+export const CountryMarker = ({
+  countryCode,
+  coords,
+  companies,
+  isSelected,
+  isHovered,
+  onClick,
+  onMouseEnter,
+  onMouseLeave,
+}: CountryMarkerProps) => {
   const count = companies.length;
+  
+  // 기업 수에 따른 반경 계산 (Country는 작게)
+  const radius = count > 0 
+    ? calculateRadius(count, 15, 40)
+    : coords.radius;
 
-  const setHoveredCountry = useESGMapStore((state) => state.setHoveredCountry);
-  const setSelectedCountry = useESGMapStore((state) => state.setSelectedCountry);
-  const hoveredCountry = useESGMapStore((state) => state.mapState.hoveredCountry);
-  const selectedCountry = useESGMapStore((state) => state.mapState.selectedCountry);
-
-  const isHovered = hoveredCountry === country;
-  const isSelected = selectedCountry === country;
-
-  // radius 계산 (markerUtils의 변경된 로직 사용: 12~35px)
-  const radius = calculateRadius(count, 12, 35);
-
-  // 색상 계산
+  // 기업 타입 분포에 따른 색상
   const { core, operational } = getCompanyTypeCounts(companies);
-  const markerColor = getMarkerColor(core, operational);
+  const markerColor = count > 0 
+    ? getMarkerColor(core, operational) 
+    : COLORS.MAP_LAND;
 
-  const handleMouseEnter = useCallback(() => setHoveredCountry(country), [country, setHoveredCountry]);
-  const handleMouseLeave = useCallback(() => setHoveredCountry(null), [setHoveredCountry]);
-  const handleClick = useCallback(() => setSelectedCountry(country), [country, setSelectedCountry]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      setSelectedCountry(country);
-    }
-  }, [country, setSelectedCountry]);
-
-  if (count === 0) return null;
-
-  const countryInfo = COUNTRY_INFO[country];
-  const ariaLabel = `${countryInfo.nameLocal} (${country}): ${count}개 기업`;
+  // 상태별 스타일
+  const baseOpacity = count === 0 ? 0.1 : 0.7;
+  const opacity = isHovered ? 1 : isSelected ? 0.9 : baseOpacity;
+  const scale = isHovered ? 1.2 : isSelected ? 1.15 : 1;
 
   return (
     <g
-      role="button"
-      tabIndex={0}
-      aria-label={ariaLabel}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: count > 0 ? 'pointer' : 'default' }}
+      onClick={count > 0 ? onClick : undefined}
+      onMouseEnter={count > 0 ? onMouseEnter : undefined}
+      onMouseLeave={count > 0 ? onMouseLeave : undefined}
     >
-      {/* Glow (Hover 시) */}
-      {isHovered && (
-        <motion.circle
-          cx={x}
-          cy={y}
-          r={radius + 6}
-          fill={markerColor}
-          opacity={0.4}
-          filter="url(#marker-glow)"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 0.4 }}
-        />
-      )}
-
-      {/* 메인 원 */}
+      {/* Glow Effect (Outer Circle) */}
       <motion.circle
-        cx={x}
-        cy={y}
+        cx={coords.x}
+        cy={coords.y}
         r={radius}
         fill={markerColor}
-        opacity={isHovered ? 0.9 : 0.75} // 평소엔 약간 투명하게 (겹침 대비)
-        stroke={isSelected ? COLORS.ACCENT : COLORS.MAP_BORDER}
-        strokeWidth={isSelected ? 2 : 1}
-        animate={{ scale: isHovered ? 1.1 : 1 }}
-        transition={{ duration: 0.2 }}
+        opacity={opacity * 0.25}
+        filter="url(#glow-country)"
+        animate={{
+          scale,
+          opacity: [opacity * 0.25, opacity * 0.35, opacity * 0.25],
+        }}
+        transition={{
+          scale: { duration: 0.25, ease: 'easeOut' },
+          opacity: {
+            duration: 1.5,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          },
+        }}
+        style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
       />
 
-      {/* 숫자 */}
-      <motion.text
-        x={x}
-        y={y} // 중앙 정렬
-        textAnchor="middle"
-        dominantBaseline="central" // 세로 중앙 정렬
-        fill={COLORS.TEXT_PRIMARY}
-        fontSize={Math.max(radius * 0.8, 10)} // 크기에 비례하되 최소 10px
-        fontWeight="bold"
-        pointerEvents="none"
-        style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }} // 가독성 확보
-        animate={{ scale: isHovered ? 1.1 : 1 }}
-      >
-        {count}
-      </motion.text>
+      {/* Main Circle */}
+      <motion.circle
+        cx={coords.x}
+        cy={coords.y}
+        r={radius * 0.65}
+        fill={markerColor}
+        opacity={opacity}
+        stroke={isSelected || isHovered ? '#ffffff' : 'none'}
+        strokeWidth={isSelected ? 2.5 : 2}
+        animate={{ scale }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
+      />
+
+      {/* Count Text */}
+      {count > 0 && (
+        <motion.text
+          x={coords.x}
+          y={coords.y}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="#ffffff"
+          fontSize={radius * 0.4}
+          fontWeight="600"
+          pointerEvents="none"
+          animate={{ scale }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
+        >
+          {count}
+        </motion.text>
+      )}
+
+      {/* Country Code Label (Optional - 작은 텍스트) */}
+      {count > 0 && (
+        <motion.text
+          x={coords.x}
+          y={coords.y + radius + 8}
+          textAnchor="middle"
+          fill="#64748b"
+          fontSize={10}
+          fontWeight="500"
+          pointerEvents="none"
+          opacity={isHovered ? 1 : 0}
+          animate={{ opacity: isHovered ? 1 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {countryCode}
+        </motion.text>
+      )}
+
+      {/* SVG Filter for Glow */}
+      <defs>
+        <filter id="glow-country" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
     </g>
   );
-});
-
-CountryMarker.displayName = 'CountryMarker';
+};
