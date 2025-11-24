@@ -59,14 +59,14 @@ export const EUROPE_HUBS: Record<string, RegionCoordinates> = {
   // 🇳🇱 네덜란드: 해안가 쪽으로 이동
   'NL': { x: 1015, y: 155, radius: 24 },
   
-  // 🇧🇪 벨기에: 네덜란드-프랑스 사이
-  'BE': { x: 1000, y: 180, radius: 20 },
+  // 🇧🇪 벨기에: 네덜란드-프랑스 사이 (좌표 보정)
+  'BE': { x: 1005, y: 180, radius: 20 },
   
-  // 🇨🇭 스위스: 알프스 산맥 쪽 (독일-프랑스-이탈리아 사이)
-  'CH': { x: 1040, y: 225, radius: 18 },
+  // 🇨🇭 스위스: 알프스 산맥 쪽 (좌표 보정)
+  'CH': { x: 1055, y: 225, radius: 18 },
   
   // 🇩🇰 덴마크: 독일 위쪽 반도
-  'DK': { x: 1050, y: 130, radius: 18 },
+  'DK': { x: 1050, y: 120, radius: 18 },
   
   // 🇳🇴 노르웨이: 좌측 상단 스칸디나비아
   'NO': { x: 1040, y: 80, radius: 20 },
@@ -77,8 +77,8 @@ export const EUROPE_HUBS: Record<string, RegionCoordinates> = {
   // 🇫🇮 핀란드: 최우측 상단
   'FI': { x: 1140, y: 80, radius: 20 },
   
-  // 🇵🇱 폴란드: 독일 우측
-  'PL': { x: 1120, y: 180, radius: 20 },
+  // 🇵🇱 폴란드: 독일 우측 (좌표 보정)
+  'PL': { x: 1140, y: 180, radius: 20 },
   
   // 🇪🇪 에스토니아: 발트해 연안
   'EE': { x: 1140, y: 130, radius: 18 },
@@ -92,11 +92,11 @@ export const EUROPE_HUBS: Record<string, RegionCoordinates> = {
  * - 싱가포르, 일본
  */
 export const ASIA_HUBS: Record<string, RegionCoordinates> = {
-  // 🇸🇬 싱가포르: 동남아시아
-  'SG': { x: 1520, y: 480, radius: 25 },
+  // 🇸🇬 싱가포르: 말레이 반도 끝자락 (미세 보정)
+  'SG': { x: 1480, y: 515, radius: 25 },
   
-  // 🇯🇵 일본: 극동아시아
-  'JP': { x: 1730, y: 320, radius: 30 },
+  // 🇯🇵 일본: 도쿄 (미세 보정)
+  'JP': { x: 1760, y: 310, radius: 30 },
 };
 
 /**
@@ -107,8 +107,8 @@ export const ASIA_HUBS: Record<string, RegionCoordinates> = {
  * - 호주
  */
 export const OCEANIA_HUBS: Record<string, RegionCoordinates> = {
-  // 🇦🇺 호주: 오세아니아 대륙
-  'AU': { x: 1650, y: 650, radius: 30 },
+  // 🇦🇺 호주: 시드니/멜버른 쪽으로 (우측 하단)
+  'AU': { x: 1700, y: 700, radius: 30 },
 };
 
 /**
@@ -119,16 +119,29 @@ export const OCEANIA_HUBS: Record<string, RegionCoordinates> = {
  * - 미국, 캐나다
  */
 export const NORTH_AMERICA_HUBS: Record<string, RegionCoordinates> = {
-  // 🇺🇸 미국: 북미 중남부 (더 큰 마커)
-  'US': { x: 350, y: 350, radius: 35 },
+  // 🇺🇸 미국: 뉴욕/동부 해안 기준 (우측으로 이동)
+  'US': { x: 550, y: 350, radius: 35 },
   
-  // 🇨🇦 캐나다: 북미 북부
-  'CA': { x: 300, y: 250, radius: 25 },
+  // 🇨🇦 캐나다: 토론토/몬트리올 기준 (우측 하단으로 이동)
+  'CA': { x: 550, y: 250, radius: 25 },
 };
 
 // ============================================
-// 지도 뷰포트 설정
+// 지도 뷰포트 (BBox) 설정
 // ============================================
+
+/**
+ * Region Bounding Boxes (Logical Area of Interest)
+ * Dynamic Fit-Bounds 계산을 위한 각 지역별 관심 영역 정의
+ */
+export const REGION_BBOX: Record<string, { x: number; y: number; w: number; h: number }> = {
+  'world': { x: 0, y: 0, w: 2000, h: 857 },
+  'europe_detail': { x: 880, y: 50, w: 300, h: 260 },
+  'asia_detail': { x: 1450, y: 250, w: 350, h: 280 },
+  'oceania_detail': { x: 1520, y: 550, w: 260, h: 200 },
+  // 🇺🇸 북미 특별 보정: 알래스카/하와이 제외, 본토(Mainland)와 캐나다 남부 집중
+  'north_america_detail': { x: 380, y: 150, w: 350, h: 300 }, 
+};
 
 export const WORLD_VIEWPORT: MapViewport = {
   viewBox: '0 0 2000 857',

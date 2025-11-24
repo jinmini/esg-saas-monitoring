@@ -112,7 +112,7 @@ export const TopFilterBar: React.FC = () => {
   };
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-3 w-[calc(100%-2rem)] max-w-5xl pointer-events-none">
+    <div className="absolute top-14 left-4 z-[1000] flex flex-col gap-3 w-[calc(100%-2rem)] max-w-5xl pointer-events-none">
       {/* 상단 Row: 검색창 + 필터 칩 */}
       <div className="flex items-center gap-2 pointer-events-auto flex-wrap">
         {/* 1. 검색창 */}

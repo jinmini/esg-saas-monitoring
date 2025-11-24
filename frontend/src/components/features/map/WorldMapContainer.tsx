@@ -14,13 +14,11 @@
 import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useESGMapStore } from '@/store/esgMapStore';
+import { useWindowSize } from '@/hooks/useWindowSize';
 import { 
-  WORLD_VIEWPORT, 
-  EUROPE_VIEWPORT,
-  ASIA_VIEWPORT,
-  OCEANIA_VIEWPORT,
-  NORTH_AMERICA_VIEWPORT,
-  ANIMATION 
+  REGION_BBOX,
+  ANIMATION,
+  PANEL_WIDTH
 } from '@/constants/esg-map';
 import type { MapViewMode } from '@/types/esg-map';
 
@@ -53,37 +51,56 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
   
   const mapState = useESGMapStore((state) => state.mapState);
   const zoomToWorld = useESGMapStore((state) => state.zoomToWorld);
+  const { rightPanel } = useESGMapStore((state) => state.panelState);
+  const { width, height } = useWindowSize();
   
   const { viewMode, focusedRegion } = mapState;
 
   // ========================================
-  // Viewport 계산
+  // Viewport 계산 (Dynamic Fit-Bounds)
   // ========================================
   
-  /**
-   * viewMode에 따라 적절한 viewport 반환
-   */
-  const getViewport = useCallback((mode: MapViewMode) => {
-    switch (mode) {
-      case 'world':
-        return WORLD_VIEWPORT;
-      case 'europe_detail':
-        return EUROPE_VIEWPORT;
-      case 'asia_detail':
-        return ASIA_VIEWPORT;
-      case 'oceania_detail':
-        return OCEANIA_VIEWPORT;
-      case 'north_america_detail':
-        return NORTH_AMERICA_VIEWPORT;
-      case 'region':
-        // 향후 확장: 다른 대륙 확대 뷰
-        return WORLD_VIEWPORT;
-      default:
-        return WORLD_VIEWPORT;
-    }
-  }, []);
+  const getDynamicViewBox = useCallback(() => {
+    // 초기 로딩 시 안전장치
+    if (!width || !height) return '0 0 2000 857';
 
-  const currentViewport = getViewport(viewMode);
+    // 1. Target BBox (관심 영역) - viewMode에 해당하는 BBox 가져오기
+    const targetBBox = REGION_BBOX[viewMode] || REGION_BBOX['world'];
+
+    // 2. Available Screen Space (패널 제외)
+    const panelWidth = rightPanel.isOpen ? PANEL_WIDTH.RIGHT : 0;
+    const availableW = width - panelWidth;
+    const availableH = height;
+
+    // 3. Scale Calculation (Fit Bounds)
+    // 화면(Available Space)에 Target BBox가 꽉 차게 들어가는 비율 계산
+    // 0.9는 Padding(10%) 여유분
+    const scaleW = availableW / targetBBox.w;
+    const scaleH = availableH / targetBBox.h;
+    const scale = Math.min(scaleW, scaleH) * 0.9;
+
+    // 4. ViewBox Size (SVG Units)
+    // 실제 화면 전체(width x height)를 커버하기 위해 필요한 SVG 영역 크기 역산
+    const viewBoxW = width / scale;
+    const viewBoxH = height / scale;
+
+    // 5. ViewBox Origin (Center Alignment)
+    // "Available Space"의 정중앙에 "Target BBox"의 정중앙을 맞춤
+    // 
+    // targetCenterX (SVG좌표) - viewBoxX (SVG좌표) = screenCenterOffsetX (화면좌표) / scale
+    // screenCenterOffsetX = availableW / 2
+    
+    const targetCenterX = targetBBox.x + targetBBox.w / 2;
+    const targetCenterY = targetBBox.y + targetBBox.h / 2;
+
+    const viewBoxX = targetCenterX - (availableW / 2) / scale;
+    // Y축은 패널 영향 없이 화면 전체 높이의 중앙에 맞춤
+    const viewBoxY = targetCenterY - (height / 2) / scale;
+
+    return `${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`;
+  }, [viewMode, width, height, rightPanel.isOpen]);
+
+  const currentViewBox = getDynamicViewBox();
 
   // ========================================
   // 키보드 이벤트 (ESC로 세계 지도 복귀)
@@ -120,11 +137,11 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
       {/* SVG 지도 컨테이너 */}
       <motion.svg
         className="w-full h-full"
-        viewBox={currentViewport.viewBox}
+        viewBox={currentViewBox}
         preserveAspectRatio="xMidYMid meet"
         animate={{
           // viewBox 애니메이션 (부드러운 전환)
-          viewBox: currentViewport.viewBox,
+          viewBox: currentViewBox,
         }}
         transition={{
           duration: ANIMATION.MAP_ZOOM / 1000, // ms → s
@@ -221,7 +238,7 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
         <div className="absolute top-4 left-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm font-mono">
           <div>View Mode: <span className="text-amber-500 font-bold">{viewMode}</span></div>
           <div>Focused: <span className="text-green-500">{focusedRegion || 'None'}</span></div>
-          <div>ViewBox: <span className="text-blue-400">{currentViewport.viewBox}</span></div>
+          <div>ViewBox: <span className="text-blue-400">{currentViewBox}</span></div>
           <div className="mt-2 text-xs text-slate-400">Press ESC to return to World View</div>
         </div>
       )}

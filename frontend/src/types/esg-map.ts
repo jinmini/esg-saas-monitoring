@@ -309,12 +309,24 @@ export interface ESGMapData {
 // ============================================
 
 /**
+ * 패널 모드
+ * - list: 국가 내 기업 목록
+ * - detail: 특정 기업 상세 정보
+ */
+export type PanelMode = 'list' | 'detail';
+
+/**
  * 패널 상태
  */
 export interface PanelState {
   leftPanel: {
     isOpen: boolean;
     activeTab: 'filters' | 'stats';
+  };
+  rightPanel: {
+    isOpen: boolean;
+    mode: PanelMode;
+    targetCountry: CountryCode | null; // list 모드에서 사용
   };
 }
 

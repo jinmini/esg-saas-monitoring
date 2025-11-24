@@ -1,18 +1,17 @@
 /**
- * MapTooltip Component (Rich Card Version)
- * 지도 마커 호버/선택 시 표시되는 상세 정보 카드
+ * MapTooltip Component (Simplified Version)
+ * 지도 마커 호버 시 표시되는 간단한 정보 라벨
  * 
- * 기능:
- * - SVG foreignObject를 사용한 HTML 렌더링
- * - 단일 기업 vs 다수 기업(클러스터) 구분 렌더링
- * - 모든 상세 뷰(Europe, Asia, Oceania, NA) 지원
+ * 변경사항:
+ * - 복잡한 카드 UI 제거 (패널이 메인이므로)
+ * - 심플한 "Region Name (Count)" 형태의 말풍선으로 변경
+ * - Smart Positioning 유지 (화면 잘림 방지)
  */
 
 'use client';
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, MapPin, ChevronRight, Building2, Globe } from 'lucide-react';
 import { 
   useESGMapStore, 
   useCompanyCountByRegion, 
@@ -21,36 +20,18 @@ import {
 import { 
   REGION_COORDS, 
   EUROPE_HUBS, 
-  ASIA_HUBS,
-  OCEANIA_HUBS,
+  ASIA_HUBS, 
+  OCEANIA_HUBS, 
   NORTH_AMERICA_HUBS,
   REGION_INFO, 
-  COUNTRY_INFO,
-  COLORS
+  COUNTRY_INFO
 } from '@/constants/esg-map';
 import { calculateRadius } from '../utils/markerUtils';
-import type { CountryCode, Company } from '@/types/esg-map';
-
-// --- Helper Components ---
-
-const TypeBadge = ({ type }: { type: string }) => {
-  const isCore = type === 'CORE_ESG_PLATFORM';
-  return (
-    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-      isCore 
-        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
-        : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-    }`}>
-      {isCore ? 'CORE' : 'OPS'}
-    </span>
-  );
-};
 
 export const MapTooltip = () => {
   const viewMode = useESGMapStore((state) => state.mapState.viewMode);
   const hoveredRegion = useESGMapStore((state) => state.mapState.hoveredRegion);
   const hoveredCountry = useESGMapStore((state) => state.mapState.hoveredCountry);
-  const getCompaniesByCountry = useESGMapStore((state) => state.getCompaniesByCountry);
   
   const regionCounts = useCompanyCountByRegion();
   const countryCounts = useCompanyCountByCountry();
@@ -60,33 +41,24 @@ export const MapTooltip = () => {
   let y = 0;
   let radius = 0;
   let isVisible = false;
-  let contentNode: React.ReactNode = null;
+  let label = '';
+  let count = 0;
 
-  // 1-A. World View (Continent Tooltip)
+  // 1-A. World View (Region)
   if (viewMode === 'world' && hoveredRegion) {
     const coords = REGION_COORDS[hoveredRegion];
     if (coords) {
       x = coords.x;
       y = coords.y;
       radius = coords.radius;
-      
-      const info = REGION_INFO[hoveredRegion];
-      const count = regionCounts[hoveredRegion] || 0;
-      
+      label = REGION_INFO[hoveredRegion].nameLocal;
+      count = regionCounts[hoveredRegion] || 0;
       isVisible = true;
-      contentNode = (
-        <div className="flex flex-col items-center justify-center h-full text-center">
-          <div className="text-2xl mb-1">{info.emoji}</div>
-          <div className="text-sm font-bold text-white mb-0.5">{info.nameLocal}</div>
-          <div className="text-xs text-slate-400">{count} Companies</div>
-        </div>
-      );
     }
   } 
-  // 1-B. Detail Views (Country Tooltip)
+  // 1-B. Detail Views (Country)
   else if (hoveredCountry) {
     let coords;
-    // 뷰 모드에 따른 좌표 소스 선택
     if (viewMode === 'europe_detail') coords = EUROPE_HUBS[hoveredCountry];
     else if (viewMode === 'asia_detail') coords = ASIA_HUBS[hoveredCountry];
     else if (viewMode === 'oceania_detail') coords = OCEANIA_HUBS[hoveredCountry];
@@ -95,124 +67,43 @@ export const MapTooltip = () => {
     if (coords) {
       x = coords.x;
       y = coords.y;
-      const count = countryCounts[hoveredCountry] || 0;
+      count = countryCounts[hoveredCountry] || 0;
       radius = calculateRadius(count, 12, 35);
-      
-      const info = COUNTRY_INFO[hoveredCountry];
-      const companies = getCompaniesByCountry(hoveredCountry);
-      
+      label = COUNTRY_INFO[hoveredCountry].nameLocal;
       isVisible = true;
-
-      // --- Content Rendering Logic ---
-      if (companies.length === 1) {
-        // [Case 1] 단일 기업 상세 카드
-        const company = companies[0];
-        contentNode = (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-lg shadow-inner">
-                  {/* 로고 대신 이모지/아이콘 */}
-                  {info.emoji}
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-white leading-tight line-clamp-1">{company.name}</h3>
-                  <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                    <MapPin size={10} />
-                    <span>{company.headquarters.split(',')[0]}</span>
-                  </div>
-                </div>
-              </div>
-              <TypeBadge type={company.companyType} />
-            </div>
-
-            {/* Description */}
-            <p className="text-[11px] text-slate-300 line-clamp-2 mb-3 leading-relaxed">
-              {company.descriptionLocal || company.description}
-            </p>
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-1 mb-auto">
-              {company.features.slice(0, 3).map(f => (
-                <span key={f} className="text-[9px] px-1.5 py-0.5 bg-slate-700/50 text-slate-400 rounded border border-slate-700">
-                  #{f.replace(/_/g, ' ').toLowerCase()}
-                </span>
-              ))}
-            </div>
-
-            {/* Footer Buttons */}
-            <div className="flex gap-2 mt-3 pt-3 border-t border-slate-700/50">
-              {company.websiteUrl && (
-                <a 
-                  href={company.websiteUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-[10px] text-white rounded transition-colors"
-                >
-                  <Globe size={12} /> Website
-                </a>
-              )}
-              {/* <button className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-green-600 hover:bg-green-500 text-[10px] text-white rounded font-medium transition-colors shadow-lg shadow-green-900/20">
-                View Details <ChevronRight size={12} />
-              </button> */}
-            </div>
-          </div>
-        );
-      } else {
-        // [Case 2] 다수 기업 리스트 프리뷰 (Cluster Card)
-        contentNode = (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/50">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{info.emoji}</span>
-                <span className="text-sm font-bold text-white">{info.nameLocal}</span>
-              </div>
-              <span className="text-xs font-mono text-green-400 bg-green-400/10 px-1.5 py-0.5 rounded">
-                {count} Companies
-              </span>
-            </div>
-
-            {/* List Preview */}
-            <div className="flex-1 overflow-hidden space-y-1.5">
-              {companies.slice(0, 3).map(company => (
-                <div key={company.id} className="flex items-center justify-between bg-slate-700/30 p-1.5 rounded hover:bg-slate-700/50 transition-colors group cursor-pointer">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <div className="w-1 h-1 rounded-full bg-slate-500 group-hover:bg-green-400 transition-colors" />
-                    <span className="text-xs text-slate-200 truncate">{company.name}</span>
-                  </div>
-                  <TypeBadge type={company.companyType} />
-                </div>
-              ))}
-              {count > 3 && (
-                <div className="text-[10px] text-slate-500 text-center pt-1">
-                  + {count - 3} more companies...
-                </div>
-              )}
-            </div>
-
-            {/* Footer Action */}
-            {/* <div className="mt-3 pt-2 border-t border-slate-700/50">
-              <button className="w-full flex items-center justify-center gap-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-[10px] text-white rounded transition-colors">
-                <Building2 size={12} /> View All Companies
-              </button>
-            </div> */}
-          </div>
-        );
-      }
     }
   }
 
   if (!isVisible) return null;
 
-  // 툴팁 스타일 상수
-  const width = 260; // Card Width
-  const height = 180; // Card Height (approx)
+  // 툴팁 스타일 상수 (Simple Label)
+  const width = 140; // Compact Width
+  const height = 36; // Single Line Height
   
-  // 위치 계산 (마커 위쪽 중앙)
-  const tooltipX = x - width / 2;
-  const tooltipY = y - radius - height - 15; // 마커 위 15px 간격
+  // --- Smart Positioning (Collision Detection) ---
+  const VIEWPORT_WIDTH = 2000;
+  
+  let tooltipX = x - width / 2;
+  let tooltipY = y - radius - height - 10; // 마커 위 10px
+  let arrowClass = "absolute left-1/2 -bottom-1.5 -translate-x-1/2 w-3 h-3 bg-slate-800 border-r border-b border-slate-600 rotate-45";
+
+  // 1. 오른쪽 끝 검사
+  if (x + width / 2 > VIEWPORT_WIDTH - 20) {
+    tooltipX = x - width - radius - 10;
+    tooltipY = y - height / 2;
+    arrowClass = "absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-slate-800 border-t border-r border-slate-600 rotate-45";
+  }
+  // 2. 왼쪽 끝 검사
+  else if (x - width / 2 < 20) {
+    tooltipX = x + radius + 10;
+    tooltipY = y - height / 2;
+    arrowClass = "absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-slate-800 border-b border-l border-slate-600 rotate-45";
+  }
+  // 3. 위쪽 끝 검사
+  else if (tooltipY < 20) {
+    tooltipY = y + radius + 10;
+    arrowClass = "absolute left-1/2 -top-1.5 -translate-x-1/2 w-3 h-3 bg-slate-800 border-l border-t border-slate-600 rotate-45";
+  }
 
   return (
     <foreignObject
@@ -220,27 +111,23 @@ export const MapTooltip = () => {
       y={tooltipY}
       width={width}
       height={height}
-      style={{ overflow: 'visible', pointerEvents: 'none' }} // pointer-events-none for container
+      style={{ overflow: 'visible', pointerEvents: 'none' }}
     >
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          initial={{ opacity: 0, scale: 0.9, y: 5 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          transition={{ duration: 0.2, type: "spring", stiffness: 300, damping: 25 }}
-          className="w-full h-full"
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ duration: 0.15 }}
+          className="w-full h-full flex justify-center"
         >
-          <div 
-            className="w-full h-auto min-h-[140px] bg-slate-800/95 backdrop-blur-sm border border-slate-600/50 rounded-xl shadow-2xl p-4 flex flex-col relative pointer-events-auto"
-            style={{ boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)' }}
-          >
-            {/* Content */}
-            {contentNode}
-
-            {/* Arrow (CSS Triangle) */}
-            <div 
-              className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-4 h-4 bg-slate-800/95 border-r border-b border-slate-600/50 rotate-45"
-            />
+          <div className="relative bg-slate-800 text-white text-xs font-medium px-3 py-2 rounded-lg shadow-xl border border-slate-600 flex items-center gap-2 whitespace-nowrap">
+            <span>{label}</span>
+            <span className="bg-slate-700 px-1.5 py-0.5 rounded text-[10px] font-mono text-green-400 border border-slate-600">
+              {count}
+            </span>
+            {/* Arrow */}
+            <div className={arrowClass} />
           </div>
         </motion.div>
       </AnimatePresence>

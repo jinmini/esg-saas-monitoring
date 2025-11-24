@@ -10,6 +10,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { useESGMapStore } from '@/store/esgMapStore';
 import { COLORS } from '@/constants/esg-map';
 import { calculateRadius, getMarkerColor, getCompanyTypeCounts } from '../utils/markerUtils';
 import type { CountryCode, Company, RegionCoordinates } from '@/types/esg-map';
@@ -20,6 +21,7 @@ interface CountryMarkerProps {
   companies: Company[];
   isSelected: boolean;
   isHovered: boolean;
+  isAnyHovered?: boolean; // 다른 마커가 호버 상태인지
   onClick: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -31,11 +33,14 @@ export const CountryMarker = ({
   companies,
   isSelected,
   isHovered,
+  isAnyHovered = false,
   onClick,
   onMouseEnter,
   onMouseLeave,
 }: CountryMarkerProps) => {
   const count = companies.length;
+  const selectedCompany = useESGMapStore((state) => state.mapState.selectedCompany);
+  const setSelectedCompany = useESGMapStore((state) => state.setSelectedCompany);
 
   // =================================================================
   // [Case 1] 단일 기업 (Single Result) -> 로고 핀 렌더링
@@ -45,31 +50,48 @@ export const CountryMarker = ({
     const isCore = company.companyType === 'CORE_ESG_PLATFORM';
     const pinColor = isCore ? COLORS.CORE_PLATFORM : COLORS.OPERATIONAL_ENABLER;
     
+    // 핀 클릭 시 핸들러
+    const handlePinClick = (e: React.MouseEvent) => {
+      e.stopPropagation(); // 이벤트 버블링 방지
+      // 이미 선택된 상태라도 다시 열기 위해 호출 (Detail View로)
+      setSelectedCompany(company);
+      // onClick(); // 상위 핸들러(open List View)는 호출하지 않음!
+    };
+
+    // Dimming Effect: 다른 마커가 호버되었고, 나는 호버되지 않았을 때
+    const isDimmed = isAnyHovered && !isHovered;
+    
+    // Pin Color & Opacity
+    const pinOpacity = isDimmed ? 0.3 : 1;
+
     return (
       <g
-        style={{ cursor: 'pointer' }}
-        onClick={onClick}
+        style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+        onClick={handlePinClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
+        opacity={pinOpacity} // 전체 투명도 조절
       >
         {/* 1. Pulse Effect (Background) */}
-        <motion.circle
-          cx={coords.x}
-          cy={coords.y}
-          r={10}
-          fill={pinColor}
-          opacity={0.4}
-          animate={{
-            scale: [1, 2.5],
-            opacity: [0.4, 0],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: 'easeOut',
-          }}
-          style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
-        />
+        {!isDimmed && ( // Dimmed 상태에서는 펄스 효과 숨김
+          <motion.circle
+            cx={coords.x}
+            cy={coords.y}
+            r={10}
+            fill={pinColor}
+            opacity={0.4}
+            animate={{
+              scale: [1, 2.5],
+              opacity: [0.4, 0],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: 'easeOut',
+            }}
+            style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
+          />
+        )}
 
         {/* 2. Pin Icon (SVG) */}
         <motion.g
@@ -96,43 +118,41 @@ export const CountryMarker = ({
           />
         </motion.g>
 
-        {/* 3. Label (Right Side) */}
+        {/* 3. Label (Top Center) - Hover 시에만 표시! */}
         <motion.g
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ 
+            opacity: isHovered ? 1 : 0, 
+            y: isHovered ? 0 : 10 
+          }}
+          transition={{ duration: 0.2 }}
         >
           {/* Background Pill */}
           <rect
-            x={coords.x + 12}
-            y={coords.y - 12}
-            width={Math.max(100, company.name.length * 7 + 20)} // 간단한 너비 계산
+            x={coords.x - (Math.max(100, company.name.length * 7 + 20) / 2)}
+            y={coords.y - 40} // 핀 위로 이동
+            width={Math.max(100, company.name.length * 7 + 20)}
             height={24}
             rx={12}
             fill="#1e293b" // slate-800
             stroke={pinColor}
             strokeWidth={1}
-            opacity={0.9}
+            opacity={0.95} // 가독성 위해 불투명도 증가
           />
           {/* Text */}
           <text
-            x={coords.x + 22}
-            y={coords.y + 5} // 수직 중앙 정렬 보정
+            x={coords.x}
+            y={coords.y - 23} // 수직 중앙 정렬 보정
             fill="#fff"
             fontSize={12}
             fontWeight="600"
-            textAnchor="start"
+            textAnchor="middle"
             pointerEvents="none"
           >
             {company.name}
           </text>
-          {/* Type Indicator Dot */}
-          <circle
-            cx={coords.x + 18}
-            cy={coords.y}
-            r={3}
-            fill={pinColor}
-          />
+          {/* Type Indicator Dot - 라벨 왼쪽 끝에 작게 표시하거나 제거 */}
+          {/* <circle cx={...} cy={...} r={3} fill={pinColor} /> */}
         </motion.g>
       </g>
     );
@@ -155,7 +175,13 @@ export const CountryMarker = ({
 
   // 상태별 스타일
   const baseOpacity = count === 0 ? 0.1 : 0.7;
-  const opacity = isHovered ? 1 : isSelected ? 0.9 : baseOpacity;
+  const isDimmed = isAnyHovered && !isHovered;
+  
+  // Dimmed 상태면 투명도 낮춤, Hover면 1, Selected면 0.9
+  const opacity = isDimmed 
+    ? 0.3 
+    : (isHovered ? 1 : isSelected ? 0.9 : baseOpacity);
+    
   const scale = isHovered ? 1.2 : isSelected ? 1.15 : 1;
 
   return (
@@ -164,29 +190,32 @@ export const CountryMarker = ({
       onClick={count > 0 ? onClick : undefined}
       onMouseEnter={count > 0 ? onMouseEnter : undefined}
       onMouseLeave={count > 0 ? onMouseLeave : undefined}
+      opacity={isDimmed ? 0.5 : 1} // 그룹 전체 투명도 추가 조절
     >
       {/* Glow Effect (Outer Circle) */}
-      <motion.circle
-        cx={coords.x}
-        cy={coords.y}
-        r={radius}
-        fill={markerColor}
-        opacity={opacity * 0.25}
-        filter="url(#glow-country)"
-        animate={{
-          scale,
-          opacity: [opacity * 0.25, opacity * 0.35, opacity * 0.25],
-        }}
-        transition={{
-          scale: { duration: 0.25, ease: 'easeOut' },
-          opacity: {
-            duration: 1.5,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          },
-        }}
-        style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
-      />
+      {!isDimmed && ( // Dimmed 상태에서는 Glow 효과 제거
+        <motion.circle
+          cx={coords.x}
+          cy={coords.y}
+          r={radius}
+          fill={markerColor}
+          opacity={opacity * 0.25}
+          filter="url(#glow-country)"
+          animate={{
+            scale,
+            opacity: [opacity * 0.25, opacity * 0.35, opacity * 0.25],
+          }}
+          transition={{
+            scale: { duration: 0.25, ease: 'easeOut' },
+            opacity: {
+              duration: 1.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            },
+          }}
+          style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
+        />
+      )}
 
       {/* Main Circle */}
       <motion.circle

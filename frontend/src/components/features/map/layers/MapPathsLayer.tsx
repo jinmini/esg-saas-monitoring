@@ -111,20 +111,44 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
 
   // 스타일 계산
   const getCountryFill = (countryCode: CountryCode): string => {
-    if (selectedCountry === countryCode) {
-      return COLORS.ACCENT; // 선택됨: 강조 색상
+    // 선택된 국가가 있을 때
+    if (selectedCountry) {
+      // 현재 국가가 선택된 국가라면 강조 (투명한 초록빛)
+      if (selectedCountry === countryCode) {
+        return 'rgba(16, 185, 129, 0.2)'; // Neon Green with opacity
+      }
+      // 선택되지 않은 국가는 어둡게
+      return COLORS.MAP_LAND;
     }
+
+    // 호버 상태
     if (hoveredCountry === countryCode) {
-      return COLORS.MAP_LAND_HOVER; // 호버: 밝은 색상
+      return COLORS.MAP_LAND_HOVER;
     }
-    return COLORS.MAP_LAND; // 기본: 어두운 색상
+    
+    return COLORS.MAP_LAND;
+  };
+
+  const getCountryStroke = (countryCode: CountryCode): string => {
+    if (selectedCountry === countryCode) {
+      return '#22d3ee'; // Cyan-400 (Neon Stroke)
+    }
+    return COLORS.MAP_BORDER;
+  };
+
+  const getCountryStrokeWidth = (countryCode: CountryCode): string => {
+    if (selectedCountry === countryCode) {
+      return '2'; // 두껍게
+    }
+    return hoveredCountry === countryCode ? "1.5" : "0.5";
   };
 
   const getCountryOpacity = (countryCode: CountryCode): number => {
-    if (selectedCountry && selectedCountry !== countryCode) {
-      return 0.5; // 다른 국가 선택 시 Dimmed
+    if (selectedCountry) {
+      // 선택된 국가는 1.0, 나머지는 0.1 (Dimming)
+      return selectedCountry === countryCode ? 1.0 : 0.1;
     }
-    return 1.0; // 타겟 국가는 항상 불투명하게 잘 보이도록 설정
+    return 1.0; // 평소에는 모두 1.0
   };
 
   return (
@@ -137,8 +161,8 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
           y="0"
           width="2000"
           height="857"
-          opacity="0.15" // 배경으로 은은하게 깔기
-          style={{ pointerEvents: 'none' }}
+          opacity={selectedCountry ? 0.05 : 0.15} // 선택 시 배경도 더 어둡게
+          style={{ pointerEvents: 'none', transition: 'opacity 0.3s ease' }}
         />
       )}
 
@@ -149,9 +173,10 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
             key={countryCode}
             d={pathData}
             fill={getCountryFill(countryCode)}
+            fillOpacity={1}
             opacity={getCountryOpacity(countryCode)}
-            stroke={COLORS.MAP_BORDER}
-            strokeWidth={hoveredCountry === countryCode ? "1.5" : "1.0"} // 호버 시 두껍게
+            stroke={getCountryStroke(countryCode)}
+            strokeWidth={getCountryStrokeWidth(countryCode)}
             strokeLinejoin="round"
             strokeLinecap="round"
             // Interactive 이벤트
@@ -160,7 +185,7 @@ export const MapPathsLayer: React.FC<MapPathsLayerProps> = ({
             onClick={() => handleClick(countryCode)}
             onKeyDown={(e) => handleKeyDown(e, countryCode)}
             // 스타일
-            className="transition-all duration-200 cursor-pointer"
+            className="transition-all duration-300 ease-in-out cursor-pointer"
             style={{
               pointerEvents: 'auto',
             }}

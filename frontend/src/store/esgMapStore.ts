@@ -284,6 +284,9 @@ interface ESGMapActions {
   // 패널 액션
   toggleLeftPanel: () => void;
   setLeftPanelTab: (tab: 'filters' | 'stats') => void;
+  openRightPanel: (mode: 'list' | 'detail', targetCountry?: CountryCode) => void;
+  closeRightPanel: () => void;
+
 
   // 초기화
   reset: () => void;
@@ -331,6 +334,11 @@ const initialState: ESGMapState = {
     leftPanel: {
       isOpen: true,
       activeTab: 'filters',
+    },
+    rightPanel: {
+      isOpen: false,
+      mode: 'detail',
+      targetCountry: null,
     },
   },
 };
@@ -393,7 +401,22 @@ export const useESGMapStore = create<ESGMapStore>()(
         })),
       setSelectedCompany: (company: Company | null) =>
         set((state) => ({
-          mapState: { ...state.mapState, selectedCompany: company },
+          mapState: { 
+            ...state.mapState, 
+            selectedCompany: company,
+            // 선택된 기업의 국가도 함께 선택하여 지도 하이라이트 동기화
+            selectedCountry: company ? (company.countryCode as CountryCode) : state.mapState.selectedCountry,
+          },
+          // 기업 선택 시 자동으로 Detail View로 패널 열기
+          panelState: company ? {
+            ...state.panelState,
+            rightPanel: {
+              isOpen: true,
+              mode: 'detail',
+              // 해당 기업의 국가로 targetCountry를 설정하여 'Back to List' 네비게이션 지원
+              targetCountry: company.countryCode as CountryCode,
+            },
+          } : state.panelState,
         })),
 
       // 뷰 모드
@@ -424,7 +447,15 @@ export const useESGMapStore = create<ESGMapStore>()(
             hoveredCountry: null,
             hoveredRegion: null,
           },
-          // 검색어가 기업명과 일치하면 필터 유지, 아니면 초기화할지 결정 가능 (일단 유지)
+          // 검색 결과 클릭 시에도 패널을 열고 Back Navigation 지원
+          panelState: {
+            ...state.panelState,
+            rightPanel: {
+              isOpen: true,
+              mode: 'detail',
+              targetCountry: company.countryCode as CountryCode,
+            },
+          },
         }));
       },
 
@@ -482,6 +513,33 @@ export const useESGMapStore = create<ESGMapStore>()(
           panelState: {
             ...state.panelState,
             leftPanel: { ...state.panelState.leftPanel, activeTab: tab },
+          },
+        })),
+      openRightPanel: (mode: 'list' | 'detail', targetCountry?: CountryCode) =>
+        set((state) => ({
+          panelState: {
+            ...state.panelState,
+            rightPanel: {
+              isOpen: true,
+              mode,
+              targetCountry: targetCountry || null,
+            },
+          },
+          // detail 모드일 때는 selectedCompany가 이미 설정되어 있다고 가정
+          // list 모드일 때는 selectedCompany를 초기화하지 않음 (사용자가 리스트에서 다시 선택할 수 있도록)
+        })),
+      closeRightPanel: () =>
+        set((state) => ({
+          panelState: {
+            ...state.panelState,
+            rightPanel: {
+              ...state.panelState.rightPanel,
+              isOpen: false,
+            },
+          },
+          mapState: {
+            ...state.mapState,
+            selectedCompany: null, // 패널 닫으면 선택된 기업 해제
           },
         })),
 

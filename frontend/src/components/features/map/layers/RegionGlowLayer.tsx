@@ -32,6 +32,13 @@ export const RegionGlowLayer = () => {
   const setSelectedCountry = useESGMapStore((state) => state.setSelectedCountry);
   const setHoveredRegion = useESGMapStore((state) => state.setHoveredRegion);
   const setHoveredCountry = useESGMapStore((state) => state.setHoveredCountry);
+  const openRightPanel = useESGMapStore((state) => state.openRightPanel);
+
+  // 국가 마커 클릭 핸들러 (패널 열기)
+  const handleCountryClick = (countryCode: CountryCode) => {
+    setSelectedCountry(countryCode); // 1. 국가 선택 상태 업데이트 (지도 Focus 등)
+    openRightPanel('list', countryCode); // 2. 우측 패널을 List Mode로 열기
+  };
 
   // 필터링된 기업들을 지역별/국가별로 그룹화 (Memoization)
   const companiesByRegion = useMemo(() => {
@@ -84,9 +91,17 @@ export const RegionGlowLayer = () => {
     // ========================================
     // Europe Detail View: Country Markers (유럽 국가 마커)
     // ========================================
+    
+    // Z-Index 관리: Hover된 마커를 가장 마지막에 렌더링 (Bring to Front)
+    const sortedHubs = Object.entries(EUROPE_HUBS).sort(([codeA], [codeB]) => {
+        if (codeA === hoveredCountry) return 1;
+        if (codeB === hoveredCountry) return -1;
+        return 0;
+    });
+
     return (
       <g id="country-markers-europe">
-        {(Object.entries(EUROPE_HUBS) as [CountryCode, typeof EUROPE_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+        {(sortedHubs as [CountryCode, typeof EUROPE_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
           const companies = companiesByCountry[countryCode] || [];
           
           return (
@@ -97,7 +112,8 @@ export const RegionGlowLayer = () => {
               companies={companies}
               isSelected={selectedCountry === countryCode}
               isHovered={hoveredCountry === countryCode}
-              onClick={() => setSelectedCountry(countryCode)}
+              isAnyHovered={!!hoveredCountry} // 다른 마커가 호버되었는지 여부
+              onClick={() => handleCountryClick(countryCode)}
               onMouseEnter={() => setHoveredCountry(countryCode)}
               onMouseLeave={() => setHoveredCountry(null)}
             />
@@ -124,7 +140,7 @@ export const RegionGlowLayer = () => {
               companies={companies}
               isSelected={selectedCountry === countryCode}
               isHovered={hoveredCountry === countryCode}
-              onClick={() => setSelectedCountry(countryCode)}
+              onClick={() => handleCountryClick(countryCode)}
               onMouseEnter={() => setHoveredCountry(countryCode)}
               onMouseLeave={() => setHoveredCountry(null)}
             />
@@ -151,7 +167,7 @@ export const RegionGlowLayer = () => {
               companies={companies}
               isSelected={selectedCountry === countryCode}
               isHovered={hoveredCountry === countryCode}
-              onClick={() => setSelectedCountry(countryCode)}
+              onClick={() => handleCountryClick(countryCode)}
               onMouseEnter={() => setHoveredCountry(countryCode)}
               onMouseLeave={() => setHoveredCountry(null)}
             />
@@ -178,7 +194,7 @@ export const RegionGlowLayer = () => {
               companies={companies}
               isSelected={selectedCountry === countryCode}
               isHovered={hoveredCountry === countryCode}
-              onClick={() => setSelectedCountry(countryCode)}
+              onClick={() => handleCountryClick(countryCode)}
               onMouseEnter={() => setHoveredCountry(countryCode)}
               onMouseLeave={() => setHoveredCountry(null)}
             />
