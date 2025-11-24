@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -76,9 +77,9 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    id: 'editor',
-    label : 'Report Editor',
-    href: '/report/dashboard',
+    id: 'ai-features',
+    label : 'AI Features',
+    href: '/ai-features',
     icon: FileText,
   },
 ];
@@ -126,20 +127,26 @@ export function Sidebar({ className }: SidebarProps) {
             </div>
           )}
 
-          {/* ESG SIP 브랜딩 영역 */}
+          {/* ESG SIP 브랜딩 영역 - Liner 스타일 */}
           <div className={cn(
-            'flex items-center',
-            isGlobalSidebarCollapsed ? 'p-3 justify-center' : 'p-6'
+            'flex items-center transition-all duration-300',
+            isGlobalSidebarCollapsed ? 'p-3 justify-center' : 'px-6 py-4'
           )}>
             {isGlobalSidebarCollapsed ? (
               // 축소 모드: 아이콘만 + 확장 버튼
               <div className="flex flex-col items-center gap-2">
                 <Link 
                   href="/dashboard" 
-                  className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center hover:bg-green-700 transition-colors"
-                  title="ESG SIP"
+                  className="flex items-center justify-center hover:opacity-80 transition-opacity"
+                  title="ESG SIP - Intelligence Platform"
                 >
-                  <FileText className="w-5 h-5 text-white" />
+                  <img 
+                    src="/logo-icon.svg" 
+                    alt="ESG SIP" 
+                    width={24} 
+                    height={24}
+                    className="flex-shrink-0"
+                  />
                 </Link>
                 <button
                   onClick={toggleGlobalSidebarCollapse}
@@ -150,17 +157,22 @@ export function Sidebar({ className }: SidebarProps) {
                 </button>
               </div>
             ) : (
-              // 확장 모드: 전체 브랜딩
-              <Link href="/dashboard" className="flex items-center space-x-3 group">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-base font-bold text-gray-900 group-hover:text-green-600 transition-colors">
-                    ESG SIP
-                  </h1>
-                  <p className="text-xs text-gray-500">Intelligence Platform</p>
-                </div>
+              // 확장 모드: 아이콘 + 텍스트 가로 배치 (Liner 스타일)
+              <Link 
+                href="/dashboard" 
+                className="flex items-center gap-2 group hover:opacity-90 transition-opacity"
+              >
+                <img 
+                  src="/logo-icon.svg" 
+                  alt="ESG SIP Logo" 
+                  width={24} 
+                  height={24}
+                  className="flex-shrink-0"
+                />
+                <span className="font-bold text-lg leading-none whitespace-nowrap">
+                  <span className="text-[#1F3556]">ESG</span>
+                  <span className="text-[#65A66A]"> SIP</span>
+                </span>
               </Link>
             )}
           </div>

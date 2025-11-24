@@ -1,105 +1,106 @@
-// src/app/(main)/dashboard/page.tsx
+'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { FileText, TrendingUp, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
+import { 
+  ArrowRight,
+} from 'lucide-react';
 
 /**
  * 메인 대시보드 페이지
- * 
- * 플랫폼의 허브 역할을 하며, 각 핵심 기능으로 사용자를 안내합니다.
- * 향후 이 페이지는 개인화된 요약 정보(최근 문서, 알림 등)를 표시하게 됩니다.
+ * - 플랫폼의 진입점
+ * - 핵심 기능(Market Insight, Analysis, AI Features)으로 네비게이션 제공
+ * - 미니멀하고 프로페셔널한 디자인 적용
  */
 export default function DashboardPage() {
   return (
     <DashboardLayout>
-      <div className="p-6 md:p-8">
-        {/* 페이지 헤더 */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to ESG SIP
+      <div className="max-w-7xl mx-auto p-6 md:p-8 lg:p-12">
+        {/* 헤더 섹션 */}
+        <div className="mb-12 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-3">
+            SaaS Intelligence Platform
           </h1>
-          <p className="text-lg text-gray-600">
-            SaaS Intelligence Platform for ESG Professionals.
+          <p className="text-lg text-gray-500 max-w-2xl">
+            ESG 전문가를 위한 통합 인텔리전스 플랫폼입니다. 시장 동향 분석부터 AI 기반 업무 자동화까지 경험해보세요.
           </p>
         </div>
 
-        {/* 핵심 기능 바로가기 카드 그리드 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* 기능 카드 그리드 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           
-          {/* Report Editor 카드 */}
-          <Link href="/report/dashboard">
-            <Card className="hover:border-green-500 hover:shadow-lg transition-all">
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-green-100 rounded-lg">
-                    <FileText className="w-6 h-6 text-green-700" />
-                  </div>
-                  <div>
-                    <CardTitle>Report Editor</CardTitle>
-                    <CardDescription>지속가능경영보고서 작성</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  최근 작업한 문서를 확인하거나, 새로운 보고서 작성을 시작하세요.
-                </p>
-                <Button>Go to Editor</Button>
-              </CardContent>
-            </Card>
-          </Link>
+          {/* 1. Market Insight */}
+          <DashboardCard 
+            href="/market-insight"
+            title="Market Insight"
+            description="18개 ESG SaaS 기업의 실시간 뉴스를 모니터링하고, 언급량 트렌드를 분석합니다. 네이버 뉴스 API 기반 자동 크롤링으로 시장 동향을 놓치지 마세요."
+            colorClass="text-blue-600 bg-blue-50"
+          />
 
-          {/* Market Insight 카드 */}
-          <Link href="/market-insight">
-            <Card className="hover:border-blue-500 hover:shadow-lg transition-all">
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-blue-100 rounded-lg">
-                    <TrendingUp className="w-6 h-6 text-blue-700" />
-                  </div>
-                  <div>
-                    <CardTitle>Market Insight</CardTitle>
-                    <CardDescription>시장 동향 및 뉴스 분석</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  최신 ESG 관련 뉴스와 시장의 움직임을 추적하세요.
-                </p>
-                <Button variant="secondary">View Insights</Button>
-              </CardContent>
-            </Card>
-          </Link>
+          {/* 2. ESG Analysis */}
+          <DashboardCard 
+            href="/analysis"
+            title="Analysis"
+            description="97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요. 국가별, 서비스별 필터링과 상세 정보 패널로 경쟁사 분석을 한눈에 파악할 수 있습니다."
+            colorClass="text-purple-600 bg-purple-50"
+          />
 
-          {/* ESG Analysis 카드 */}
-          <Link href="/analysis">
-            <Card className="hover:border-purple-500 hover:shadow-lg transition-all">
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-purple-100 rounded-lg">
-                    <BarChart3 className="w-6 h-6 text-purple-700" />
-                  </div>
-                  <div>
-                    <CardTitle>ESG Analysis</CardTitle>
-                    <CardDescription>캘린더 및 중요 일정</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  주요 ESG 공시 일정과 이벤트를 캘린더에서 관리하세요.
-                </p>
-                <Button variant="secondary">Open Calendar</Button>
-              </CardContent>
-            </Card>
-          </Link>
+          {/* 3. AI Features */}
+          <DashboardCard 
+            href="/ai-features"
+            title="AI Features"
+            description="Gemini AI 기반 ESG 보고서 자동 생성(Beta)부터 탄소발자국 추정, 공급망 리스크 모니터링까지. 12가지 AI 유스케이스를 확인하고 체험해보세요."
+            colorClass="text-green-600 bg-green-50"
+          />
 
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+// 대시보드 카드 컴포넌트
+interface DashboardCardProps {
+  href: string;
+  title: string;
+  description: string;
+  colorClass: string;
+}
+
+function DashboardCard({ href, title, description, colorClass }: DashboardCardProps) {
+  return (
+    <Link 
+      href={href}
+      className="group relative flex flex-col p-8 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-300 overflow-hidden"
+    >
+      {/* 배경 장식 (호버 시 나타남) */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-gray-50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Explore 버튼 - 오른쪽 상단 */}
+      <div className="absolute top-6 right-6 z-20 flex items-center text-sm font-semibold text-gray-400 group-hover:text-blue-600 transition-colors">
+        <span className="mr-1.5">Explore</span>
+        <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+      </div>
+      
+      {/* 컨텐츠 */}
+      <div className="flex-1 flex flex-col z-10">
+        {/* 제목 */}
+        <h2 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors pr-20">
+          {title}
+        </h2>
+        
+        {/* 설명 */}
+        <p className="text-gray-500 text-sm leading-relaxed mb-6">
+          {description}
+        </p>
+        
+        {/* Rive 애니메이션 영역 (예약) */}
+        <div className="flex-1 flex items-center justify-center min-h-[120px] rounded-lg bg-gray-50/50 border border-dashed border-gray-200">
+          <span className="text-xs text-gray-400 font-medium">
+            Rive Animation
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
