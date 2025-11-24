@@ -12,6 +12,7 @@ import { useESGMapStore } from '@/store/esgMapStore';
 interface Suggestion {
   type: 'company' | 'feature' | 'framework';
   text: string;
+  id?: string; // 기업 ID (포커스용)
   subText?: string;
 }
 
@@ -20,6 +21,7 @@ export const SearchInput: React.FC = () => {
   const companies = useESGMapStore((state) => state.companies);
   const searchQuery = useESGMapStore((state) => state.filters.searchQuery);
   const setSearchQuery = useESGMapStore((state) => state.setSearchQuery);
+  const focusCompany = useESGMapStore((state) => state.focusCompany);
   
   // 로컬 상태
   const [inputValue, setInputValue] = useState(searchQuery);
@@ -71,6 +73,7 @@ export const SearchInput: React.FC = () => {
           results.push({
             type: 'company',
             text: company.name,
+            id: company.id,
             subText: company.nameLocal !== company.name ? company.nameLocal : undefined,
           });
           seen.add(`c:${company.name}`);
@@ -102,10 +105,15 @@ export const SearchInput: React.FC = () => {
     return results.slice(0, 10);
   }, [inputValue, companies]);
 
-  const handleSelect = (text: string) => {
-    setInputValue(text);
-    setSearchQuery(text);
+  const handleSelect = (item: Suggestion) => {
+    setInputValue(item.text);
+    setSearchQuery(item.text);
     setIsOpen(false);
+
+    // 기업 선택 시 지도 줌인
+    if (item.type === 'company' && item.id) {
+      focusCompany(item.id);
+    }
   };
 
   return (
@@ -145,7 +153,7 @@ export const SearchInput: React.FC = () => {
             {suggestions.map((item, index) => (
               <button
                 key={`${item.type}-${item.text}-${index}`}
-                onClick={() => handleSelect(item.text)}
+                onClick={() => handleSelect(item)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-700/50 text-left transition-colors group"
               >
                 <span className="flex-shrink-0 text-slate-400 group-hover:text-white transition-colors">

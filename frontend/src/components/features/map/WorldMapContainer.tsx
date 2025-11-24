@@ -29,6 +29,8 @@ import { MapPathsLayer } from './layers/MapPathsLayer';
 import { RegionGlowLayer } from './layers/RegionGlowLayer';
 import { MapTooltip } from './tooltip/MapTooltip';
 import { TopFilterBar } from './controls/TopFilterBar';
+import { MapBreadcrumbs } from './controls/MapBreadcrumbs';
+import { CompanyDetailPanel } from './panels/CompanyDetailPanel';
 
 /**
  * Props
@@ -108,6 +110,13 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
     >
       {/* 상단 필터 바 (Phase 4-3: Top Floating Bar) */}
       <TopFilterBar />
+      
+      {/* 지도 네비게이션 경로 (Phase 5) */}
+      <MapBreadcrumbs />
+
+      {/* 우측 기업 상세 패널 (Drawer) */}
+      <CompanyDetailPanel />
+
       {/* SVG 지도 컨테이너 */}
       <motion.svg
         className="w-full h-full"

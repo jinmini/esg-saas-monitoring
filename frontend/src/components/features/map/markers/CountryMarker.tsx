@@ -1,6 +1,10 @@
 /**
  * CountryMarker Component
  * 국가(Country) 단위 마커 - Europe Detail View 등에서 표시
+ * 
+ * 변경사항:
+ * - 단일 기업(1개)일 경우 로고/텍스트 핀 형태로 표시
+ * - Pulse 애니메이션 추가
  */
 
 'use client';
@@ -32,6 +36,111 @@ export const CountryMarker = ({
   onMouseLeave,
 }: CountryMarkerProps) => {
   const count = companies.length;
+
+  // =================================================================
+  // [Case 1] 단일 기업 (Single Result) -> 로고 핀 렌더링
+  // =================================================================
+  if (count === 1) {
+    const company = companies[0];
+    const isCore = company.companyType === 'CORE_ESG_PLATFORM';
+    const pinColor = isCore ? COLORS.CORE_PLATFORM : COLORS.OPERATIONAL_ENABLER;
+    
+    return (
+      <g
+        style={{ cursor: 'pointer' }}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        {/* 1. Pulse Effect (Background) */}
+        <motion.circle
+          cx={coords.x}
+          cy={coords.y}
+          r={10}
+          fill={pinColor}
+          opacity={0.4}
+          animate={{
+            scale: [1, 2.5],
+            opacity: [0.4, 0],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: 'easeOut',
+          }}
+          style={{ transformOrigin: `${coords.x}px ${coords.y}px` }}
+        />
+
+        {/* 2. Pin Icon (SVG) */}
+        <motion.g
+          animate={{ y: isHovered || isSelected ? -5 : 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        >
+          {/* Pin Head */}
+          <circle
+            cx={coords.x}
+            cy={coords.y}
+            r={6}
+            fill={pinColor}
+            stroke="#fff"
+            strokeWidth={2}
+          />
+          {/* Pin Leg */}
+          <line
+            x1={coords.x}
+            y1={coords.y}
+            x2={coords.x}
+            y2={coords.y + 15}
+            stroke={pinColor}
+            strokeWidth={2}
+          />
+        </motion.g>
+
+        {/* 3. Label (Right Side) */}
+        <motion.g
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          {/* Background Pill */}
+          <rect
+            x={coords.x + 12}
+            y={coords.y - 12}
+            width={Math.max(100, company.name.length * 7 + 20)} // 간단한 너비 계산
+            height={24}
+            rx={12}
+            fill="#1e293b" // slate-800
+            stroke={pinColor}
+            strokeWidth={1}
+            opacity={0.9}
+          />
+          {/* Text */}
+          <text
+            x={coords.x + 22}
+            y={coords.y + 5} // 수직 중앙 정렬 보정
+            fill="#fff"
+            fontSize={12}
+            fontWeight="600"
+            textAnchor="start"
+            pointerEvents="none"
+          >
+            {company.name}
+          </text>
+          {/* Type Indicator Dot */}
+          <circle
+            cx={coords.x + 18}
+            cy={coords.y}
+            r={3}
+            fill={pinColor}
+          />
+        </motion.g>
+      </g>
+    );
+  }
+
+  // =================================================================
+  // [Case 2] 다수 기업 (Cluster) -> 기존 원형 마커 렌더링
+  // =================================================================
   
   // 기업 수에 따른 반경 계산 (Country는 작게)
   const radius = count > 0 

@@ -277,6 +277,7 @@ interface ESGMapActions {
   
   // 뷰 모드 전환
   setViewMode: (mode: MapState['viewMode']) => void;
+  focusCompany: (companyId: string) => void;
   zoomToRegion: (region: Region) => void;
   zoomToWorld: () => void;
 
@@ -398,6 +399,35 @@ export const useESGMapStore = create<ESGMapStore>()(
       // 뷰 모드
       setViewMode: (mode: MapState['viewMode']) =>
         set((state) => ({ mapState: { ...state.mapState, viewMode: mode } })),
+      
+      // 특정 기업 포커스 (검색 자동완성 클릭 시 사용)
+      focusCompany: (companyId: string) => {
+        const company = get().companies.find(c => c.id === companyId);
+        if (!company) return;
+
+        const region = company.region as Region;
+        let viewMode: MapState['viewMode'] = 'region';
+        
+        if (region === 'Europe') viewMode = 'europe_detail';
+        else if (region === 'Asia') viewMode = 'asia_detail';
+        else if (region === 'Oceania') viewMode = 'oceania_detail';
+        else if (region === 'North America') viewMode = 'north_america_detail';
+
+        set((state) => ({
+          mapState: {
+            ...state.mapState,
+            viewMode,
+            focusedRegion: region,
+            selectedRegion: region,
+            selectedCountry: company.countryCode as CountryCode,
+            selectedCompany: company,
+            hoveredCountry: null,
+            hoveredRegion: null,
+          },
+          // 검색어가 기업명과 일치하면 필터 유지, 아니면 초기화할지 결정 가능 (일단 유지)
+        }));
+      },
+
       zoomToRegion: (region: Region) => {
         let viewMode: MapState['viewMode'] = 'region';
         
