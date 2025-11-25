@@ -1,0 +1,67 @@
+{
+  "name": "ESG SIP - SaaS Intelligence Platform",
+  "short_name": "ESG SIP",
+  "description": "글로벌 ESG SaaS 시장 인텔리전스 플랫폼 - 인터랙티브 지도, 뉴스 모니터링, AI 보고서 작성",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2c5282",
+  "orientation": "any",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "글로벌 지도",
+      "short_name": "Map",
+      "description": "ESG SaaS 기업 인터랙티브 지도",
+      "url": "/map",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "뉴스 모니터링",
+      "short_name": "News",
+      "description": "실시간 기업 뉴스 및 트렌드",
+      "url": "/news",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/map-view.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "글로벌 ESG SaaS 지도"
+    }
+  ]
+}
+
