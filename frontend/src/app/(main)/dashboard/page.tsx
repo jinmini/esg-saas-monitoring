@@ -2,15 +2,13 @@
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   ArrowRight,
 } from 'lucide-react';
 
 /**
  * 메인 대시보드 페이지
- * - 플랫폼의 진입점
- * - 핵심 기능(Market Insight, Analysis, AI Features)으로 네비게이션 제공
- * - 미니멀하고 프로페셔널한 디자인 적용
  */
 export default function DashboardPage() {
   return (
@@ -22,7 +20,10 @@ export default function DashboardPage() {
             SaaS Intelligence Platform
           </h1>
           <p className="text-lg text-gray-500 max-w-2xl">
-            ESG 전문가를 위한 통합 인텔리전스 플랫폼입니다. 시장 동향 분석부터 AI 기반 업무 자동화까지 경험해보세요.
+            ESG 전문가를 위한 통합 인텔리전스 플랫폼입니다. 
+          </p>
+          <p className="text-lg text-gray-500 max-w-2xl">
+          시장 동향 분석부터 AI 기반 업무 자동화까지 경험해보세요.
           </p>
         </div>
 
@@ -35,6 +36,7 @@ export default function DashboardPage() {
             title="Market Insight"
             description="18개 ESG SaaS 기업의 실시간 뉴스를 모니터링하고, 언급량 트렌드를 분석합니다. 네이버 뉴스 API 기반 자동 크롤링으로 시장 동향을 놓치지 마세요."
             colorClass="text-blue-600 bg-blue-50"
+            imageSrc="/market_insight.webp"
           />
 
           {/* 2. ESG Analysis */}
@@ -43,6 +45,7 @@ export default function DashboardPage() {
             title="Analysis"
             description="97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요. 국가별, 서비스별 필터링과 상세 정보 패널로 경쟁사 분석을 한눈에 파악할 수 있습니다."
             colorClass="text-purple-600 bg-purple-50"
+            imageSrc="/analysis_map.webp"
           />
 
           {/* 3. AI Features */}
@@ -65,9 +68,10 @@ interface DashboardCardProps {
   title: string;
   description: string;
   colorClass: string;
+  imageSrc?: string; // Optional: webp 이미지 경로
 }
 
-function DashboardCard({ href, title, description, colorClass }: DashboardCardProps) {
+function DashboardCard({ href, title, description, colorClass, imageSrc }: DashboardCardProps) {
   return (
     <Link 
       href={href}
@@ -94,11 +98,26 @@ function DashboardCard({ href, title, description, colorClass }: DashboardCardPr
           {description}
         </p>
         
-        {/* Rive 애니메이션 영역 (예약) */}
-        <div className="flex-1 flex items-center justify-center min-h-[120px] rounded-lg bg-gray-50/50 border border-dashed border-gray-200">
-          <span className="text-xs text-gray-400 font-medium">
-            Rive Animation
-          </span>
+        {/* 이미지 또는 Placeholder */}
+        <div className="w-full rounded-lg overflow-hidden bg-gray-50/50">
+          {imageSrc ? (
+            <div className="relative w-full aspect-video">
+              <Image
+                src={imageSrc}
+                alt={title}
+                fill
+                className="object-contain"
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center w-full min-h-[160px] border border-dashed border-gray-200 rounded-lg">
+              <span className="text-xs text-gray-400 font-medium">
+                Image Coming Soon
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

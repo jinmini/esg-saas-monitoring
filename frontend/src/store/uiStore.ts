@@ -34,6 +34,8 @@ interface UIActions {
   toggleSidebarRight: () => void;
   setSidebarLeft: (open: boolean) => void;
   setSidebarRight: (open: boolean) => void;
+  toggleGlobalSidebar: () => void; // 글로벌 사이드바 열기/닫기
+  setGlobalSidebarOpen: (open: boolean) => void;
   toggleGlobalSidebarCollapse: () => void;
   setGlobalSidebarCollapsed: (collapsed: boolean) => void;
   
@@ -81,6 +83,8 @@ export const useUIStore = create<UIStore>((set) => ({
   toggleSidebarRight: () => set((state) => ({ isSidebarRightOpen: !state.isSidebarRightOpen })),
   setSidebarLeft: (open) => set({ isSidebarLeftOpen: open }),
   setSidebarRight: (open) => set({ isSidebarRightOpen: open }),
+  toggleGlobalSidebar: () => set((state) => ({ isGlobalSidebarOpen: !state.isGlobalSidebarOpen })),
+  setGlobalSidebarOpen: (open) => set({ isGlobalSidebarOpen: open }),
   toggleGlobalSidebarCollapse: () => set((state) => ({ isGlobalSidebarCollapsed: !state.isGlobalSidebarCollapsed })),
   setGlobalSidebarCollapsed: (collapsed) => set({ isGlobalSidebarCollapsed: collapsed }),
 

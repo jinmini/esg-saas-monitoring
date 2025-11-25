@@ -44,14 +44,6 @@ export function GlobalHeader() {
           <span>사용법 보기</span>
         </button>
 
-        {/* 요금제 */}
-        <Link 
-          href="/pricing"
-          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          요금제
-        </Link>
-
         {/* 로그인 */}
         <Link 
           href="/login"
