@@ -71,7 +71,7 @@ const menuItems: MenuItem[] = [
       {
         id: 'esg-calendar',
         label: 'ESG Calendar',
-        href: 'https://www.notion.so', // 실제 Notion Calendar URL로 교체 필요
+        href: 'https://petalite-tuna-6c9.notion.site/ESG-Calendar-2b6394aaa2f480c59b56c08bffc4c22f', 
         external: true,
       },
     ],
