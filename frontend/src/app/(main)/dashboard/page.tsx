@@ -49,7 +49,7 @@ export default function DashboardPage() {
           <DashboardCard 
             href="/ai-features"
             title="AI Features"
-            description="Gemini AI 기반 ESG 보고서 자동 생성(Beta)부터 탄소발자국 추정, 공급망 리스크 모니터링까지. 12가지 AI 유스케이스를 확인하고 체험해보세요."
+            description="Gemini AI 기반 ESG 보고서 자동 생성부터 탄소발자국 추정, 공급망 리스크 모니터링까지. AI Features를 확인하고 체험해보세요."
             colorClass="text-green-600 bg-green-50"
           />
 

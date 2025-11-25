@@ -13,7 +13,7 @@
 ### 🎯 핵심 가치
 
 1. **🗺️ 글로벌 ESG SaaS 지도 (Interactive Map)**  
-   - 67개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 시각화
+   - 97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 시각화
    - 스마트 필터링으로 Feature/Framework 기반 탐색
    - 실시간 기업 정보 패널 (본사, 도메인, 지원 프레임워크)
 
@@ -71,7 +71,7 @@
 
 ### 1. 🗺️ 글로벌 ESG SaaS 지도 (Interactive Map)
 
-**목표**: 67개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 시각화
+**목표**: 97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 시각화
 
 #### Key Features
 
@@ -376,7 +376,7 @@ esg-gen-v1/
 │   │       └── useWindowSize.ts    # 반응형 뷰포트
 │   └── public/
 │       ├── data/
-│       │   ├── esg_companies_global.json  # 67개 기업 데이터
+│       │   ├── esg_companies_global.json  # 97개 기업 데이터
 │       │   └── esg_vectors.json    # AI Vector Store (181 docs)
 │       └── world.svg               # 세계 지도 SVG
 ├── public/docs/                    # 프로젝트 문서
@@ -406,8 +406,8 @@ esg-gen-v1/
 - **Frontend 통합**: Zustand + Sparkles UI
 
 ### Phase 5: 글로벌 ESG SaaS 지도 (완료 ✅) ⭐ 최신
-- **67개 글로벌 기업 데이터 큐레이션**
-  - Europe 53개, North America 3개, Asia 5개, Oceania 6개
+- **97개 글로벌 기업 데이터 큐레이션**
+  - Europe 55개, North America 31개, Asia 5개, Oceania 6개
   - 200+ Features, 60+ Frameworks 수작업 태깅
   
 - **인터랙티브 지도 구현**
@@ -464,7 +464,7 @@ esg-gen-v1/
 | **전체 노이즈율** | 95% | **0%** | **완전 제거** |
 
 **결론**: 
-- Map: 67개 기업 데이터를 <50ms에 필터링 (프론트엔드 전용)
+- Map: 97개 기업 데이터를 <50ms에 필터링 (프론트엔드 전용)
 - AI Engine: 181개 문서 수준에서는 JSON Vector Store가 압도적 우위
 - News Crawler: 3단계 필터링으로 데이터 품질 100% 달성
 
