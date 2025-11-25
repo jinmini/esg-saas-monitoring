@@ -89,21 +89,6 @@ export default function AnalysisPage() {
               </h1>
             </div>
 
-            {/* 개발 모드 토글 */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowGrid(!showGrid)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                  showGrid
-                    ? 'bg-amber-50 text-amber-700 border-amber-300'
-                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <Grid3x3 size={16} />
-                {showGrid ? 'Grid ON' : 'Grid OFF'}
-              </button>
-
-            </div>
           </div>
         </header>
 
