@@ -36,6 +36,43 @@ import type {
 /**
  * 필터링 로직 (순수 함수)
  */
+// [추가] AI 성숙도 판단 기준 및 계산 함수
+const AI_MATURITY_CRITERIA = {
+  // Level 3: AI-First / Agentic (자율 에이전트, 생성형 AI, 고도화된 예측)
+  LEVEL_3_FEATURES: ['AI_AGENTS', 'AI_COPILOT', 'AI_ANOMALY_DETECTION', 'AI_POWERED_MAPPING'],
+  LEVEL_3_KEYWORDS: ['generative', 'llm', 'gpt', 'copilot', 'autonomous', 'agent', 'predictive', 'forecasting', 'neural network', 'deep learning'],
+  
+  // Level 2: AI-Assisted (자동화, 분석 지원, 추출)
+  LEVEL_2_FEATURES: ['AI_DATA_EXTRACTION', 'AI_ANALYTICS'],
+  LEVEL_2_KEYWORDS: ['automation', 'automated', 'machine learning', 'ml', 'nlp', 'extraction', 'analytics', 'smart', 'optimization']
+};
+
+/**
+ * 기업의 AI 성숙도를 동적으로 계산 (Features + Description + Notes 분석)
+ */
+const calculateAIMaturity = (company: Company): AIMaturityLevel => {
+  // 1. Features 목록 확인 (가장 정확함 - 대문자 ID 매칭)
+  if (AI_MATURITY_CRITERIA.LEVEL_3_FEATURES.some(f => company.features.includes(f))) {
+    return 'ai-first-agentic';
+  }
+  if (AI_MATURITY_CRITERIA.LEVEL_2_FEATURES.some(f => company.features.includes(f))) {
+    return 'ai-assisted';
+  }
+
+  // 2. Description & Notes 텍스트 분석 (키워드 매칭 - 소문자 변환)
+  // Features에 없더라도 설명에 포함되어 있다면 성숙도를 인정합니다.
+  const content = `${company.description} ${company.descriptionEn} ${company.analysisNotes}`.toLowerCase();
+  
+  if (AI_MATURITY_CRITERIA.LEVEL_3_KEYWORDS.some(k => content.includes(k))) {
+    return 'ai-first-agentic';
+  }
+  if (AI_MATURITY_CRITERIA.LEVEL_2_KEYWORDS.some(k => content.includes(k))) {
+    return 'ai-assisted';
+  }
+
+  return 'none';
+};
+
 const calculateFilteredCompanies = (companies: Company[], filters: FilterState): Company[] => {
   let filtered = companies;
 
@@ -107,10 +144,10 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
   //   );
   // }
 
-  // 8. AI Maturity 필터 (향후 Company 데이터에 aiMaturity 필드 추가 시 활성화)
-  // if (filters.aiMaturity) {
-  //   filtered = filtered.filter((c) => c.aiMaturity === filters.aiMaturity);
-  // }
+  // 8. AI Maturity 필터 (동적 계산 로직 적용)
+  if (filters.aiMaturity) {
+    filtered = filtered.filter((c) => calculateAIMaturity(c) === filters.aiMaturity);
+  }
 
   // 9. Feature 필터 (직접 선택 - 고급 필터)
   if (filters.features.length > 0) {
