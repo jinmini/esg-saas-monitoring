@@ -60,7 +60,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-blue-800 text-sm">
                 <strong>ESG Service</strong> 또는{' '}
                 <strong>기업별 category</strong> 필터링, 정렬 기능
@@ -68,7 +68,7 @@ export default function Home() {
               <p className="text-blue-600 text-xs mt-1">
                 향후 고급 필터링 및 카테고리별 분류 기능이 추가될 예정입니다.
               </p>
-            </div>
+            </div> */}
           </div>
 
           <div>
@@ -122,7 +122,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-blue-800 text-sm">
                 <strong>ESG Service</strong> 또는{' '}
                 <strong>기업별 category</strong> 필터링, 정렬 기능
@@ -130,7 +130,7 @@ export default function Home() {
               <p className="text-blue-600 text-xs mt-1">
                 향후 고급 필터링 및 카테고리별 분류 기능이 추가될 예정입니다.
               </p>
-            </div>
+            </div> */}
           </div>
 
           <div>
