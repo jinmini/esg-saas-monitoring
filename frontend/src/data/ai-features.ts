@@ -42,17 +42,6 @@ export const AI_FEATURES: AIFeature[] = [
     techStack: [],
   },
 
-  {
-    id: 'carbon-footprint',
-    title: '탄소발자국 추정',
-    description: '활동 데이터를 기반으로 탄소 배출량을 계산하고 시뮬레이션합니다.',
-    category: 'sustainability',
-    status: 'planned',
-    icon: 'Leaf',
-    benefits: [],
-    techStack: [],
-  },
-
   // 🔍 모니터링
   {
     id: 'regulatory-tracking',
@@ -65,17 +54,6 @@ export const AI_FEATURES: AIFeature[] = [
     techStack: [],
   },
 
-  // ✅ 컴플라이언스
-  {
-    id: 'audit-automation',
-    title: 'ESG 감사 자동화',
-    description: '데이터 정합성을 검증하고 감사 리포트를 자동으로 생성합니다.',
-    category: 'compliance',
-    status: 'planned',
-    icon: 'ShieldCheck',
-    benefits: [],
-    techStack: [],
-  },
 
   {
     id: 'materiality-assessment',
@@ -84,18 +62,6 @@ export const AI_FEATURES: AIFeature[] = [
     category: 'compliance',
     status: 'research',
     icon: 'Target',
-    benefits: [],
-    techStack: [],
-  },
-
-  // 📈 리포팅
-  {
-    id: 'multi-framework-mapping',
-    title: '프레임워크 자동 매핑',
-    description: '단일 데이터로 GRI, SASB 등 여러 프레임워크 보고서를 생성합니다.',
-    category: 'reporting',
-    status: 'research',
-    icon: 'RefreshCw',
     benefits: [],
     techStack: [],
   },
