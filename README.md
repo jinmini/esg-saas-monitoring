@@ -537,7 +537,7 @@ MIT License - 자유롭게 사용하세요!
 
 ## 👤 제작자
 
-**김정민 (Kim Jinmin)**  
+**김진민 (Kim Jinmin)**  
 - 🌐 Website: [jinmini.com](https://jinmini.com)
 - 💼 Full-Stack Engineer specializing in AI/ML Integration
 - 🎯 Core Skills: Python, FastAPI, TypeScript, Next.js, LLM Engineering, Interactive Data Visualization
@@ -564,7 +564,6 @@ MIT License - 자유롭게 사용하세요!
 ## 🚀 Quick Links
 
 - 🌐 **Live Demo**: [jinmini.com](https://jinmini.com)
-- 📖 **API Docs**: [jinmini.com/api/docs](https://jinmini.com/api/docs)
 - 📊 **Project Overview**: [PROJECT_OVERVIEW.md](public/docs/PROJECT_OVERVIEW.md)
 - 🗺️ **Map Architecture**: [Map ARCHITECTURE](frontend/src/components/features/map/ARCHITECTURE.md)
 
