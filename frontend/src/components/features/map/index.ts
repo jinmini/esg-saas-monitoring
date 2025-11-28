@@ -31,8 +31,6 @@ export { MapTooltip } from './tooltip/MapTooltip';
 // Utils
 export * from './utils/markerUtils';
 
-// Tooltip (Phase 3-3)
-// export { MapTooltip } from './tooltip/MapTooltip';
 
 // Utils (Phase 3-2)
 // export * from './utils/markerUtils';

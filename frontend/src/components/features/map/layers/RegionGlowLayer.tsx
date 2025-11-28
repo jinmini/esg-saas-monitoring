@@ -12,7 +12,9 @@ import {
   EUROPE_HUBS, 
   ASIA_HUBS, 
   OCEANIA_HUBS, 
-  NORTH_AMERICA_HUBS 
+  NORTH_AMERICA_HUBS,
+  MIDDLE_EAST_HUBS,
+  SOUTH_AMERICA_HUBS
 } from '@/constants/esg-map';
 import { RegionMarker } from '../markers/RegionMarker';
 import { CountryMarker } from '../markers/CountryMarker';
@@ -184,6 +186,60 @@ export const RegionGlowLayer = () => {
     return (
       <g id="country-markers-north-america">
         {(Object.entries(NORTH_AMERICA_HUBS) as [CountryCode, typeof NORTH_AMERICA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+          const companies = companiesByCountry[countryCode] || [];
+          
+          return (
+            <CountryMarker
+              key={countryCode}
+              countryCode={countryCode}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedCountry === countryCode}
+              isHovered={hoveredCountry === countryCode}
+              onClick={() => handleCountryClick(countryCode)}
+              onMouseEnter={() => setHoveredCountry(countryCode)}
+              onMouseLeave={() => setHoveredCountry(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (viewMode === 'middle_east_detail') {
+    // ========================================
+    // Middle East Detail View: Country Markers (중동 국가 마커)
+    // ========================================
+    return (
+      <g id="country-markers-middle-east">
+        {(Object.entries(MIDDLE_EAST_HUBS) as [CountryCode, typeof MIDDLE_EAST_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
+          const companies = companiesByCountry[countryCode] || [];
+          
+          return (
+            <CountryMarker
+              key={countryCode}
+              countryCode={countryCode}
+              coords={coords}
+              companies={companies}
+              isSelected={selectedCountry === countryCode}
+              isHovered={hoveredCountry === countryCode}
+              onClick={() => handleCountryClick(countryCode)}
+              onMouseEnter={() => setHoveredCountry(countryCode)}
+              onMouseLeave={() => setHoveredCountry(null)}
+            />
+          );
+        })}
+      </g>
+    );
+  }
+
+  if (viewMode === 'south_america_detail') {
+    // ========================================
+    // South America Detail View: Country Markers (남미 국가 마커)
+    // ========================================
+    return (
+      <g id="country-markers-south-america">
+        {(Object.entries(SOUTH_AMERICA_HUBS) as [CountryCode, typeof SOUTH_AMERICA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
           const companies = companiesByCountry[countryCode] || [];
           
           return (

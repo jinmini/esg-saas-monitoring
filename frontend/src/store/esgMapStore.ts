@@ -9,7 +9,8 @@ import { devtools } from 'zustand/middleware';
 import { 
   FILTER_CATEGORIES, 
   FEATURE_GROUPS, 
-  FRAMEWORK_GROUPS 
+  FRAMEWORK_GROUPS,
+  AI_MATURITY_CRITERIA
 } from '@/constants/esg-map';
 import type {
   Company,
@@ -36,19 +37,11 @@ import type {
 /**
  * 필터링 로직 (순수 함수)
  */
-// [추가] AI 성숙도 판단 기준 및 계산 함수
-const AI_MATURITY_CRITERIA = {
-  // Level 3: AI-First / Agentic (자율 에이전트, 생성형 AI, 고도화된 예측)
-  LEVEL_3_FEATURES: ['AI_AGENTS', 'AI_COPILOT', 'AI_ANOMALY_DETECTION', 'AI_POWERED_MAPPING'],
-  LEVEL_3_KEYWORDS: ['generative', 'llm', 'gpt', 'copilot', 'autonomous', 'agent', 'predictive', 'forecasting', 'neural network', 'deep learning'],
-  
-  // Level 2: AI-Assisted (자동화, 분석 지원, 추출)
-  LEVEL_2_FEATURES: ['AI_DATA_EXTRACTION', 'AI_ANALYTICS'],
-  LEVEL_2_KEYWORDS: ['automation', 'automated', 'machine learning', 'ml', 'nlp', 'extraction', 'analytics', 'smart', 'optimization']
-};
 
 /**
  * 기업의 AI 성숙도를 동적으로 계산 (Features + Description + Notes 분석)
+ * 
+ * @see AI_MATURITY_CRITERIA in constants/esg-map.ts
  */
 const calculateAIMaturity = (company: Company): AIMaturityLevel => {
   // 1. Features 목록 확인 (가장 정확함 - 대문자 ID 매칭)
@@ -163,7 +156,7 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
     );
   }
 
-  // 11. 검색 쿼리
+  // 11. 검색 쿼리 (확장: features/frameworks 포함)
   if (filters.searchQuery.trim()) {
     const query = filters.searchQuery.toLowerCase();
     filtered = filtered.filter(
@@ -172,7 +165,11 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
         c.nameLocal.toLowerCase().includes(query) ||
         c.description.toLowerCase().includes(query) ||
         c.descriptionEn.toLowerCase().includes(query) ||
-        c.country.toLowerCase().includes(query)
+        c.country.toLowerCase().includes(query) ||
+        // Features 검색: DOUBLE_MATERIALITY 같은 태그도 매칭
+        c.features.some((f) => f.toLowerCase().includes(query)) ||
+        // Frameworks 검색: CSRD, GHG_PROTOCOL 같은 태그도 매칭
+        c.frameworks.some((fw) => fw.toLowerCase().includes(query))
     );
   }
 
@@ -472,6 +469,8 @@ export const useESGMapStore = create<ESGMapStore>()(
         else if (region === 'Asia') viewMode = 'asia_detail';
         else if (region === 'Oceania') viewMode = 'oceania_detail';
         else if (region === 'North America') viewMode = 'north_america_detail';
+        else if (region === 'Middle East') viewMode = 'middle_east_detail';
+        else if (region === 'South America') viewMode = 'south_america_detail';
 
         set((state) => ({
           mapState: {
@@ -508,6 +507,10 @@ export const useESGMapStore = create<ESGMapStore>()(
           viewMode = 'oceania_detail';
         } else if (region === 'North America') {
           viewMode = 'north_america_detail';
+        } else if (region === 'Middle East') {
+          viewMode = 'middle_east_detail';
+        } else if (region === 'South America') {
+          viewMode = 'south_america_detail';
         }
 
         set((state) => ({

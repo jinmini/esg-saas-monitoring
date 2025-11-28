@@ -126,6 +126,48 @@ export const NORTH_AMERICA_HUBS: Record<string, RegionCoordinates> = {
   'CA': { x: 550, y: 250, radius: 25 },
 };
 
+/**
+ * 중동 국가별 좌표 (Middle East Region View용)
+ * 
+ * 📍 좌표 기준 (2025-11-28):
+ * - viewBox 2000x857 기준
+ * - UAE, Saudi Arabia, Israel
+ */
+export const MIDDLE_EAST_HUBS: Record<string, RegionCoordinates> = {
+  // 🇦🇪 아랍에미리트: 두바이/아부다비 (중동 금융 허브)
+  'AE': { x: 1280, y: 400, radius: 25 },
+  
+  // 🇸🇦 사우디아라비아: 리야드 (중동 최대 경제)
+  'SA': { x: 1240, y: 410, radius: 30 },
+  
+  // 🇮🇱 이스라엘: 텔아비브 (ESG Tech 혁신 중심)
+  'IL': { x: 1200, y: 360, radius: 22 },
+};
+
+/**
+ * 남미 국가별 좌표 (South America / LatAm Region View용)
+ * 
+ * 📍 좌표 기준 (2025-11-28):
+ * - viewBox 2000x857 기준
+ * - Brazil, Chile, Argentina, Colombia, Costa Rica (LatAm)
+ */
+export const SOUTH_AMERICA_HUBS: Record<string, RegionCoordinates> = {
+  // 🇧🇷 브라질: 상파울루 (남미 최대 경제/ESG 시장)
+  'BR': { x: 680, y: 680, radius: 35 },
+  
+  // 🇨🇱 칠레: 산티아고 (재생에너지 선도국)
+  'CL': { x: 600, y: 750, radius: 22 },
+  
+  // 🇦🇷 아르헨티나: 부에노스아이레스 (농업/환경 중요)
+  'AR': { x: 640, y: 770, radius: 25 },
+  
+  // 🇨🇴 콜롬비아: 보고타 (생물다양성 핫스팟)
+  'CO': { x: 590, y: 560, radius: 20 },
+  
+  // 🇨🇷 코스타리카: 산호세 (중앙아메리카, LatAm 맥락상 남미 클러스터 포함)
+  'CR': { x: 575, y: 530, radius: 18 },
+};
+
 // ============================================
 // 지도 뷰포트 (BBox) 설정
 // ============================================
@@ -140,7 +182,11 @@ export const REGION_BBOX: Record<string, { x: number; y: number; w: number; h: n
   'asia_detail': { x: 1450, y: 250, w: 350, h: 280 },
   'oceania_detail': { x: 1520, y: 550, w: 260, h: 200 },
   // 🇺🇸 북미 특별 보정: 알래스카/하와이 제외, 본토(Mainland)와 캐나다 남부 집중
-  'north_america_detail': { x: 380, y: 150, w: 350, h: 300 }, 
+  'north_america_detail': { x: 380, y: 150, w: 350, h: 300 },
+  // 🇦🇪 중동: UAE, 사우디, 이스라엘 포함 (페르시아만~지중해)
+  'middle_east_detail': { x: 1150, y: 320, w: 200, h: 140 },
+  // 🇧🇷 남미: 브라질, 칠레, 아르헨티나, 콜롬비아 커버
+  'south_america_detail': { x: 550, y: 520, w: 200, h: 300 },
 };
 
 export const WORLD_VIEWPORT: MapViewport = {
@@ -414,13 +460,11 @@ export const FEATURE_GROUPS: FeatureGroupInfo[] = [
       'CARBON_ACCOUNTING_SCOPE3',
       'CORPORATE_CARBON_FOOTPRINT',
       'PRODUCT_CARBON_FOOTPRINT',
-      'SCOPE3_QUANTIFICATION',
+      'SCOPE3_CARBON_MANAGEMENT',
       'TARGET_SETTING',
-      'NET_ZERO_TARGET_SETTING',
       'DECARBONISATION',
       'DECARBONISATION_PLANNING',
       'EMISSIONS_FORECASTING',
-      'CARBON_REDUCTION',
     ],
   },
   {
@@ -530,11 +574,10 @@ export const FEATURE_GROUPS: FeatureGroupInfo[] = [
     icon: '🌳',
     description: 'TNFD, Biodiversity monitoring, Deforestation, Land use',
     relatedFeatures: [
-      'NATURE_ASSESSMENT',
+      'NATURE_BIODIVERSITY',
       'BIODIVERSITY_MONITORING',
       'LAND_USE',
       'DEFORESTATION_MONITORING',
-      'DEFORESTATION_FREE_SUPPLY_CHAIN',
     ],
   },
   {
@@ -594,11 +637,11 @@ export const FEATURE_GROUPS: FeatureGroupInfo[] = [
     icon: '🏭',
     description: 'Fashion, Food, Hospitality, Events, Oil & Gas, Real Estate',
     relatedFeatures: [
-      'FOOD_TRACEABILITY',
-      'TEXTILE_SUSTAINABILITY',
-      'HOSPITALITY_ESG',
+      'FOOD_INDUSTRY_FOCUS',
+      'TEXTILE_FASHION_ECODESIGN',
+      'HOSPITALITY_DATA_HUB',
       'EVENT_SUSTAINABILITY',
-      'OIL_GAS_ESG',
+      'OIL_GAS_ENVIRONMENTAL_MANAGEMENT',
     ],
   },
   {
@@ -644,7 +687,7 @@ export const FRAMEWORK_GROUPS: FrameworkGroupInfo[] = [
       'ESRS',
       'CSRD',
       'ISSB',
-      'IFRS_S1',
+      'IFRS_S1_S2',
       'IFRS_S2',
       'SDG',
       'HKEX',
@@ -713,7 +756,7 @@ export const FRAMEWORK_GROUPS: FrameworkGroupInfo[] = [
       'PEFCR',
       'EPD',
       'ESPR',
-      'DPP',
+      'DPP_ESPR',
       'AGEC',
       'BILAN_CARBONE',
       'EN_15804',
@@ -730,7 +773,7 @@ export const FRAMEWORK_GROUPS: FrameworkGroupInfo[] = [
       'LEED',
       'BREEAM',
       'DGNB',
-      'WELL',
+      'WELL_STANDARD',
       'GRESB',
     ],
   },
@@ -744,8 +787,7 @@ export const FRAMEWORK_GROUPS: FrameworkGroupInfo[] = [
       'HIGG_INDEX',
       'GBTA',
       'ESBN_GREEN_DEAL',
-      'HCMI',
-      'HWMI',
+      'HCMI_HWMI',
       'OSPAR_HOCNF',
     ],
   },
@@ -1038,6 +1080,72 @@ export const COUNTRY_INFO: Record<CountryCode, {
     capital: 'Toronto',
     cluster: 'Disclosure & Reporting'
   },
+  // 중동 (Middle East)
+  'AE': {
+    name: 'United Arab Emirates',
+    nameLocal: '아랍에미리트',
+    emoji: '🇦🇪',
+    region: 'Middle East',
+    capital: 'Dubai',
+    cluster: 'Sustainable Finance & Green Economy'
+  },
+  'SA': {
+    name: 'Saudi Arabia',
+    nameLocal: '사우디아라비아',
+    emoji: '🇸🇦',
+    region: 'Middle East',
+    capital: 'Riyadh',
+    cluster: 'Energy Transition & Vision 2030'
+  },
+  'IL': {
+    name: 'Israel',
+    nameLocal: '이스라엘',
+    emoji: '🇮🇱',
+    region: 'Middle East',
+    capital: 'Tel Aviv',
+    cluster: 'Climate Tech Innovation'
+  },
+  // 남미 (South America)
+  'BR': {
+    name: 'Brazil',
+    nameLocal: '브라질',
+    emoji: '🇧🇷',
+    region: 'South America',
+    capital: 'São Paulo',
+    cluster: 'Amazon & Biodiversity'
+  },
+  'CL': {
+    name: 'Chile',
+    nameLocal: '칠레',
+    emoji: '🇨🇱',
+    region: 'South America',
+    capital: 'Santiago',
+    cluster: 'Renewable Energy & Mining ESG'
+  },
+  'AR': {
+    name: 'Argentina',
+    nameLocal: '아르헨티나',
+    emoji: '🇦🇷',
+    region: 'South America',
+    capital: 'Buenos Aires',
+    cluster: 'Agriculture & Climate Resilience'
+  },
+  'CO': {
+    name: 'Colombia',
+    nameLocal: '콜롬비아',
+    emoji: '🇨🇴',
+    region: 'South America',
+    capital: 'Bogotá',
+    cluster: 'Biodiversity & TNFD'
+  },
+  'CR': {
+    name: 'Costa Rica',
+    nameLocal: '코스타리카',
+    emoji: '🇨🇷',
+    region: 'South America',
+    capital: 'San José',
+    cluster: 'Carbon Neutrality & Eco-tourism'
+  },
 };
 
 // ============================================
@@ -1101,4 +1209,30 @@ export const PERFORMANCE = {
   DEBOUNCE_FILTER: 50,
   THROTTLE_HOVER: 16,
   LAZY_LOAD_THRESHOLD: 100,
+} as const;
+
+// ============================================
+// AI Maturity 분류 기준
+// ============================================
+
+/**
+ * AI 성숙도 자동 분류를 위한 기준
+ * 
+ * 기업의 Features 및 Description을 분석하여
+ * AI 성숙도 레벨을 동적으로 판단합니다.
+ */
+export const AI_MATURITY_CRITERIA = {
+  // Level 3: AI-First / Agentic (자율 에이전트, 생성형 AI, 고도화된 예측)
+  LEVEL_3_FEATURES: ['AI_AGENTS', 'AI_COPILOT', 'AI_ANOMALY_DETECTION', 'AI_POWERED_MAPPING'],
+  LEVEL_3_KEYWORDS: [
+    'generative', 'llm', 'gpt', 'copilot', 'autonomous', 'agent', 
+    'predictive', 'forecasting', 'neural network', 'deep learning'
+  ],
+  
+  // Level 2: AI-Assisted (자동화, 분석 지원, 추출)
+  LEVEL_2_FEATURES: ['AI_DATA_EXTRACTION', 'AI_ANALYTICS'],
+  LEVEL_2_KEYWORDS: [
+    'automation', 'automated', 'machine learning', 'ml', 'nlp', 
+    'extraction', 'analytics', 'smart', 'optimization'
+  ],
 } as const;

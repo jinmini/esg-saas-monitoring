@@ -101,7 +101,17 @@ export type CountryCode =
   | 'AU' // 🇦🇺 호주 (Australia)
   // 북미 (North America)
   | 'US' // 🇺🇸 미국 (United States)
-  | 'CA'; // 🇨🇦 캐나다 (Canada)
+  | 'CA' // 🇨🇦 캐나다 (Canada)
+  // 중동 (Middle East)
+  | 'AE' // 🇦🇪 아랍에미리트 (United Arab Emirates)
+  | 'SA' // 🇸🇦 사우디아라비아 (Saudi Arabia)
+  | 'IL' // 🇮🇱 이스라엘 (Israel)
+  // 남미 (South America / LatAm)
+  | 'BR' // 🇧🇷 브라질 (Brazil)
+  | 'CL' // 🇨🇱 칠레 (Chile)
+  | 'AR' // 🇦🇷 아르헨티나 (Argentina)
+  | 'CO' // 🇨🇴 콜롬비아 (Colombia)
+  | 'CR'; // 🇨🇷 코스타리카 (Costa Rica)
 
 /**
  * 지역 정보 (지도 상 표시용)
@@ -244,7 +254,15 @@ export interface FilterState {
  * - north_america_detail: 북미 확대 뷰 (국가별 마커 표시)
  * - region: 기타 대륙 확대 뷰 (향후 확장용)
  */
-export type MapViewMode = 'world' | 'europe_detail' | 'asia_detail' | 'oceania_detail' | 'north_america_detail' | 'region';
+export type MapViewMode = 
+  | 'world' 
+  | 'europe_detail' 
+  | 'asia_detail' 
+  | 'oceania_detail' 
+  | 'north_america_detail'
+  | 'middle_east_detail'
+  | 'south_america_detail'
+  | 'region';
 
 /**
  * 지도 상태
