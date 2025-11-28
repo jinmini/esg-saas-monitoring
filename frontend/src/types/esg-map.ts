@@ -205,8 +205,10 @@ export type UserPersona =
 
 /**
  * AI Maturity Level
+ * - none: AI 기능 없음
+ * - ai-enabled: AI 기능 있음 (AI 기반 자동화, 분석, 예측 등)
  */
-export type AIMaturityLevel = 'none' | 'ai-assisted' | 'ai-first-agentic';
+export type AIMaturityLevel = 'none' | 'ai-enabled';
 
 /**
  * 필터 카테고리 정보

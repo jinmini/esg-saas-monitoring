@@ -889,7 +889,7 @@ export const USER_PERSONAS: UserPersonaInfo[] = [
 ];
 
 // ============================================
-// AI Maturity Levels (3개)
+// AI Maturity Levels (2개 - 단순화)
 // ============================================
 
 export interface AIMaturityLevelInfo {
@@ -909,18 +909,11 @@ export const AI_MATURITY_LEVELS: AIMaturityLevelInfo[] = [
     description: 'Traditional software without AI capabilities',
   },
   {
-    id: 'ai-assisted',
-    name: 'AI-Assisted (Copilot)',
-    nameLocal: 'AI 보조 (코파일럿)',
-    icon: '🤝',
-    description: 'AI copilot, Auto-classification, Suggestions',
-  },
-  {
-    id: 'ai-first-agentic',
-    name: 'AI-First / Agentic',
-    nameLocal: 'AI 우선 / Agentic',
+    id: 'ai-enabled',
+    name: 'AI-Enabled',
+    nameLocal: 'AI 있음',
     icon: '🤖',
-    description: 'AI agents, Autonomous workflows, AI-native platform',
+    description: 'AI-powered features (automation, analytics, copilot, agents, etc.)',
   },
 ];
 
@@ -1237,23 +1230,27 @@ export const PERFORMANCE = {
 // ============================================
 
 /**
- * AI 성숙도 자동 분류를 위한 기준
+ * AI 기능 자동 감지를 위한 기준
  * 
- * 기업의 Features 및 Description을 분석하여
- * AI 성숙도 레벨을 동적으로 판단합니다.
+ * 기업의 Description에 AI 관련 키워드가 포함되어 있으면
+ * AI 기능이 있는 것으로 판단합니다.
  */
 export const AI_MATURITY_CRITERIA = {
-  // Level 3: AI-First / Agentic (자율 에이전트, 생성형 AI, 고도화된 예측)
-  LEVEL_3_FEATURES: ['AI_AGENTS', 'AI_COPILOT', 'AI_ANOMALY_DETECTION', 'AI_POWERED_MAPPING'],
-  LEVEL_3_KEYWORDS: [
-    'generative', 'llm', 'gpt', 'copilot', 'autonomous', 'agent', 
-    'predictive', 'forecasting', 'neural network', 'deep learning'
-  ],
-  
-  // Level 2: AI-Assisted (자동화, 분석 지원, 추출)
-  LEVEL_2_FEATURES: ['AI_DATA_EXTRACTION', 'AI_ANALYTICS'],
-  LEVEL_2_KEYWORDS: [
-    'automation', 'automated', 'machine learning', 'ml', 'nlp', 
-    'extraction', 'analytics', 'smart', 'optimization'
+  // AI 관련 키워드 (description에 이 단어가 있으면 AI 기능 있음)
+  AI_KEYWORDS: [
+    'ai', 
+    'artificial intelligence', 
+    'machine learning', 
+    'ml',
+    'deep learning',
+    'neural network',
+    'generative',
+    'llm',
+    'gpt',
+    'copilot',
+    'ai-powered',
+    'ai-based',
+    'ai-driven',
+    'ai-native'
   ],
 } as const;

@@ -61,31 +61,22 @@ const getViewModeFromRegion = (region: Region): MapState['viewMode'] => {
  */
 
 /**
- * 기업의 AI 성숙도를 동적으로 계산 (Features + Description + Notes 분석)
+ * 기업의 AI 기능 여부를 자동으로 감지
+ * 
+ * Description에 AI 관련 키워드가 포함되어 있으면 AI 기능이 있는 것으로 판단
  * 
  * @see AI_MATURITY_CRITERIA in constants/esg-map.ts
  */
 const calculateAIMaturity = (company: Company): AIMaturityLevel => {
-  // 1. Features 목록 확인 (가장 정확함 - 대문자 ID 매칭)
-  if (AI_MATURITY_CRITERIA.LEVEL_3_FEATURES.some(f => company.features.includes(f))) {
-    return 'ai-first-agentic';
-  }
-  if (AI_MATURITY_CRITERIA.LEVEL_2_FEATURES.some(f => company.features.includes(f))) {
-    return 'ai-assisted';
-  }
-
-  // 2. Description & Notes 텍스트 분석 (키워드 매칭 - 소문자 변환)
-  // Features에 없더라도 설명에 포함되어 있다면 성숙도를 인정합니다.
-  const content = `${company.description} ${company.descriptionEn} ${company.analysisNotes}`.toLowerCase();
+  // Description 텍스트에서 AI 키워드 검색 (소문자 변환)
+  const content = `${company.description} ${company.descriptionEn}`.toLowerCase();
   
-  if (AI_MATURITY_CRITERIA.LEVEL_3_KEYWORDS.some(k => content.includes(k))) {
-    return 'ai-first-agentic';
-  }
-  if (AI_MATURITY_CRITERIA.LEVEL_2_KEYWORDS.some(k => content.includes(k))) {
-    return 'ai-assisted';
-  }
-
-  return 'none';
+  // AI 키워드가 하나라도 있으면 AI 기능 있음
+  const hasAI = AI_MATURITY_CRITERIA.AI_KEYWORDS.some(keyword => 
+    content.includes(keyword)
+  );
+  
+  return hasAI ? 'ai-enabled' : 'none';
 };
 
 const calculateFilteredCompanies = (companies: Company[], filters: FilterState): Company[] => {
