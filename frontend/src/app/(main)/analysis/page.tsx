@@ -5,7 +5,6 @@ import { Globe, Grid3x3, Layers, Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WorldMapContainer } from '@/components/features/map';
 import { useESGMapStore } from '@/store/esgMapStore';
-import { validateAndLog } from '@/utils/validateESGTags';
 import type { ESGMapData } from '@/types/esg-map';
 
 export default function AnalysisPage() {
@@ -32,12 +31,6 @@ export default function AnalysisPage() {
           throw new Error(`Failed to load data: ${response.status}`);
         }
         const data: ESGMapData = await response.json();
-        
-        // 개발 모드: 데이터 무결성 자동 검증
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔍 Running ESG Tags validation...');
-          validateAndLog(data);
-        }
         
         setCompanies(data);
       } catch (err) {
