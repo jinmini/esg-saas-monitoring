@@ -8,13 +8,8 @@
 import { useMemo } from 'react';
 import { useESGMapStore, useFilteredCompanies } from '@/store/esgMapStore';
 import { 
-  REGION_COORDS, 
-  EUROPE_HUBS, 
-  ASIA_HUBS, 
-  OCEANIA_HUBS, 
-  NORTH_AMERICA_HUBS,
-  MIDDLE_EAST_HUBS,
-  SOUTH_AMERICA_HUBS
+  REGION_COORDS,
+  REGION_HUB_MAP,
 } from '@/constants/esg-map';
 import { RegionMarker } from '../markers/RegionMarker';
 import { CountryMarker } from '../markers/CountryMarker';
@@ -61,11 +56,12 @@ export const RegionGlowLayer = () => {
     return groups;
   }, [filteredCompanies]);
 
+  // ========================================
   // viewMode별 렌더링 분기
+  // ========================================
+  
+  // World View: Region Markers (대륙 마커)
   if (viewMode === 'world') {
-    // ========================================
-    // World View: Region Markers (대륙 마커)
-    // ========================================
     return (
       <g id="region-markers">
         {(Object.entries(REGION_COORDS) as [Region, typeof REGION_COORDS[Region]][]).map(([region, coords]) => {
@@ -89,177 +85,43 @@ export const RegionGlowLayer = () => {
     );
   }
 
-  if (viewMode === 'europe_detail') {
-    // ========================================
-    // Europe Detail View: Country Markers (유럽 국가 마커)
-    // ========================================
-    
-    // Z-Index 관리: Hover된 마커를 가장 마지막에 렌더링 (Bring to Front)
-    const sortedHubs = Object.entries(EUROPE_HUBS).sort(([codeA], [codeB]) => {
-        if (codeA === hoveredCountry) return 1;
-        if (codeB === hoveredCountry) return -1;
-        return 0;
-    });
+  // ========================================
+  // Detail Views: Country Markers (통합!)
+  // ========================================
+  
+  // 현재 viewMode에 해당하는 Country Hubs 가져오기
+  const currentHubs = REGION_HUB_MAP[viewMode];
+  
+  // 정의되지 않은 viewMode 또는 world view인 경우
+  if (!currentHubs) return null;
 
-    return (
-      <g id="country-markers-europe">
-        {(sortedHubs as [CountryCode, typeof EUROPE_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
-          const companies = companiesByCountry[countryCode] || [];
-          
-          return (
-            <CountryMarker
-              key={countryCode}
-              countryCode={countryCode}
-              coords={coords}
-              companies={companies}
-              isSelected={selectedCountry === countryCode}
-              isHovered={hoveredCountry === countryCode}
-              isAnyHovered={!!hoveredCountry} // 다른 마커가 호버되었는지 여부
-              onClick={() => handleCountryClick(countryCode)}
-              onMouseEnter={() => setHoveredCountry(countryCode)}
-              onMouseLeave={() => setHoveredCountry(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
+  // Z-Index 관리: Hover된 마커를 마지막에 렌더링 (Bring to Front)
+  const sortedHubs = Object.entries(currentHubs).sort(([codeA], [codeB]) => {
+    if (codeA === hoveredCountry) return 1;
+    if (codeB === hoveredCountry) return -1;
+    return 0;
+  });
 
-  if (viewMode === 'asia_detail') {
-    // ========================================
-    // Asia Detail View: Country Markers (아시아 국가 마커)
-    // ========================================
-    return (
-      <g id="country-markers-asia">
-        {(Object.entries(ASIA_HUBS) as [CountryCode, typeof ASIA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
-          const companies = companiesByCountry[countryCode] || [];
-          
-          return (
-            <CountryMarker
-              key={countryCode}
-              countryCode={countryCode}
-              coords={coords}
-              companies={companies}
-              isSelected={selectedCountry === countryCode}
-              isHovered={hoveredCountry === countryCode}
-              onClick={() => handleCountryClick(countryCode)}
-              onMouseEnter={() => setHoveredCountry(countryCode)}
-              onMouseLeave={() => setHoveredCountry(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
-  if (viewMode === 'oceania_detail') {
-    // ========================================
-    // Oceania Detail View: Country Markers (오세아니아 국가 마커)
-    // ========================================
-    return (
-      <g id="country-markers-oceania">
-        {(Object.entries(OCEANIA_HUBS) as [CountryCode, typeof OCEANIA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
-          const companies = companiesByCountry[countryCode] || [];
-          
-          return (
-            <CountryMarker
-              key={countryCode}
-              countryCode={countryCode}
-              coords={coords}
-              companies={companies}
-              isSelected={selectedCountry === countryCode}
-              isHovered={hoveredCountry === countryCode}
-              onClick={() => handleCountryClick(countryCode)}
-              onMouseEnter={() => setHoveredCountry(countryCode)}
-              onMouseLeave={() => setHoveredCountry(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
-  if (viewMode === 'north_america_detail') {
-    // ========================================
-    // North America Detail View: Country Markers (북미 국가 마커)
-    // ========================================
-    return (
-      <g id="country-markers-north-america">
-        {(Object.entries(NORTH_AMERICA_HUBS) as [CountryCode, typeof NORTH_AMERICA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
-          const companies = companiesByCountry[countryCode] || [];
-          
-          return (
-            <CountryMarker
-              key={countryCode}
-              countryCode={countryCode}
-              coords={coords}
-              companies={companies}
-              isSelected={selectedCountry === countryCode}
-              isHovered={hoveredCountry === countryCode}
-              onClick={() => handleCountryClick(countryCode)}
-              onMouseEnter={() => setHoveredCountry(countryCode)}
-              onMouseLeave={() => setHoveredCountry(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
-  if (viewMode === 'middle_east_detail') {
-    // ========================================
-    // Middle East Detail View: Country Markers (중동 국가 마커)
-    // ========================================
-    return (
-      <g id="country-markers-middle-east">
-        {(Object.entries(MIDDLE_EAST_HUBS) as [CountryCode, typeof MIDDLE_EAST_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
-          const companies = companiesByCountry[countryCode] || [];
-          
-          return (
-            <CountryMarker
-              key={countryCode}
-              countryCode={countryCode}
-              coords={coords}
-              companies={companies}
-              isSelected={selectedCountry === countryCode}
-              isHovered={hoveredCountry === countryCode}
-              onClick={() => handleCountryClick(countryCode)}
-              onMouseEnter={() => setHoveredCountry(countryCode)}
-              onMouseLeave={() => setHoveredCountry(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
-  if (viewMode === 'south_america_detail') {
-    // ========================================
-    // South America Detail View: Country Markers (남미 국가 마커)
-    // ========================================
-    return (
-      <g id="country-markers-south-america">
-        {(Object.entries(SOUTH_AMERICA_HUBS) as [CountryCode, typeof SOUTH_AMERICA_HUBS[CountryCode]][]).map(([countryCode, coords]) => {
-          const companies = companiesByCountry[countryCode] || [];
-          
-          return (
-            <CountryMarker
-              key={countryCode}
-              countryCode={countryCode}
-              coords={coords}
-              companies={companies}
-              isSelected={selectedCountry === countryCode}
-              isHovered={hoveredCountry === countryCode}
-              onClick={() => handleCountryClick(countryCode)}
-              onMouseEnter={() => setHoveredCountry(countryCode)}
-              onMouseLeave={() => setHoveredCountry(null)}
-            />
-          );
-        })}
-      </g>
-    );
-  }
-
-  // 기본값: 아무것도 렌더링하지 않음
-  return null;
+  return (
+    <g id={`country-markers-${viewMode}`}>
+      {sortedHubs.map(([countryCode, coords]) => {
+        const companies = companiesByCountry[countryCode] || [];
+        
+        return (
+          <CountryMarker
+            key={countryCode}
+            countryCode={countryCode as CountryCode}
+            coords={coords}
+            companies={companies}
+            isSelected={selectedCountry === countryCode}
+            isHovered={hoveredCountry === countryCode}
+            isAnyHovered={!!hoveredCountry}
+            onClick={() => handleCountryClick(countryCode as CountryCode)}
+            onMouseEnter={() => setHoveredCountry(countryCode as CountryCode)}
+            onMouseLeave={() => setHoveredCountry(null)}
+          />
+        );
+      })}
+    </g>
+  );
 };

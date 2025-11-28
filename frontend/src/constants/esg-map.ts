@@ -168,6 +168,27 @@ export const SOUTH_AMERICA_HUBS: Record<string, RegionCoordinates> = {
   'CR': { x: 575, y: 530, radius: 18 },
 };
 
+/**
+ * Region Hub Map
+ * viewMode별로 표시할 Country Hubs 매핑
+ * 
+ * Configuration-Driven Rendering을 위한 중앙 집중식 설정
+ * - 'world': null (Region 마커만 표시)
+ * - 'XXX_detail': 해당 지역의 Country Hubs
+ * 
+ * @see RegionGlowLayer.tsx - 이 맵을 사용하여 조건부 렌더링
+ */
+export const REGION_HUB_MAP: Record<string, Record<string, RegionCoordinates> | null> = {
+  'world': null,
+  'europe_detail': EUROPE_HUBS,
+  'asia_detail': ASIA_HUBS,
+  'oceania_detail': OCEANIA_HUBS,
+  'north_america_detail': NORTH_AMERICA_HUBS,
+  'middle_east_detail': MIDDLE_EAST_HUBS,
+  'south_america_detail': SOUTH_AMERICA_HUBS,
+  'region': null, // Fallback for undefined regions
+};
+
 // ============================================
 // 지도 뷰포트 (BBox) 설정
 // ============================================

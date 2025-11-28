@@ -35,6 +35,28 @@ import type {
 // ============================================
 
 /**
+ * AI Maturity 캐시
+ * 데이터 로딩 시 사전 계산하여 O(n*m) → O(1) 성능 향상
+ */
+const aiMaturityCache = new Map<string, AIMaturityLevel>();
+
+/**
+ * Region에서 ViewMode 매핑 (중복 로직 제거)
+ */
+const getViewModeFromRegion = (region: Region): MapState['viewMode'] => {
+  const regionViewModeMap: Record<Region, MapState['viewMode']> = {
+    'Europe': 'europe_detail',
+    'Asia': 'asia_detail',
+    'Oceania': 'oceania_detail',
+    'North America': 'north_america_detail',
+    'Middle East': 'middle_east_detail',
+    'South America': 'south_america_detail',
+    'Africa': 'region', // Fallback
+  };
+  return regionViewModeMap[region] || 'region';
+};
+
+/**
  * 필터링 로직 (순수 함수)
  */
 
@@ -137,9 +159,9 @@ const calculateFilteredCompanies = (companies: Company[], filters: FilterState):
   //   );
   // }
 
-  // 8. AI Maturity 필터 (동적 계산 로직 적용)
+  // 8. AI Maturity 필터 (캐시에서 조회 - O(1))
   if (filters.aiMaturity) {
-    filtered = filtered.filter((c) => calculateAIMaturity(c) === filters.aiMaturity);
+    filtered = filtered.filter((c) => aiMaturityCache.get(c.id) === filters.aiMaturity);
   }
 
   // 9. Feature 필터 (직접 선택 - 고급 필터)
@@ -387,13 +409,20 @@ export const useESGMapStore = create<ESGMapStore>()(
       ...initialState,
 
       // 데이터 로딩
-      setCompanies: (data: ESGMapData) =>
+      setCompanies: (data: ESGMapData) => {
+        // AI Maturity 사전 계산 및 캐싱 (성능 최적화)
+        aiMaturityCache.clear();
+        data.companies.forEach(company => {
+          aiMaturityCache.set(company.id, calculateAIMaturity(company));
+        });
+        
         set({
           companies: data.companies,
           metadata: data.metadata,
           isLoading: false,
           error: null,
-        }),
+        });
+      },
       setLoading: (loading: boolean) => set({ isLoading: loading }),
       setError: (error: string | null) => set({ error }),
 
@@ -463,14 +492,7 @@ export const useESGMapStore = create<ESGMapStore>()(
         if (!company) return;
 
         const region = company.region as Region;
-        let viewMode: MapState['viewMode'] = 'region';
-        
-        if (region === 'Europe') viewMode = 'europe_detail';
-        else if (region === 'Asia') viewMode = 'asia_detail';
-        else if (region === 'Oceania') viewMode = 'oceania_detail';
-        else if (region === 'North America') viewMode = 'north_america_detail';
-        else if (region === 'Middle East') viewMode = 'middle_east_detail';
-        else if (region === 'South America') viewMode = 'south_america_detail';
+        const viewMode = getViewModeFromRegion(region);
 
         set((state) => ({
           mapState: {
@@ -496,22 +518,7 @@ export const useESGMapStore = create<ESGMapStore>()(
       },
 
       zoomToRegion: (region: Region) => {
-        let viewMode: MapState['viewMode'] = 'region';
-        
-        // 지역별 상세 뷰 모드 결정
-        if (region === 'Europe') {
-          viewMode = 'europe_detail';
-        } else if (region === 'Asia') {
-          viewMode = 'asia_detail';
-        } else if (region === 'Oceania') {
-          viewMode = 'oceania_detail';
-        } else if (region === 'North America') {
-          viewMode = 'north_america_detail';
-        } else if (region === 'Middle East') {
-          viewMode = 'middle_east_detail';
-        } else if (region === 'South America') {
-          viewMode = 'south_america_detail';
-        }
+        const viewMode = getViewModeFromRegion(region);
 
         set((state) => ({
           mapState: {
