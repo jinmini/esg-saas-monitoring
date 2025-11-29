@@ -36,7 +36,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 20000, // 콜드스타트 대응 (Render Free Plan: 15~30초 소요)
   headers: {
     'Content-Type': 'application/json',
   },

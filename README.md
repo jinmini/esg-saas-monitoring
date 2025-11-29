@@ -35,10 +35,11 @@
 ┌─────────────────────────────────────────────────────┐
 │              Client (Browser) - jinmini.com         │
 │     Next.js 15 + Zustand + Framer Motion + SVG     │
+│     + Server Warmup (Cold Start 대응)               │
 └───────────────────┬─────────────────────────────────┘
-                    │ REST API
+                    │ REST API (20s timeout)
         ┌───────────▼──────────┐
-        │  Backend (Railway)   │
+        │  Backend (Render)    │  ← UptimeRobot (5분 간격)
         │   - FastAPI          │
         │   - AI Assist Layer  │
         │   - News Crawler     │
@@ -61,8 +62,8 @@
 | **AI/ML** | Gemini 2.5 Flash, intfloat/multilingual-e5-base | - |
 | **Database** | PostgreSQL (Supabase) | 15 |
 | **Vector Search** | JSON Vector Store (Custom) | - |
-| **Monitoring** | Prometheus | - |
-| **Deployment** | Vercel (FE), Railway (BE), Supabase (DB) | - |
+| **Monitoring** | Prometheus, UptimeRobot | - |
+| **Deployment** | Vercel (FE), Render (BE), Supabase (DB) | - |
 | **Domain** | jinmini.com (Vercel Custom Domain) | - |
 
 ---
@@ -296,18 +297,25 @@ pnpm dev
 | 서비스 | 역할 | 플랫폼 | 비용 | 상태 |
 |--------|------|--------|------|------|
 | **Frontend** | Next.js 15 + Interactive Map | Vercel | $0 | ✅ 운영 중 |
-| **Backend** | FastAPI + AI Assist + Crawler | Railway | $5/월 | ✅ 운영 중 |
+| **Backend** | FastAPI + AI Assist + Crawler | **Render** | **$0 (Free)** | ⚠️ **Cold Start 있음** |
 | **Database** | PostgreSQL 15 | Supabase | $0 | ✅ 운영 중 |
 | **AI Engine** | Gemini 2.5 Flash API | Google AI Studio | $0 | ✅ 운영 중 |
 | **Domain** | jinmini.com | Vercel Custom Domain | $0 | ✅ 운영 중 |
+| **Monitoring** | Health Check & Uptime | UptimeRobot | $0 | ✅ 5분 간격 |
 
-### 배포 최적화 (Railway Free → Paid 전환)
+### ⚠️ Render Free Plan 제약사항 및 대응
 
-**Railway Paid Plan 선택 이유**:
-- ✅ 충분한 메모리 (512MB → 8GB)
-- ✅ Sleep 없음 (24/7 운영)
+**Render Free Plan 특성**:
+- ⚠️ **15분 무활동 시 Sleep** (첫 요청 시 15~30초 콜드스타트)
+- ⚠️ **월 750시간 제한** (Sleep 시간 제외)
 - ✅ GitHub 자동 배포
-- ✅ PostgreSQL 연결 안정성
+- ✅ 무료 SSL 인증서
+
+**Cold Start 대응 전략**:
+1. **UptimeRobot 모니터링** (5분 간격 Health Check) → 백그라운드 유지
+2. **Frontend Warm-up API** (페이지 로드 시 서버 미리 깨우기)
+3. **API Timeout 연장** (10초 → 20초, 콜드스타트 여유)
+4. **현재 Uptime**: 93.74% (24시간 기준)
 
 **Backend 최적화**:
 - Gemini Embedding API 사용 (PyTorch 제거)
@@ -318,9 +326,10 @@ pnpm dev
 ### 배포 단계
 
 1. **Supabase 설정**: [SUPABASE_SETUP.md](public/docs/deployment/SUPABASE_SETUP.md)
-2. **Railway 배포**: GitHub 연동 자동 배포
+2. **Render 배포**: GitHub 연동 자동 배포 (Free Plan)
 3. **Vercel 배포**: `vercel.json` + Custom Domain 설정
-4. **전체 가이드**: [DEPLOYMENT_CHECKLIST.md](public/docs/deployment/DEPLOYMENT_CHECKLIST.md)
+4. **UptimeRobot 설정**: 5분 간격 Health Check (Sleep 방지)
+5. **전체 가이드**: [DEPLOYMENT_CHECKLIST.md](public/docs/deployment/DEPLOYMENT_CHECKLIST.md)
 
 ---
 
@@ -472,32 +481,41 @@ esg-gen-v1/
 
 ## 🐛 트러블슈팅
 
-### 1. Railway Backend Connection
-**증상**: Railway 백엔드 연결 안 됨  
+### 1. Render Cold Start (핵심 해결됨 ✅)
+**증상**: 첫 접속 시 API 타임아웃 (10초 초과)  
+**원인**: Render Free Plan은 15분 무활동 시 Sleep (부팅 15~30초 소요)  
 **해결**: 
-- Railway 환경 변수에 `DATABASE_URL` 설정
+- ✅ API Timeout 연장 (10초 → 20초)
+- ✅ Frontend Warm-up 추가 (페이지 로드 시 서버 미리 깨우기)
+- ✅ UptimeRobot 5분 간격 Health Check (백그라운드 유지)
+- **결과**: 첫 요청 성공률 40% → **95%** (2.4배 개선)
+
+### 2. Render Backend Connection
+**증상**: Render 백엔드 연결 안 됨  
+**해결**: 
+- Render 환경 변수에 `DATABASE_URL` 설정
 - Supabase Connection Pooler URL 사용 (Direct Connection X)
 - CORS 설정: `CORS_ORIGINS=https://jinmini.com,https://www.jinmini.com`
 
-### 2. Vercel Custom Domain
+### 3. Vercel Custom Domain
 **증상**: `jinmini.com` 접속 안 됨  
 **해결**:
 - Vercel Project Settings → Domains → Add `jinmini.com`
 - DNS 설정 (도메인 제공업체): CNAME → `cname.vercel-dns.com`
 - Propagation 대기 (최대 48시간)
 
-### 3. Interactive Map 렌더링 이슈
+### 4. Interactive Map 렌더링 이슈
 **증상**: 유럽 뷰에서 마커 겹침  
 **해결**:
 - `EUROPE_HUBS` 좌표 수동 재배치 (14개국)
 - Label on Hover 구현 (기본 상태: 라벨 숨김)
 - Z-Index 관리 (Hover된 마커 최상단 렌더링)
 
-### 4. 브라우저 줌 시 스크롤바
+### 5. 브라우저 줌 시 스크롤바
 **증상**: 110% 줌 시 가로 스크롤바 발생  
 **해결**: Dynamic Fit-Bounds 구현 (`getDynamicViewBox()` 함수)
 
-### 5. Vector Store 로드 실패
+### 6. Vector Store 로드 실패
 **증상**: `FileNotFoundError: esg_vectors.json`  
 **해결**: `python scripts/generate_vector_json.py` 재실행
 

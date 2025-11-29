@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/react-query";
 import { Toaster } from "sonner";
+import ServerWarmup from "@/components/ServerWarmup";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -73,6 +74,7 @@ export default function RootLayout({
   return (
     <html lang="ko" className={inter.variable}>
       <body className="min-h-screen bg-gray-50 font-sans antialiased">
+        <ServerWarmup />
         <ReactQueryProvider>
           {children}
           <Toaster position="top-right" richColors />
