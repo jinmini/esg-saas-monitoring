@@ -99,10 +99,15 @@ export function useCompanyStats(companyId: number, options?: { enabled?: boolean
 export function useCompanyArticles(companyId: number, params: CompanyArticlesParams) {
   const { enabled = true, ...apiParams } = params;
   
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: companyKeys.articles(companyId, apiParams),
-    queryFn: () => articlesApi.getCompanyArticles(companyId, apiParams),
-    enabled: !!companyId && enabled, 
+    queryFn: ({ pageParam = 1 }) =>
+      articlesApi.getCompanyArticles(companyId, { ...apiParams, page: pageParam }),
+    getNextPageParam: (lastPage) => {
+      return lastPage.has_next ? lastPage.page + 1 : undefined;
+    },
+    initialPageParam: 1,
+    enabled: !!companyId && enabled,
     staleTime: 2 * 60 * 1000,
     retry: 1,
   });

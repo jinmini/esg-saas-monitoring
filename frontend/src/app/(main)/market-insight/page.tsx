@@ -7,7 +7,7 @@ import { ArticleFeed } from '@/components/features/market-insight/ArticleFeed';
 import { PeriodFilter } from '@/components/features/market-insight/PeriodFilter';
 import { CompanyFilter } from '@/components/features/market-insight/CompanyFilter';
 import { useArticlesFeed, useCompanyArticles } from '@/hooks/useArticles';
-import type { ArticleListResponse } from '@/types/api';
+import type { ArticleListResponse, CompanyArticlesResponse } from '@/types/api';
 
 export default function Home() {
   const [selectedPeriod, setSelectedPeriod] = useState<number>(30);
@@ -29,8 +29,11 @@ export default function Home() {
   });
 
   if (isCompanyFiltered) {
-    const articles = companyQuery.data?.articles ?? [];
-    const totalCount = companyQuery.data?.total ?? 0;
+    const articles =
+      companyQuery.data?.pages.flatMap(
+        (page: CompanyArticlesResponse) => page.articles
+      ) ?? [];
+    const totalCount = companyQuery.data?.pages[0]?.total ?? 0;
 
     return (
       <DashboardLayout
@@ -78,8 +81,9 @@ export default function Home() {
               isLoading={companyQuery.isLoading}
               isError={companyQuery.isError}
               error={companyQuery.error}
-              hasNextPage={false}
-              isFetchingNextPage={false}
+              hasNextPage={companyQuery.hasNextPage}
+              isFetchingNextPage={companyQuery.isFetchingNextPage}
+              fetchNextPage={() => companyQuery.fetchNextPage()}
               layout="grid"
             />
           </div>
