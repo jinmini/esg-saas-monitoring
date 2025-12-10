@@ -6,12 +6,20 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 import os
 import sys
+from pathlib import Path
+from dotenv import load_dotenv
 
 # Add the src directory to the path so we can import our models
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
+# Load .env.prod file if it exists, otherwise fall back to .env.dev
+env_file = Path(__file__).parent.parent / '.env.prod'
+if not env_file.exists():
+    env_file = Path(__file__).parent.parent / '.env.dev'
+if env_file.exists():
+    load_dotenv(env_file)
+
 from shared.models import Base
-from core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -33,6 +41,13 @@ target_metadata = Base.metadata
 
 
 def get_url():
+    # 환경 변수에서 직접 읽기 (우선순위: 환경 변수 > .env.prod > .env.dev)
+    database_url = os.getenv('DATABASE_URL')
+    if database_url:
+        return database_url
+    
+    # fallback: settings 사용
+    from core.config import settings
     return settings.DATABASE_URL
 
 
