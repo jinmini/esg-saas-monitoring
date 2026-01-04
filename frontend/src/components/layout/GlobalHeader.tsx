@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { Play, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftOpen } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { motion } from 'framer-motion';
-import { TutorialModal } from '@/components/ui/TutorialModal';
+// import { TutorialModal } from '@/components/ui/TutorialModal';
 
 /**
  * Global Header
@@ -18,7 +18,7 @@ import { TutorialModal } from '@/components/ui/TutorialModal';
  */
 export function GlobalHeader() {
   const { isGlobalSidebarOpen, toggleGlobalSidebar } = useUIStore();
-  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  // const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   return (
     <>
@@ -42,13 +42,13 @@ export function GlobalHeader() {
       {/* 우측: 액션 버튼들 */}
       <div className="flex items-center gap-4">
         {/* 사용법 보기 */}
-        <button
+        {/* <button
           onClick={() => setIsTutorialOpen(true)}
           className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
         >
           <Play size={16} />
           <span>사용법 보기</span>
-        </button>
+        </button> */}
 
         {/* 로그인 */}
         <Link 
@@ -68,10 +68,10 @@ export function GlobalHeader() {
       </div>
     </header>
 
-    <TutorialModal
+    {/* <TutorialModal
       isOpen={isTutorialOpen}
       onClose={() => setIsTutorialOpen(false)}
-    />
+    /> */}
     </>
   );
 }
