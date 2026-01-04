@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     url: "https://jinmini.com",
     siteName: "ESG SIP",
     title: "ESG SIP | 글로벌 ESG SaaS Market Intelligence Platform",
-    description: "97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
+    description: "106개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
     images: [
       {
         url: "/logo.png",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "ESG SIP | 글로벌 ESG SaaS Market Intelligence Platform",
-    description: "97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
+    description: "106개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
     images: ["/logo.png"],
   },
 };

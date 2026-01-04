@@ -43,7 +43,7 @@ export default function DashboardPage() {
           <DashboardCard 
             href="/analysis"
             title="Analysis"
-            description="97개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요. 국가별, 서비스별 필터링과 상세 정보 패널로 경쟁사 분석을 한눈에 파악할 수 있습니다."
+            description="106개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요. 국가별, 서비스별 필터링과 상세 정보 패널로 경쟁사 분석을 한눈에 파악할 수 있습니다."
             colorClass="text-purple-600 bg-purple-50"
             imageSrc="/analysis_map.webp"
           />
