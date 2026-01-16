@@ -9,60 +9,38 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Add the src directory to the path so we can import our models
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-# Load .env.prod file if it exists, otherwise fall back to .env.dev
-env_file = Path(__file__).parent.parent / '.env.prod'
-if not env_file.exists():
-    env_file = Path(__file__).parent.parent / '.env.dev'
-if env_file.exists():
-    load_dotenv(env_file)
+# 🚨 [수정 1] 로컬 개발 환경 우선 로드
+# 1. .env.dev가 있으면 무조건 그걸 씁니다. (안전빵)
+# 2. 없으면 .env.prod를 씁니다.
+env_file_dev = Path(__file__).parent.parent / '.env.dev'
+env_file_prod = Path(__file__).parent.parent / '.env.prod'
+
+if env_file_dev.exists():
+    load_dotenv(env_file_dev)
+    print(f"✅ Loaded environment from {env_file_dev}")
+elif env_file_prod.exists():
+    load_dotenv(env_file_prod)
+    print(f"⚠️ Loaded environment from {env_file_prod}")
 
 from shared.models import Base
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
 target_metadata = Base.metadata
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
-
-
 def get_url():
-    # 환경 변수에서 직접 읽기 (우선순위: 환경 변수 > .env.prod > .env.dev)
     database_url = os.getenv('DATABASE_URL')
     if database_url:
         return database_url
-    
-    # fallback: settings 사용
     from core.config import settings
     return settings.DATABASE_URL
 
-
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
-
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
-
-    Calls to context.execute() here emit the given string to the
-    script output.
-
-    """
     url = get_url()
     context.configure(
         url=url,
@@ -70,31 +48,29 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
     with context.begin_transaction():
         context.run_migrations()
-
 
 def do_run_migrations(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
-
     with context.begin_transaction():
         context.run_migrations()
 
-
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
-    and associate a connection with the context.
-
-    """
+    db_url = get_url()
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = get_url()
+    configuration["sqlalchemy.url"] = db_url
+
+    # 🚨 [수정 2] 로컬호스트가 아닐 때만 SSL 적용 (Supabase 대응)
+    connect_args = {}
+    if "localhost" not in db_url and "127.0.0.1" not in db_url:
+        connect_args = {"ssl": "require"}
 
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        connect_args={"ssl": "require"},
+        connect_args=connect_args,  # 조건부 SSL 적용
     )
 
     async with connectable.connect() as connection:
@@ -102,12 +78,8 @@ async def run_async_migrations() -> None:
 
     await connectable.dispose()
 
-
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
-
     asyncio.run(run_async_migrations())
-
 
 if context.is_offline_mode():
     run_migrations_offline()
