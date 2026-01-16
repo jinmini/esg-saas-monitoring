@@ -148,6 +148,7 @@ class ArticleService:
                     summary=article.summary,
                     language=article.language,
                     is_verified=article.is_verified,
+                    image_url=article.image_url,
                     company_id=company.id,
                     company_name=company.company_name,
                     company_name_en=company.company_name_en
@@ -225,6 +226,7 @@ class ArticleService:
                     summary=article.summary,
                     language=article.language,
                     is_verified=article.is_verified,
+                    image_url=article.image_url,
                     company_id=company_data.id,
                     company_name=company_data.company_name,
                     company_name_en=company_data.company_name_en

@@ -14,7 +14,7 @@ class ArticleResponse(BaseModel):
     summary: Optional[str] = None
     language: Optional[str] = "ko"
     is_verified: bool = False
-    
+    image_url: Optional[str] = None
     # 회사 정보
     company_id: int
     company_name: str
