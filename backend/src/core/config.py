@@ -7,6 +7,11 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://esg_user:esg_password@localhost:5432/esg_monitoring"
     
+    DB_POOL_SIZE: int = 10        
+    DB_MAX_OVERFLOW: int = 20     
+    DB_POOL_TIMEOUT: int = 30     
+    DB_POOL_RECYCLE: int = 1800   
+    
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
@@ -35,7 +40,8 @@ class Settings(BaseSettings):
     AI_ASSIST: AIAssistConfig = AIAssistConfig()
     
     class Config:
-        env_file = ".env.dev"
+        # 개발 환경 파일을 기본으로 봅니다.
+        env_file = ".env.dev" 
 
 
 settings = Settings()

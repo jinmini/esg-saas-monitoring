@@ -1,7 +1,8 @@
 from typing import List, Dict
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from loguru import logger
+import re
 
 from .scrapers.news_scraper import NaverNewsScraper
 from .schemas import CrawlResult, ArticleCreateRequest
@@ -55,7 +56,7 @@ class CrawlerService:
                     max_articles=max_articles_per_company
                 )
                 
-                # 크롤링된 기사들을 데이터베이스에 저장 (중복 API 호출 제거)
+                # 크롤링된 기사들을 데이터베이스에 저장
                 if result.success and result.articles_data:
                     saved_count = await self.save_articles(result.articles_data)
                     result.articles_saved = saved_count
@@ -66,7 +67,6 @@ class CrawlerService:
                     logger.error(f"Crawl failed for {company['company_name']}: {result.error_message}")
                 
                 crawl_results.append(result)
-                logger.info(f"Crawled {company['company_name']}: {result.articles_saved} articles")
                 
             except Exception as e:
                 logger.error(f"Failed to crawl {company['company_name']}: {str(e)}")
@@ -80,7 +80,6 @@ class CrawlerService:
     async def crawl_single_company(self, company_id: int, max_articles: int = 50) -> CrawlResult:
         """특정 회사의 뉴스 크롤링"""
         async with AsyncSessionLocal() as session:
-            # 회사 정보 조회
             result = await session.execute(
                 select(Company).where(Company.id == company_id, Company.is_active == True)
             )
@@ -89,14 +88,12 @@ class CrawlerService:
             if not company:
                 raise ValueError(f"Active company not found with ID: {company_id}")
             
-            # 뉴스 크롤링
             crawl_result = await self.scraper.crawl_company_news(
                 company_id=company.id,
                 company_name=company.company_name,
                 max_articles=max_articles
             )
             
-            # 성공한 경우 기사 저장 (중복 API 호출 제거)
             if crawl_result.success and crawl_result.articles_data:
                 saved_count = await self.save_articles(crawl_result.articles_data)
                 crawl_result.articles_saved = saved_count
@@ -108,6 +105,7 @@ class CrawlerService:
         if not articles_data:
             return 0
         
+        # ✅ [Refactor] 세션을 한 번만 열고 루프 내에서 재사용
         async with AsyncSessionLocal() as session:
             saved_count = 0
             quality_filtered_count = 0
@@ -124,19 +122,32 @@ class CrawlerService:
                         continue
                     
                     # 🛡️ 3단계 방어: Quality Gate - 관련도 점수 계산
-                    relevance_score = await self._calculate_relevance_score(article_data)
+                    # ✅ [Refactor] 세션 객체 전달 (DB 연결 오버헤드 제거)
+                    relevance_score = await self._calculate_relevance_score(session, article_data)
                     
-                    # Quality Gate: 최소 점수 미달 시 저장 거부
-                    min_quality_score = 0.6  # 60% 이상의 관련성 요구
+                    min_quality_score = 0.6
                     if relevance_score < min_quality_score:
                         quality_filtered_count += 1
-                        logger.debug(f"Quality Gate blocked: '{article_data['title']}' (score: {relevance_score:.2f})")
+                        logger.debug(f"Quality Gate blocked: '{article_data.get('title')}' (score: {relevance_score:.2f})")
                         continue
                     
                     # 새 기사 생성
-                    # 스코어링/로그용 내부 메타 제거
+                    # 내부 메타데이터('_'로 시작) 제거
                     sanitized = {k: v for k, v in article_data.items() if not str(k).startswith('_')}
-                    article = Article(**sanitized)
+                    
+                    # ✅ [Update] image_url 포함하여 객체 생성
+                    article = Article(
+                        company_id=sanitized.get('company_id'),
+                        title=sanitized.get('title'),
+                        source_name=sanitized.get('source_name'),
+                        article_url=sanitized.get('article_url'),
+                        published_at=sanitized.get('published_at'),
+                        content=sanitized.get('content'),
+                        summary=sanitized.get('summary'),
+                        image_url=sanitized.get('image_url'),  # 이미지 URL 저장
+                        # 필요한 경우 추가 필드 매핑
+                    )
+                    
                     session.add(article)
                     saved_count += 1
                     
@@ -146,7 +157,8 @@ class CrawlerService:
             
             try:
                 await session.commit()
-                logger.info(f"Saved {saved_count} new articles to database")
+                if saved_count > 0:
+                    logger.info(f"Saved {saved_count} new articles to database")
                 if quality_filtered_count > 0:
                     logger.info(f"🛡️ Quality Gate blocked {quality_filtered_count} low-quality articles")
                 return saved_count
@@ -157,12 +169,11 @@ class CrawlerService:
                 return 0
     
     def _has_exact_word_match(self, text: str, keyword: str) -> bool:
-        """정확한 단어 경계 매칭 (PRD 제안 반영)"""
-        import re
+        """정확한 단어 경계 매칭"""
         if not text or not keyword:
             return False
         
-        # 단어 경계를 고려한 정확한 매칭
+        # 특수문자 이스케이프 처리
         pattern = r'\b' + re.escape(keyword.strip()) + r'\b'
         return bool(re.search(pattern, text, re.IGNORECASE))
     
@@ -170,32 +181,26 @@ class CrawlerService:
         """비즈니스/ESG 컨텍스트 점수 계산 (0.0 ~ 1.0)"""
         full_text = f"{title} {summary}".lower()
         
-        # 비즈니스 컨텍스트 키워드 (가중치: 1)
         business_keywords = [
             "기업", "회사", "솔루션", "플랫폼", "서비스", "CEO", "대표",
             "스타트업", "기업가", "창업", "투자", "사업", "경영"
         ]
         
-        # ESG 컨텍스트 키워드 (가중치: 2)
         esg_keywords = [
             "ESG", "탄소", "환경", "지속가능", "친환경", "녹색", "기후",
             "배출권", "넷제로", "탄소중립", "재생에너지", "LCA"
         ]
         
         business_score = sum(1 for kw in business_keywords if kw in full_text)
-        esg_score = sum(2 for kw in esg_keywords if kw in full_text)  # ESG 키워드 2배 가중치
+        esg_score = sum(2 for kw in esg_keywords if kw in full_text)
         
-        # 최대 점수 정규화 (비즈니스 3개 + ESG 2개 = 7점 만점)
         max_possible_score = 7.0
         total_score = min(business_score + esg_score, max_possible_score)
         
-        context_score = total_score / max_possible_score
-        logger.debug(f"Context score: {context_score:.2f} (business: {business_score}, esg: {esg_score})")
-        
-        return context_score
+        return total_score / max_possible_score
 
-    async def _calculate_relevance_score(self, article_data: Dict) -> float:
-        """개선된 관련도 점수 계산 (정확한 매칭 + 컨텍스트 고려)"""
+    async def _calculate_relevance_score(self, session: AsyncSession, article_data: Dict) -> float:
+        """개선된 관련도 점수 계산 (세션 재사용 버전)"""
         try:
             company_id = article_data.get('company_id')
             title = article_data.get('title', '')
@@ -204,93 +209,82 @@ class CrawlerService:
             if not company_id:
                 return 0.0
             
-            # DB에서 회사 정보 조회
-            async with AsyncSessionLocal() as session:
-                result = await session.execute(
-                    select(Company.company_name, Company.company_name_en, Company.positive_keywords, Company.negative_keywords)
-                    .where(Company.id == company_id)
-                )
-                row = result.first()
-                
-                if not row:
-                    return 0.0
-                
-                company_name = row.company_name
-                company_name_en = row.company_name_en or ''
-                positive_keywords = row.positive_keywords or []
-                negative_keywords = row.negative_keywords or []
-                
-                full_text = f"{title} {summary}"
-                score = 0.0
-                
-                # 1. 회사명 정확 매칭 (가중치: 35% / 20%) + 부재 시 감점(-0.10)
-                title_has_company = self._has_exact_word_match(title, company_name)
-                summary_has_company = self._has_exact_word_match(summary, company_name)
-                if title_has_company:
-                    score += 0.35
-                elif summary_has_company:
-                    score += 0.20
-                else:
-                    score -= 0.10  # 제목/요약 모두에 회사명이 없으면 감점
-                
-                # 2. 영어 회사명 정확 매칭 (가중치: 25%)
-                if company_name_en and self._has_exact_word_match(full_text, company_name_en):
-                    score += 0.25
-                
-                # 3. Positive keywords 정확 매칭 (가중치: 20%)
+            # ✅ [Refactor] 전달받은 session 사용 (새 연결 안 만듦)
+            result = await session.execute(
+                select(Company.company_name, Company.company_name_en, Company.positive_keywords, Company.negative_keywords)
+                .where(Company.id == company_id)
+            )
+            row = result.first()
+            
+            if not row:
+                return 0.0
+            
+            company_name = row.company_name
+            company_name_en = row.company_name_en or ''
+            positive_keywords = row.positive_keywords or []
+            negative_keywords = row.negative_keywords or []
+            
+            full_text = f"{title} {summary}"
+            score = 0.0
+            
+            # 1. 회사명 정확 매칭
+            title_has_company = self._has_exact_word_match(title, company_name)
+            summary_has_company = self._has_exact_word_match(summary, company_name)
+            if title_has_company:
+                score += 0.35
+            elif summary_has_company:
+                score += 0.20
+            else:
+                score -= 0.10
+            
+            # 2. 영어 회사명 정확 매칭
+            if company_name_en and self._has_exact_word_match(full_text, company_name_en):
+                score += 0.25
+            
+            # 3. Positive keywords 정확 매칭
+            if positive_keywords:
                 positive_matches = sum(1 for kw in positive_keywords 
                                      if self._has_exact_word_match(full_text, kw))
-                if positive_keywords:
-                    positive_ratio = min(positive_matches / len(positive_keywords), 1.0)
-                    score += 0.2 * positive_ratio
-                
-                # 4. 컨텍스트 점수 (가중치: 20%)
-                context_score = self._calculate_context_score(title, summary)
-                score += 0.2 * context_score
-                
-                # 5. Negative keywords 패널티 (-60%)
-                for neg_kw in negative_keywords:
-                    if self._has_exact_word_match(full_text, neg_kw):
-                        score -= 0.6
-                        logger.debug(f"Negative keyword penalty: '{neg_kw}' found in article")
-                        break
-                
-                # 6. 정밀 트랙 가산점(+0.15)
-                try:
-                    source_track = article_data.get('_source_track')
-                    if source_track == 'precision':
-                        score += PRECISION_SCORE_BOOST
-                except Exception:
-                    pass
+                positive_ratio = min(positive_matches / len(positive_keywords), 1.0)
+                score += 0.2 * positive_ratio
+            
+            # 4. 컨텍스트 점수
+            context_score = self._calculate_context_score(title, summary)
+            score += 0.2 * context_score
+            
+            # 5. Negative keywords 패널티
+            for neg_kw in negative_keywords:
+                if self._has_exact_word_match(full_text, neg_kw):
+                    score -= 0.6
+                    break
+            
+            # 6. 정밀 트랙 가산점
+            try:
+                if article_data.get('_source_track') == 'precision':
+                    score += PRECISION_SCORE_BOOST
+            except Exception:
+                pass
 
-                # 점수 정규화 (0.0 ~ 1.0)
-                final_score = max(0.0, min(1.0, score))
-                
-                logger.debug(f"Enhanced relevance score for '{title[:50]}...': {final_score:.2f}")
-                return final_score
+            final_score = max(0.0, min(1.0, score))
+            return final_score
                 
         except Exception as e:
             logger.error(f"Failed to calculate enhanced relevance score: {e}")
-            return 0.5  # 에러 시 중간값 반환
+            return 0.5  # 에러 시 기본값
     
     async def get_crawl_statistics(self) -> Dict:
         """크롤링 통계 정보 조회"""
         async with AsyncSessionLocal() as session:
-            # 전체 기사 수
-            total_articles = await session.execute(select(Article))
-            total_count = len(total_articles.scalars().all())
+            total_articles = await session.execute(select(func.count(Article.id)))
+            total_count = total_articles.scalar()
             
-            # 회사별 기사 수 (정확한 집계)
-            from sqlalchemy import func
             companies_with_articles = await session.execute(
                 select(Company.company_name, func.count(Article.id).label('article_count'))
                 .join(Article)
                 .group_by(Company.id, Company.company_name)
             )
             
-            company_stats = {}
-            for company_name, article_count in companies_with_articles:
-                company_stats[company_name] = article_count
+            company_stats = {name: count for name, count in companies_with_articles}
             
             return {
                 "total_articles": total_count,

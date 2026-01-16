@@ -3,16 +3,20 @@ from src.shared.models import Base
 from sqlalchemy import text
 from .config import settings
 
-# SQLAlchemy 비동기 엔진 생성 (Supabase Free Plan 최적화)
+# 로그로 현재 설정 확인 (서버 시작 시 출력됨)
+print(f"[Database] Initializing Pool: Size={settings.DB_POOL_SIZE}, Overflow={settings.DB_MAX_OVERFLOW}")
+
+# SQLAlchemy 비동기 엔진 생성
 engine = create_async_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
     echo=settings.DEBUG,
-    # Supabase Free Plan: 최대 2개 동시 연결 제한 대응
-    pool_size=1,              # 기본 연결 1개만 유지
-    max_overflow=1,           # 최대 추가 연결 1개 허용 (총 2개)
-    pool_timeout=30,          # 30초 대기 후 타임아웃
-    pool_recycle=1800,        # 30분마다 연결 재사용 (세션 만료 방지)
+    
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_timeout=settings.DB_POOL_TIMEOUT,
+    pool_recycle=settings.DB_POOL_RECYCLE,
+    
     connect_args={
         "server_settings": {
             "application_name": "esg-compliance-backend"
@@ -24,7 +28,8 @@ engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
-    expire_on_commit=False
+    expire_on_commit=False,
+    autoflush=False  # [권장] 비동기 성능 최적화를 위해 autoflush 끔 (필요시 수동 flush)
 )
 
 # 데이터베이스 세션 의존성
@@ -32,6 +37,9 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         try:
             yield session
+        except Exception:
+            await session.rollback() # 에러 발생 시 안전하게 롤백
+            raise
         finally:
             await session.close()
 

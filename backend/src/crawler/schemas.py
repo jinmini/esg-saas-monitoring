@@ -57,3 +57,4 @@ class ArticleCreateRequest(BaseModel):
     published_at: Optional[datetime] = None
     content: Optional[str] = None
     summary: Optional[str] = None
+    image_url: Optional[str] = None

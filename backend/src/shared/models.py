@@ -67,6 +67,7 @@ class Article(Base, TimestampMixin):
     article_url = Column(Text, unique=True, nullable=False)
     published_at = Column(DateTime(timezone=True), nullable=True, index=True)
     crawled_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    image_url = Column(String(2048), nullable=True)
     
     # 미래 확장을 위한 추가 필드들 (nullable로 설정)
     content = Column(Text, nullable=True)
