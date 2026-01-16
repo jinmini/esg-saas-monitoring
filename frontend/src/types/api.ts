@@ -13,6 +13,7 @@ export interface Article {
   summary?: string;
   language: string;
   is_verified: boolean;
+  image_url?: string | null; 
 }
 
 export interface Company {

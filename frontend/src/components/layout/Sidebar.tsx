@@ -63,9 +63,9 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
-    id: 'analysis',
-    label: 'Analysis',
-    href: '/analysis',
+    id: 'landscape',
+    label: 'Landscape',
+    href: '/landscape',
     icon: BarChart3,
     subItems: [
       {

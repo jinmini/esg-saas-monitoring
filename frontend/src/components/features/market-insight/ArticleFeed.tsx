@@ -37,7 +37,7 @@ export function ArticleFeed({
   layout = 'grid', // 기본값은 그리드
 }: ArticleFeedProps) {
   const layoutClasses = {
-    grid: 'grid grid-cols-1 lg:grid-cols-2 gap-6',
+    grid: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch',  
     list: 'space-y-6',
   };
 
@@ -51,8 +51,13 @@ export function ArticleFeed({
       <div className="space-y-6">
         {/* Stats */}
         <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">총 <span className="font-semibold text-gray-900">{totalCount.toLocaleString()}</span>개의 뉴스</p>
-            {latestCrawl && <p className="text-xs text-gray-500">마지막 업데이트: {new Date(latestCrawl).toLocaleString('ko-KR')}</p>}
+            <p className="text-sm text-gray-600">
+              총 <span className="font-semibold text-gray-900">{totalCount.toLocaleString()}</span>개의 뉴스
+            </p>
+            {latestCrawl && 
+              <p className="text-xs text-gray-500">
+                마지막 업데이트: {new Date(latestCrawl).toLocaleString('ko-KR')}
+              </p>}
         </div>
 
         {/* Article Cards */}

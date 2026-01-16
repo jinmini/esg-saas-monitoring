@@ -16,14 +16,14 @@ export default function Home() {
   const isCompanyFiltered = Boolean(selectedCompanyId);
 
   const feedQuery = useArticlesFeed({
-    size: 10,
+    size: 12,
     period: selectedPeriod,
     enabled: !isCompanyFiltered,
   });
 
   const companyQuery = useCompanyArticles(selectedCompanyId!, {
     page: 1,
-    size: 10,
+    size: 12,
     period: selectedPeriod,
     enabled: isCompanyFiltered,
   });
