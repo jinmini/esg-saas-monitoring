@@ -64,15 +64,10 @@ const nextConfig: NextConfig = {
                       cleanupIds: {
                         remove: true,
                         minify: true,
-                        prefix: {
-                          toString() {
-                            return `svg-${Math.random().toString(36).substr(2, 9)}`;
-                          },
                         },
                       },
                     },
                   },
-                },
               ],
             },
             typescript: true,
