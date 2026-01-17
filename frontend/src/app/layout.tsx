@@ -1,13 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local"; 
 import "./globals.css";
 import { ReactQueryProvider } from "@/lib/react-query";
 import { Toaster } from "sonner";
 import ServerWarmup from "@/components/ServerWarmup";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+const pretendard = localFont({
+  src: "./fonts/PretendardVariable.woff2",
+  display: "swap",
+  weight: "45 920",
+  variable: "--font-pretendard", 
 });
 
 export const metadata: Metadata = {
@@ -41,7 +43,7 @@ export const metadata: Metadata = {
     url: "https://jinmini.com",
     siteName: "ESG SIP",
     title: "ESG SIP | 글로벌 ESG SaaS Market Intelligence Platform",
-    description: "106개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
+    description: "127개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
     images: [
       {
         url: "/logo.png",
@@ -54,7 +56,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "ESG SIP | 글로벌 ESG SaaS Market Intelligence Platform",
-    description: "106개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
+    description: "127개 글로벌 ESG SaaS 기업을 인터랙티브 지도로 탐색하세요",
     images: ["/logo.png"],
   },
 };
@@ -72,7 +74,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={inter.variable}>
+    <html lang="ko" className={pretendard.variable}>
       <body className="min-h-screen bg-gray-50 font-sans antialiased">
         <ServerWarmup />
         <ReactQueryProvider>

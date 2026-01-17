@@ -1,22 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Globe, Loader2 } from 'lucide-react'; // Grid3x3, Layers는 안 쓰여서 제거 가능하면 제거
+import { Loader2 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { WorldMapContainer } from '@/components/features/map';
-import { useMapData } from '@/hooks/useMapData'; // [NEW] 만든 Hook import
+import { useMapData } from '@/hooks/useMapData';
 
 export default function LandscapePage() {
   const [showGrid, setShowGrid] = useState(false);
-  
-  // [NEW] 복잡한 로직이 한 줄로 줄어듦
   const { isLoading, error } = useMapData();
 
-  // --- 로딩 UI (기존 동일) ---
+  // --- 로딩 UI ---
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <div className="text-center space-y-4">
             <Loader2 className="w-12 h-12 text-green-600 animate-spin mx-auto" />
             <p className="text-gray-600">ESG 기업 데이터 로딩 중...</p>
@@ -26,11 +24,11 @@ export default function LandscapePage() {
     );
   }
 
-  // --- 에러 UI (기존 동일) ---
+  // --- 에러 UI ---
   if (error) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <div className="text-center space-y-4 max-w-md">
             <div className="text-red-500 text-5xl">⚠️</div>
             <h2 className="text-xl font-semibold text-gray-900">데이터 로딩 실패</h2>
@@ -47,28 +45,30 @@ export default function LandscapePage() {
     );
   }
 
-  // --- 메인 레이아웃 (기존 동일) ---
   return (
     <DashboardLayout>
-      <div className="relative w-full h-full flex flex-col">
-        {/* 헤더 */}
-        <header className="px-6 py-4 bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Globe className="text-green-600" size={28} />
-                ESG SaaS 글로벌 지도
-              </h1>
-            </div>
-            {/* 필요하다면 여기에 Grid 토글 버튼 추가 가능 */}
-            {/* <button onClick={() => setShowGrid(!showGrid)}>Grid Toggle</button> */}
-          </div>
-        </header>
-
+      {/* 
+         [레이아웃 수정]
+         1. 불필요한 내부 Header 제거
+         2. 높이 설정: h-[calc(100vh-4rem)] 
+            -> 4rem은 GlobalHeader의 높이(64px)입니다.
+            -> 이렇게 해야 지도가 스크롤 없이 화면에 꽉 차게 렌더링됩니다.
+      */}
+      <div className="relative w-full h-[calc(100vh-4rem)] flex flex-col bg-slate-900">
+        
         {/* 지도 컨테이너 */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative overflow-hidden">
           <WorldMapContainer showGrid={showGrid} />
         </div>
+
+        {/* (옵션) 개발용 Grid 토글 버튼이 필요하다면 지도 위에 띄우는 방식으로 변경 */}
+        {/* 
+        <div className="absolute top-4 right-4 z-50">
+           <button onClick={() => setShowGrid(!showGrid)} className="text-white text-xs bg-black/50 px-2 py-1 rounded">
+             Debug
+           </button>
+        </div> 
+        */}
       </div>
     </DashboardLayout>
   );
