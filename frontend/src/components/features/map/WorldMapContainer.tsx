@@ -1,12 +1,5 @@
 /**
  * WorldMapContainer
- * 글로벌 ESG SaaS 지도의 메인 컨테이너 컴포넌트
- * 
- * 역할:
- * - SVG viewport 제어 (viewMode에 따라 viewBox 동적 변경)
- * - 배경 지도 렌더링 (world.svg)
- * - 마커 레이어 관리 (RegionGlowLayer)
- * - 전역 이벤트 리스너 (ESC 키로 세계 지도 복귀)
  */
 
 'use client';
@@ -20,7 +13,6 @@ import {
   ANIMATION,
   PANEL_WIDTH
 } from '@/constants/esg-map';
-import type { MapViewMode } from '@/types/esg-map';
 
 // Components
 import { MapPathsLayer } from './layers/MapPathsLayer';
@@ -31,27 +23,26 @@ import { MapBreadcrumbs } from './controls/MapBreadcrumbs';
 import { CompanyDetailPanel } from './panels/CompanyDetailPanel';
 
 /**
- * Props
+ * Constants
  */
+// GlobalHeader의 높이와 일치해야 합니다. (h-16 = 64px)
+const HEADER_HEIGHT = 64; 
+
 interface WorldMapContainerProps {
   className?: string;
-  showGrid?: boolean; // 개발 모드: 그리드 표시
+  showGrid?: boolean; 
 }
 
-/**
- * WorldMapContainer Component
- */
 export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
   className = '',
   showGrid = false,
 }) => {
-  // ========================================
-  // Store 구독
-  // ========================================
-  
+  // Store
   const mapState = useESGMapStore((state) => state.mapState);
   const zoomToWorld = useESGMapStore((state) => state.zoomToWorld);
   const { rightPanel } = useESGMapStore((state) => state.panelState);
+  
+  // Window Size
   const { width, height } = useWindowSize();
   
   const { viewMode, focusedRegion } = mapState;
@@ -64,38 +55,32 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
     // 초기 로딩 시 안전장치
     if (!width || !height) return '0 0 2000 857';
 
-    // 1. Target BBox (관심 영역) - viewMode에 해당하는 BBox 가져오기
+    // 1. Target BBox (관심 영역)
     const targetBBox = REGION_BBOX[viewMode] || REGION_BBOX['world'];
 
-    // 2. Available Screen Space (패널 제외)
+    // 2. Available Screen Space calculation
+    // [중요] Header 높이를 뺀 실제 지도가 그려질 높이를 계산해야 중심이 맞습니다.
     const panelWidth = rightPanel.isOpen ? PANEL_WIDTH.RIGHT : 0;
     const availableW = width - panelWidth;
-    const availableH = height;
+    const availableH = height - HEADER_HEIGHT; // 헤더 높이 제외
 
     // 3. Scale Calculation (Fit Bounds)
-    // 화면(Available Space)에 Target BBox가 꽉 차게 들어가는 비율 계산
-    // 0.9는 Padding(10%) 여유분
+    // 화면(Available Space) 비율에 맞춰 Scale 결정
     const scaleW = availableW / targetBBox.w;
     const scaleH = availableH / targetBBox.h;
-    const scale = Math.min(scaleW, scaleH) * 0.9;
+    const scale = Math.min(scaleW, scaleH) * 0.9; // 90% 채움 (여백 10%)
 
     // 4. ViewBox Size (SVG Units)
-    // 실제 화면 전체(width x height)를 커버하기 위해 필요한 SVG 영역 크기 역산
-    const viewBoxW = width / scale;
-    const viewBoxH = height / scale;
+    // 실제 컨테이너(availableW/H)를 커버하기 위한 SVG 좌표계 크기
+    const viewBoxW = availableW / scale; 
+    const viewBoxH = availableH / scale; // [수정] width/scale 대신 availableH 사용
 
     // 5. ViewBox Origin (Center Alignment)
-    // "Available Space"의 정중앙에 "Target BBox"의 정중앙을 맞춤
-    // 
-    // targetCenterX (SVG좌표) - viewBoxX (SVG좌표) = screenCenterOffsetX (화면좌표) / scale
-    // screenCenterOffsetX = availableW / 2
-    
     const targetCenterX = targetBBox.x + targetBBox.w / 2;
     const targetCenterY = targetBBox.y + targetBBox.h / 2;
 
-    const viewBoxX = targetCenterX - (availableW / 2) / scale;
-    // Y축은 패널 영향 없이 화면 전체 높이의 중앙에 맞춤
-    const viewBoxY = targetCenterY - (height / 2) / scale;
+    const viewBoxX = targetCenterX - (viewBoxW / 2);
+    const viewBoxY = targetCenterY - (viewBoxH / 2);
 
     return `${viewBoxX} ${viewBoxY} ${viewBoxW} ${viewBoxH}`;
   }, [viewMode, width, height, rightPanel.isOpen]);
@@ -103,16 +88,14 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
   const currentViewBox = getDynamicViewBox();
 
   // ========================================
-  // 키보드 이벤트 (ESC로 세계 지도 복귀)
+  // 키보드 이벤트
   // ========================================
-  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && viewMode !== 'world') {
         zoomToWorld();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [viewMode, zoomToWorld]);
@@ -120,112 +103,49 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
   // ========================================
   // Render
   // ========================================
-  
   return (
-    <div
-      className={`relative w-full h-full overflow-hidden bg-slate-900 ${className}`}
-    >
-      {/* 상단 필터 바 (Phase 4-3: Top Floating Bar) */}
+    <div className={`relative w-full h-full overflow-hidden bg-slate-900 ${className}`}>
+      {/* 상단 필터 바 */}
       <TopFilterBar />
       
-      {/* 지도 네비게이션 경로 (Phase 5) */}
+      {/* 지도 네비게이션 경로 */}
       <MapBreadcrumbs />
 
-      {/* 우측 기업 상세 패널 (Drawer) */}
+      {/* 우측 기업 상세 패널 */}
       <CompanyDetailPanel />
 
-      {/* SVG 지도 컨테이너 */}
+      {/* SVG 지도 */}
       <motion.svg
-        className="w-full h-full"
+        className="w-full h-full block" // block 추가하여 하단 미세 여백 제거
         viewBox={currentViewBox}
         preserveAspectRatio="xMidYMid meet"
-        animate={{
-          // viewBox 애니메이션 (부드러운 전환)
-          viewBox: currentViewBox,
-        }}
+        animate={{ viewBox: currentViewBox }}
         transition={{
-          duration: ANIMATION.MAP_ZOOM / 1000, // ms → s
+          duration: ANIMATION.MAP_ZOOM / 1000,
           ease: 'easeInOut',
         }}
       >
-        {/* 배경 지도 (SVG path 레이어) */}
+        {/* 배경 지도 */}
         <g id="world-map-background">
-          {/* MapPathsLayer: 14개 타겟 국가 + 배경 */}
-          <MapPathsLayer 
-            opacity={0.6}
-            showOtherCountries={true}
-          />
-          
+          <MapPathsLayer opacity={0.6} showOtherCountries={true} />
         </g>
 
         {/* 마커 레이어 */}
         <g id="markers-layer">
-          {/* RegionGlowLayer: viewMode에 따라 조건부 렌더링 */}
           <RegionGlowLayer />
           
-          {/* 개발 모드: 중심점 및 유럽 영역 표시 */}
+          {/* 개발 모드: 중심점 표시 */}
           {showGrid && (
             <>
-              {/* World 중심 (viewBox 2000x857 기준) */}
-              <circle
-                cx="1000"
-                cy="428"
-                r="8"
-                fill="#f59e0b"
-                opacity="0.8"
-              />
-              <text
-                x="1000"
-                y="450"
-                textAnchor="middle"
-                fill="#f59e0b"
-                fontSize="16"
-              >
-                World Center (1000, 428)
+              <circle cx="1000" cy="428" r="8" fill="#f59e0b" opacity="0.8" />
+              <text x="1000" y="450" textAnchor="middle" fill="#f59e0b" fontSize="16">
+                World Center
               </text>
-
-              {/* Europe 중심 */}
-              <circle
-                cx="1035"
-                cy="170"
-                r="8"
-                fill="#10b981"
-                opacity="0.8"
-              />
-              <text
-                x="1035"
-                y="195"
-                textAnchor="middle"
-                fill="#10b981"
-                fontSize="16"
-              >
-                Europe Center (1035, 170)
-              </text>
-
-              {/* 유럽 확대 영역 */}
-              <rect
-                x="920"
-                y="70"
-                width="230"
-                height="200"
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="3"
-                strokeDasharray="10,5"
-                opacity="0.6"
-              />
             </>
           )}
         </g>
 
-        {/* Layer 3: 그리드 오버레이 (개발 모드, 최상단) */}
-        {showGrid && (
-          <g id="grid-overlay" opacity="0.2">
-            {/* ... grid content ... */}
-          </g>
-        )}
-        
-        {/* 툴팁 레이어 (최상단) */}
+        {/* 툴팁 레이어 */}
         <g id="tooltip-layer">
           <AnimatePresence>
             <MapTooltip />
@@ -233,29 +153,15 @@ export const WorldMapContainer: React.FC<WorldMapContainerProps> = ({
         </g>
       </motion.svg>
 
-      {/* 뷰 모드 표시 (개발용) */}
+      {/* Debug Info */}
       {showGrid && (
-        <div className="absolute top-4 left-4 bg-black/80 text-white px-4 py-2 rounded-lg text-sm font-mono">
-          <div>View Mode: <span className="text-amber-500 font-bold">{viewMode}</span></div>
-          <div>Focused: <span className="text-green-500">{focusedRegion || 'None'}</span></div>
-          <div>ViewBox: <span className="text-blue-400">{currentViewBox}</span></div>
-          <div className="mt-2 text-xs text-slate-400">Press ESC to return to World View</div>
+        <div className="absolute bottom-4 left-4 bg-black/80 text-white px-4 py-2 rounded-lg text-xs font-mono pointer-events-none">
+          <div>ViewBox: {currentViewBox}</div>
+          <div>Available H: {height ? height - HEADER_HEIGHT : 0}px</div>
         </div>
       )}
-
-      {/* Zoom Controls (향후 추가) */}
-      {/* 
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-        <button onClick={zoomToWorld}>World View</button>
-        <button onClick={() => zoomToRegion('Europe')}>Europe</button>
-      </div>
-      */}
     </div>
   );
 };
 
-/**
- * Display Name (for React DevTools)
- */
 WorldMapContainer.displayName = 'WorldMapContainer';
-
