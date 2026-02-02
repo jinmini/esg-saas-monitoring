@@ -8,7 +8,7 @@ from sqlalchemy import select, delete, func
 from typing import List, Optional, Tuple, Dict, Any
 from fastapi import HTTPException, status
 
-from src.shared.models import Document, Section, DocumentVersion
+from src.documents.models import Document, Section, DocumentVersion
 from .version_schemas import VersionCreate, VersionMetadata, VersionResponse
 
 
@@ -307,7 +307,7 @@ class VersionService:
             차이점 정보 (VersionDiffResponse 형식)
         """
         from sqlalchemy import select
-        from src.shared.models import Document
+        from src.documents.models import Document
         
         # 1. Source 버전 가져오기
         source_version = await self.get_version(source_version_id)

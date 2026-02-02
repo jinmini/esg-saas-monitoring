@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     class Config:
         # 개발 환경 파일을 기본으로 봅니다.
         env_file = ".env.dev" 
+        extra = "ignore"
 
 
 settings = Settings()
