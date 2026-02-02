@@ -9,7 +9,8 @@ from .schemas import (
     MentionTrendsResponse, MentionTrendItem, CompanyMentionStats,
     CategoryTrendsResponse, CategoryTrendItem
 )
-from ..shared.models import Article, Company, ESGServiceCategory, CompanyServiceMapping
+from ..articles.models import Article
+from ..companies.models import Company, ESGServiceCategory, CompanyServiceMapping
 from ..core.database import AsyncSessionLocal
 
 
