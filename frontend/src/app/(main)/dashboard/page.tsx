@@ -5,7 +5,8 @@ import { DashboardHero } from '@/components/features/dashboard/DashboardHero';
 import { getAllResources } from '@/lib/mdx';
 
 export default async function DashboardPage() {
-  const resources = await getAllResources();
+  const allResources = await getAllResources();
+  const books = allResources.filter(r => r.externalUrl);
 
   return (
     <DashboardLayout>
@@ -16,7 +17,7 @@ export default async function DashboardPage() {
       {/* Content: Constrained Width */}
       <div className="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 w-full py-12">
         <DashboardBentoGrid />
-        <ResourceSection initialResources={resources} />
+        <ResourceSection initialResources={books} />
       </div>
 
     </DashboardLayout>

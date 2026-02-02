@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { ArticleFeed } from '@/components/features/market-insight/ArticleFeed';
-import { TrendingNow } from '@/components/features/market-insight/TrendingNow'; // [유지]
+import { TrendingNow } from '@/components/features/market-insight/TrendingNow'; 
 import { PeriodFilter } from '@/components/features/market-insight/PeriodFilter';
 import { CompanyFilter } from '@/components/features/market-insight/CompanyFilter';
 import { useArticlesFeed, useCompanyArticles } from '@/hooks/useArticles';
