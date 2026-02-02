@@ -26,7 +26,7 @@ export function DashboardLayout({ children, rightSidebar }: DashboardLayoutProps
           "w-full z-50 transition-all duration-300",
           isTransparentPage
             ? "fixed top-0 left-0 bg-transparent"
-            : "sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-100"
+            : "sticky top-0 bg-white/80 backdrop-blur-md"
         )}
       >
         <GlobalHeader theme={isTransparentPage ? 'dark' : 'light'} />
