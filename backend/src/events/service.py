@@ -8,7 +8,7 @@ from .schemas import (
     EventCreate, EventUpdate, EventResponse, EventListResponse,
     EventQueryParams, EventCategoriesResponse
 )
-from ..shared.models import Event
+from ..events.models import Event
 
 
 class EventService:
