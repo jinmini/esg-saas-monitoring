@@ -6,7 +6,8 @@ import re
 
 from .scrapers.news_scraper import NaverNewsScraper
 from .schemas import CrawlResult, ArticleCreateRequest
-from ..shared.models import Company, Article
+from ..companies.models import Company
+from ..articles.models import Article
 from ..core.database import AsyncSessionLocal
 from .constants import PRECISION_SCORE_BOOST
 
@@ -169,12 +170,21 @@ class CrawlerService:
                 return 0
     
     def _has_exact_word_match(self, text: str, keyword: str) -> bool:
-        """정확한 단어 경계 매칭"""
+        """정확한 단어 경계 매칭 (한글 조사 처리 개선)"""
         if not text or not keyword:
             return False
+            
+        keyword = keyword.strip()
         
-        # 특수문자 이스케이프 처리
-        pattern = r'\b' + re.escape(keyword.strip()) + r'\b'
+        # 영문/숫자로만 구성된 경우 -> 기존 word boundary 사용
+        if re.match(r'^[a-zA-Z0-9\s]+$', keyword):
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            return bool(re.search(pattern, text, re.IGNORECASE))
+            
+        # 한글이 포함된 경우 -> 왼쪽 경계만 체크하고 오른쪽은 조사 등을 허용
+        # (예: '로그블랙' -> '로그블랙은', '로그블랙이' 등을 매칭하기 위함)
+        # 왼쪽 경계: 문장의 시작이거나, 한글/영문/숫자가 아닌 문자가 선행
+        pattern = r'(?:^|[^가-힣a-zA-Z0-9])' + re.escape(keyword)
         return bool(re.search(pattern, text, re.IGNORECASE))
     
     def _calculate_context_score(self, title: str, summary: str) -> float:
@@ -230,10 +240,14 @@ class CrawlerService:
             # 1. 회사명 정확 매칭
             title_has_company = self._has_exact_word_match(title, company_name)
             summary_has_company = self._has_exact_word_match(summary, company_name)
+            
+            # [변경] 제목에 회사명이 있으면 점수를 대폭 상향 (0.35 -> 0.5)
+            # 이유: 제목에 회사명이 명시된 경우 관련성이 매우 높음
             if title_has_company:
-                score += 0.35
+                score += 0.50
             elif summary_has_company:
-                score += 0.20
+                # [변경] 본문에만 있어도 소폭 상향 (0.20 -> 0.30)
+                score += 0.30
             else:
                 score -= 0.10
             

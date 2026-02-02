@@ -151,7 +151,7 @@ class BaseScraper(ABC):
         """DB에서 가져온 키워드를 기반으로 정확도 최적화된 검색 쿼리 생성"""
         try:
             from src.core.database import AsyncSessionLocal
-            from src.shared.models import Company
+            from src.companies.models import Company
             from sqlalchemy import select
             
             async with AsyncSessionLocal() as session:
@@ -207,7 +207,7 @@ class BaseScraper(ABC):
     async def _build_two_track_queries(self, company_id: int, company_name: str) -> Dict[str, List[str]]:
         """DB 메타(ceo_name, positive_keywords, search_strategy)로 Two-Track 쿼리 구성"""
         from src.core.database import AsyncSessionLocal
-        from src.shared.models import Company
+        from src.companies.models import Company
         from sqlalchemy import select
 
         precision: List[str] = []
@@ -276,20 +276,27 @@ class BaseScraper(ABC):
         return queries
     
     def _has_exact_word_match(self, text: str, keyword: str) -> bool:
-        """정확한 단어 경계 매칭"""
+        """정확한 단어 경계 매칭 (한글 조사 처리 개선)"""
         import re
         if not text or not keyword:
             return False
+            
+        keyword = keyword.strip()
         
-        # 단어 경계를 고려한 정확한 매칭
-        pattern = r'\b' + re.escape(keyword.strip()) + r'\b'
+        # 영문/숫자로만 구성된 경우 -> 기존 word boundary 사용
+        if re.match(r'^[a-zA-Z0-9\s]+$', keyword):
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            return bool(re.search(pattern, text, re.IGNORECASE))
+            
+        # 한글이 포함된 경우 -> 왼쪽 경계만 체크하고 오른쪽은 조사 등을 허용
+        pattern = r'(?:^|[^가-힣a-zA-Z0-9])' + re.escape(keyword)
         return bool(re.search(pattern, text, re.IGNORECASE))
 
     async def _is_relevant_article(self, title: str, content: str, company_id: int, company_name: str) -> bool:
         """개선된 기사 관련성 검증 - 정확한 네거티브 필터링"""
         try:
             from src.core.database import AsyncSessionLocal
-            from src.shared.models import Company
+            from src.companies.models import Company
             from sqlalchemy import select
             
             async with AsyncSessionLocal() as session:

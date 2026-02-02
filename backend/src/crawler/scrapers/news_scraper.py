@@ -135,7 +135,7 @@ class NaverNewsScraper(BaseScraper):
         try:
             # 순환 참조 방지를 위해 함수 내부 import
             from src.core.database import AsyncSessionLocal
-            from src.shared.models import Company
+            from src.companies.models import Company
             from sqlalchemy import select
             
             async with AsyncSessionLocal() as session:
@@ -183,7 +183,8 @@ class NaverNewsScraper(BaseScraper):
                 "www.etnews.com": "전자신문",
                 "biz.chosun.com": "조선비즈",
                 "www.sedaily.com": "서울경제",
-                "www.fnnews.com": "파이낸셜뉴스"
+                "www.fnnews.com": "파이낸셜뉴스",
+                "www.impacton.net": "임팩트온"
             }
             return source_mapping.get(domain, domain)
         except Exception:
