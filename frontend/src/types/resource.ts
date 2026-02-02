@@ -8,6 +8,7 @@ export interface ResourceMetadata {
     tags?: string[];
     readingTime?: number;
     slug: string;
+    externalUrl?: string;
 }
 
 export interface ResourceContent {
