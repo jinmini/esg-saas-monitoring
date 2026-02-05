@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, Boolean, ForeignKey, Uniqu
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from src.shared.models import Base, TimestampMixin
+from src.users.models import User
 
 class Document(Base, TimestampMixin):
     """ESG 보고서 문서 테이블"""
