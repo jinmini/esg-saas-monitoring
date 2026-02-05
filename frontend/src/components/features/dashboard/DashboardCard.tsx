@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRef, useEffect, useState } from 'react';
 import {
   ArrowUpRight,
   BarChart3,
@@ -9,9 +10,30 @@ import {
   Calendar as CalendarIcon,
   Globe,
   TrendingUp,
+  Loader2,
 } from 'lucide-react';
+import { articlesApi } from '@/lib/api';
+import type { Article } from '@/types/api';
+import { formatDate } from '@/lib/utils';
 
 export function DashboardBentoGrid() {
+  const [news, setNews] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const response = await articlesApi.getFeed({ size: 3 });
+        setNews(response.articles);
+      } catch (error) {
+        console.error('Failed to fetch news for dashboard:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-20 auto-rows-[180px]">
 
@@ -67,14 +89,28 @@ export function DashboardBentoGrid() {
 
           {/* 미니 뉴스 리스트 위젯 */}
           <div className="flex-1 space-y-4 overflow-hidden mask-bottom-fade">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="group/item cursor-pointer">
-                <div className="text-xs text-gray-400 mb-1">2h ago</div>
-                <div className="text-sm font-medium text-gray-800 leading-snug group-hover/item:text-blue-600 transition-colors line-clamp-2">
-                  Salesforce updates Net Zero Cloud with new AI features...
-                </div>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center p-8 h-32">
+                <Loader2 size={24} className="text-blue-500 animate-spin mb-2" />
+                <span className="text-xs text-gray-400">뉴스 로드 중...</span>
               </div>
-            ))}
+            ) : news.length > 0 ? (
+              news.map((item) => (
+                <div key={item.id} className="group/item cursor-pointer">
+                  <div className="text-xs text-gray-400 mb-1 flex items-center justify-between">
+                    <span>{formatDate(item.published_at || item.crawled_at)}</span>
+                    <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">
+                      {item.company_name}
+                    </span>
+                  </div>
+                  <div className="text-sm font-medium text-gray-800 leading-snug group-hover/item:text-blue-600 transition-colors line-clamp-2">
+                    {item.title}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-gray-400 text-center py-8">데이터가 없습니다.</p>
+            )}
           </div>
         </div>
       </BentoCard>
@@ -119,10 +155,6 @@ export function DashboardBentoGrid() {
             <div className="text-xs font-semibold text-gray-500 uppercase">
               {new Date().toLocaleDateString('en-US', { month: 'long' })}, Today
             </div>
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs text-gray-600 truncate font-medium">IFRS S1/S2 Disclosure</span>
           </div>
         </div>
       </BentoCard>

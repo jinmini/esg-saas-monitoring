@@ -56,39 +56,44 @@ export function DashboardHero() {
       <div className="relative z-10 h-full max-w-7xl mx-auto px-6 flex flex-col justify-center pt-32 pb-20">
         <motion.div
           style={{ y: textY, opacity }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24 items-center"
+          className="grid grid-cols-1 lg:grid-cols-[1.4fr_0.6fr] gap-12 md:gap-24 items-center"
         >
           {/* Left: Title */}
-          <div className="space-y-8">
+          <div className="space-y-8 z-20">
             <motion.h1
-              className="text-6xl md:text-8xl lg:text-[110px] font-black tracking-tighter text-white leading-[0.9] overflow-hidden"
+              className="text-6xl md:text-8xl lg:text-[100px] font-black tracking-tight text-white leading-[1.1] md:leading-[1.05]"
               variants={containerVariants}
               initial="hidden"
               animate="visible"
             >
-              <div className="overflow-hidden flex flex-wrap gap-x-6">
-                <AnimatedWord text="Data-driven" variants={charVariants} />
+              <div className="overflow-hidden mb-2">
+                <AnimatedWord text="ESG SaaS" variants={charVariants} />
               </div>
-              <div className="overflow-hidden flex flex-wrap gap-x-6">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-400 to-blue-500">
-                  <AnimatedWord text="Future." variants={charVariants} />
+              <div className="flex flex-wrap pb-4">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-400 to-blue-500 py-1">
+                  <AnimatedWord text="Intelligence" variants={charVariants} />
                 </span>
+              </div>
+              <div className="overflow-hidden">
+                <AnimatedWord text="Platform" variants={charVariants} />
               </div>
             </motion.h1>
           </div>
 
           {/* Right: Description */}
-          <div className="lg:max-w-md lg:ml-auto">
+          <div className="lg:max-w-md lg:ml-auto z-10">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 1, delay: 0.6 }}
               className="relative"
             >
-              <div className="absolute -left-8 top-0 bottom-0 w-[1px] bg-gradient-to-b from-green-500 to-transparent hidden md:block" />
-              <p className="text-xl md:text-2xl text-gray-300 leading-relaxed font-light tracking-tight">
-                A calm structure for modern ideas. <br />
-                <span className="text-white font-medium">127+ ESG SaaS</span> companies analyzed to provide crystal clear insights.
+              <div className="absolute -left-8 top-1 bottom-1 w-[2px] bg-emerald-500/50 hidden md:block" />
+              <p className="text-xl md:text-2xl text-gray-400 leading-relaxed font-light tracking-tight">
+                130+ Global ESG SaaS <br />
+                <span className="text-white font-medium underline decoration-emerald-500/30 underline-offset-8">
+                  기업을 만나보세요.
+                </span> 
               </p>
             </motion.div>
           </div>
